@@ -1,6 +1,13 @@
-FROM python:alpine
+FROM ruimashita/scikit-learn
 
-RUN pip install django
+RUN apt-get update
+RUN apt-get -y install software-properties-common
+RUN add-apt-repository -y ppa:fkrull/deadsnakes-python2.7
+RUN apt-get -y install python2.7
+
+COPY ./requirement.txt requirement.txt
+
+RUN pip install -r requirement.txt
 
 COPY ./analyzer analyzer 
 
