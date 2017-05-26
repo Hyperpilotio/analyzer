@@ -1,0 +1,7 @@
+{
+  "name": "redis-sensor",
+  "targetApp": "redis",
+  "qosMetrics": [ "latency", "throughput", "error-rate" ],
+  "sloMetric": "latency",
+  "deployTemplate": "deploy-redis-sensor.json"
+}

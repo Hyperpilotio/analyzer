@@ -1,0 +1,26 @@
+{
+  "testId": 1,
+  "appName": "redis",
+  "numServices": 1,
+  "services": [ "redis" ],
+  "serviceInTest": "redis",
+  "serviceNode": "node-01",
+  "loadTester": "redis-bench",
+  "appCapacity": 150.0,
+  "qosSensor": "redis-sensor",
+  "sloMetric": "latency",
+  "sloTolerance": 0.1,
+  "testDuration": 60,
+  "benchmarks": [ "cpu", "memCap", "memBw" ],
+  "testResult": [
+    { "benchmark": "cpu", 
+      "toleratedInterference": 0.25
+    },
+    { "benchmark": "memCap", 
+      "toleratedInterference": 0.4
+    },
+    { "benchmark": "memBw", 
+      "toleratedInterference": 0.15
+    }
+  ]
+}

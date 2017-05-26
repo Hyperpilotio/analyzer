@@ -1,0 +1,7 @@
+{
+  "name": "redis-bench",
+  "targetApp": "redis",
+  "loadParam": "numUsers",
+  "defaultLoad": 100,
+  "deployTemplate": "deploy-redis-bench.json"
+}

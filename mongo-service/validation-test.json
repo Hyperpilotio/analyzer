@@ -1,0 +1,28 @@
+{
+  "testId": 5,
+  "appName-1": "redisApp",
+  "appName-2": "nginxApp",
+  "serviceInfo-1": [
+    { "serviceName": "redis", "nodeId": "node-01" }
+    ],
+  "serviceInfo-2": [
+    { "serviceName": "nginx", "nodeId": "node-01" }
+    ],
+  "serviceInTest-1": "redis",
+  "serviceInTest-2": "nginx",
+  "loadTester-1": "redis-bench",
+  "qosSensor-1": "redis-sensor",
+  "loadTester-2": "nginx-bench",
+  "qosSensor-2": "nginx-sensor",
+  "testDuration": 60,
+  "testResult-1": 
+    { "appCapacity": 120, 
+      "latency": 115,
+      "throughput": 185
+    },
+  "testResult-2": 
+    { "appCapacity": 380, 
+      "latency": 106,
+      "throughput": 324
+    }
+}

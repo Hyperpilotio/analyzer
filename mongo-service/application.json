@@ -1,0 +1,11 @@
+{
+  "name": "redis",
+  "type": "long-running",
+  "numServices": 1,
+  "serviceNames": ["redis"],
+  "loadTester": "redis-tester",
+  "qosSensor": "redis-monitor",
+  "sloMetric": "latency",
+  "sloValue": 10.0,
+  "sloUnit": "ms"
+}

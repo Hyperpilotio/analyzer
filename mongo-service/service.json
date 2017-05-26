@@ -1,0 +1,6 @@
+{
+  "name": "redis",
+  "isFrontEnd": true,
+  "analysisNeeded": true,
+  "deployTemplate": "deploy-redis.json"
+}

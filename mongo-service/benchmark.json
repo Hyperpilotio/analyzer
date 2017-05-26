@@ -1,0 +1,7 @@
+{
+  "name": "redis-bench",
+  "resourceType": "memoryBandwidth",
+  "intensityParam": "numReads",
+  "defaultIntensity": 0.05, 
+  "deployTemplate": "deploy-memBW-bench.json"
+}
