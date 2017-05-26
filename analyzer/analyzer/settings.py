@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'prediction',
-    'visualization',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +81,8 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
+
+DATABASE_ADDRESS = "af640dca0423a11e797230e306c4e9ed-596311498.us-east-1.elb.amazonaws.com:27017"
 
 
 # Password validation
