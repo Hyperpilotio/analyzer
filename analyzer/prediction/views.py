@@ -9,14 +9,14 @@ from models import dummy_model
 
 
 @csrf_exempt
-def predict(request):
+def testid2feature(request):
     if request.method == 'POST':
         try:
-            json_data = json.loads(request.body)
+            test_id = json.loads(request.body)['test_id']
         except Exception as e:
             response = HttpResponse(e)
         else:
-            response = JsonResponse(dummy_model())
+            response = JsonResponse(dummy_model(test_id))
     else:
         response = HttpResponse(
             "unsupported method: {}".format(request.method))

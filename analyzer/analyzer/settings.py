@@ -82,8 +82,12 @@ DATABASES = {
     }
 }
 
-DATABASE_ADDRESS = "af640dca0423a11e797230e306c4e9ed-596311498.us-east-1.elb.amazonaws.com:27017"
-
+# Hyperpilot database information
+USER = 'analyzer'
+PWD = 'hyperpilot'
+DATABASE_URL = "af640dca0423a11e797230e306c4e9ed-596311498.us-east-1.elb.amazonaws.com:27017"
+CONFIG_DB = 'configdb'
+METRIC_DB = 'metricdb'
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
