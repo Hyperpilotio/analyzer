@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 from django.conf import settings
 
-import sklearn
+from sklearn.datasets import load_digits
 from django.db import models
 from pymongo import MongoClient
 
@@ -10,8 +10,8 @@ from pymongo import MongoClient
 def dummy_model():
     # get database client
     client = connect_database()
-    # get data
-    digits = sklearn.datasets.load_digits()
+    # # get data
+    digits = load_digits()
     # compute
     result = {"dummy": "yummy"}
     # response
