@@ -10,4 +10,4 @@ docker-rm:
 	sudo docker rm -f $(shell sudo docker ps -q --filter ancestor=hyperpilot/analyzer)
 
 post-dummyfile: 
-	curl -X POST localhost:7781/prediction/predict/$1 --data-binary @./analyzer/test_request/test.json
+	curl -X POST localhost:7781/prediction/testid2feature/$1 --data-binary @./analyzer/testing_requests/test_id.json
