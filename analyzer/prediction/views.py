@@ -4,20 +4,28 @@ from __future__ import unicode_literals
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from models import dummy_model
+from models import LinearRegression1
 
 
-# @csrf_exempt
-# def testid2feature(request):
-#     if request.method == 'POST':
-#         try:
-#             test_id = json.loads(request.body)['test_id']
-#         except Exception as e:
-#             response = JsonResponse({'Exception': str(e)})
-#         else:
-#             response = JsonResponse(dummy_model(test_id))
-#     else:
-#         response = JsonResponse({'Exception':
-#                                  "Unsupported method: {}".format(request.method)}, status=500)
+@csrf_exempt
+def app2app(request):
+    if request.method == 'POST':
+        try:
+            request_body = json.loads(request.body)
+            model, app_1, app_2 = request_body[
+                'model'], request_body['app_1'], request_body['app_2']
 
-#     return response
+            if model == 'LinearRegression1':
+                response = JsonResponse(
+                    LinearRegression1(num_dims=3).fit(None, None).predict(app_1, app_2).to_dict())
+            else:
+                response = JsonResponse(
+                    {'Exception': "Unimplemented model: {}".format(model)}, status=501)
+        except Exception as e:
+            response = JsonResponse({'Exception': str(e)}, status=500)
+
+    else:
+        response = JsonResponse({'Exception':
+                                 "Unsupported method: {}".format(request.method)}, status=501)
+
+    return response

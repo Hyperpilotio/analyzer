@@ -2,8 +2,7 @@
 from __future__ import unicode_literals
 
 import json
-from django.test import TestCase
-from django.test import Client
+from django.test import TestCase, Client
 
 
 class BasicTest(TestCase):
@@ -19,10 +18,10 @@ class BasicTest(TestCase):
                                     content_type="application/json")
         data = json.loads(response.content)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 200, response)
         self.assertEquals(data['echo'], 'ohce')
 
     def test_connect_db(self):
         response = self.client.get('/tests/connect_db/')
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 200, response)
