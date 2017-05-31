@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'prediction',
+    'tests',
 ]
 
 MIDDLEWARE = [
@@ -85,7 +86,7 @@ DATABASES = {
 # Hyperpilot database information
 USER = 'analyzer'
 PWD = 'hyperpilot'
-DATABASE_URL = "af640dca0423a11e797230e306c4e9ed-596311498.us-east-1.elb.amazonaws.com:27017"
+DATABASE_URL = "a10f035b0455c11e7bb8c0ec56acc954-1600955200.us-east-1.elb.amazonaws.com:27017"
 CONFIG_DB = 'configdb'
 METRIC_DB = 'metricdb'
 

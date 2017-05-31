@@ -1,7 +1,7 @@
 # analyzer
 Analyzer performs interference prediction and validation
 
-Usage:
+#### Usage:
 	
 1. Build docker image
 
@@ -11,8 +11,10 @@ Usage:
 
 		make docker-run
 		
-3. Send request (post a json to analyzer)
+3. Test server 
 
-		make post-dummyfile
+		make docker-test
 		
-		#expected response: {"dummy": "yummy"}
+#### Configurations:
+MongoDB account info is located at "analyzer/analyzer/settings.py"
+	
