@@ -15,6 +15,9 @@ Analyzer performs interference prediction and validation
 
 		make docker-test
 		
-#### Configurations:
-MongoDB account info is located at "analyzer/analyzer/settings.py"
+#### Configuration:
+configuration file is located in 'config.json'
+
 	
+#### Prerequisite:
+In order to connect to database, connecting to VPN is needed for now.

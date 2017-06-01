@@ -15,16 +15,15 @@ class PredictionTest(TestCase):
         response = self.client.post('/prediction/app2app/',
                                     data=json.dumps(app2app_sample_request()),
                                     content_type="application/json")
+
+        self.assertEquals(response.status_code, 200, response)
         data = json.loads(response.content)
 
         print '====Request===='
         print app2app_sample_request()
-        print 
-
+        print
         print '====Cross-App Interference Score Prediction===='
         print pd.read_json(response.content)
-
-        self.assertEquals(response.status_code, 200, response)
 
 
 def app2app_sample_request():
