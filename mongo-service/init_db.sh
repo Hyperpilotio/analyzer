@@ -1,6 +1,7 @@
 #!/bin/bash
 
-MONGO_URL=`kubectl describe services mongo-publicport0 | grep elb | cut -d":" -f2 | xargs`:27017
+#MONGO_URL=`kubectl describe services mongo-publicport0 | grep elb | cut -d":" -f2 | xargs`:27017
+MONGO_URL="internal-mongo-elb-624130134.us-east-1.elb.amazonaws.com:27017"
 echo mongodb service running at: $MONGO_URL
 MONGO_USER=analyzer
 MONGO_PWD=hyperpilot
