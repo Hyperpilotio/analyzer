@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import json
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -84,11 +85,18 @@ DATABASES = {
 }
 
 # Hyperpilot database information
-USER = 'analyzer'
-PWD = 'hyperpilot'
-DATABASE_URL = "a10f035b0455c11e7bb8c0ec56acc954-1600955200.us-east-1.elb.amazonaws.com:27017"
-CONFIG_DB = 'configdb'
-METRIC_DB = 'metricdb'
+CONFIG_FILEPATH = '../config.json'
+try:
+    with open(CONFIG_FILEPATH, 'r') as fd:
+        config = json.load(fd)
+except IOError as e:
+    raise e
+
+DATABASE_URL = config['mongoDB']['url']
+USER = config['analyzer']['mongoDB_user']
+PWD = config['analyzer']['mongoDB_password']
+CONFIG_DB = config['analyzer']['configDB_name']
+METRIC_DB = config['analyzer']['metricDB_name']
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators

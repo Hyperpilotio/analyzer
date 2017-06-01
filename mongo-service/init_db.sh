@@ -1,7 +1,6 @@
 #!/bin/bash
 
-#MONGO_URL=`kubectl describe services mongo-publicport0 | grep elb | cut -d":" -f2 | xargs`:27017
-MONGO_URL="internal-mongo-elb-624130134.us-east-1.elb.amazonaws.com:27017"
+MONGO_URL=internal-mongo-elb-624130134.us-east-1.elb.amazonaws.com:27017
 echo mongodb service running at: $MONGO_URL
 MONGO_USER=analyzer
 MONGO_PWD=hyperpilot
@@ -20,3 +19,7 @@ echo Create new collections and documents in metricdb
 mongoimport -h $MONGO_URL -u $MONGO_USER -p $MONGO_PWD --db=metricdb --collection=calibration --type=json --file=calibration-test.json
 mongoimport -h $MONGO_URL -u $MONGO_USER -p $MONGO_PWD --db=metricdb --collection=profiling --type=json --file=profiling-test.json
 mongoimport -h $MONGO_URL -u $MONGO_USER -p $MONGO_PWD --db=metricdb --collection=validation --type=json --file=validation-test.json
+
+ls -1 ./test_profiles/*.json | while read col; do 
+    mongoimport -h $MONGO_URL -u $MONGO_USER -p $MONGO_PWD --db=metricdb --collection=profiling --type=json --file=$col; 
+done
