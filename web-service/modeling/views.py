@@ -8,7 +8,7 @@ from models import LinearRegression1
 
 
 @csrf_exempt
-def app2app(request):
+def predict_app2app(request):
     if request.method == 'POST':
         try:
             request_body = json.loads(request.body)

@@ -11,7 +11,7 @@ class BasicTest(TestCase):
         self.client = Client()
 
     def test_echo(self):
-        response = self.client.post('/tests/echo/',
+        response = self.client.post('/core/echo/',
                                     data=json.dumps({
                                         'echo': 'ohce'
                                     }),
@@ -22,6 +22,6 @@ class BasicTest(TestCase):
         self.assertEquals(data['echo'], 'ohce')
 
     def test_connect_db(self):
-        response = self.client.get('/tests/connect_db/')
+        response = self.client.get('/core/connect_db/')
 
         self.assertEquals(response.status_code, 200, response)

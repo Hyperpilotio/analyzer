@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import pandas as pd
-from mongodb_util import create_dataframe
+from mongodb_util import create_profiling_dataframe
 
 class LinearRegression1():
     """ Linear Regression1
@@ -43,7 +43,7 @@ class LinearRegression1():
         Returns:
             cais_dataframe(pandas dataframe): NxK matrix where N, K are number of services of app1 and app2.
         """
-        df1, df2 = create_dataframe(app1_name), create_dataframe(app2_name)
+        df1, df2 = create_profiling_dataframe(app1_name), create_profiling_dataframe(app2_name)
         df1.name, df2.name = app1_name, app2_name
 
         cais_matrix = np.zeros((len(df1.index), len(df2.index)))

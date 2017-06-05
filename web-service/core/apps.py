@@ -4,5 +4,5 @@ from __future__ import unicode_literals
 from django.apps import AppConfig
 
 
-class ProfilingConfig(AppConfig):
-    name = 'profiling'
+class TestsConfig(AppConfig):
+    name = 'core'

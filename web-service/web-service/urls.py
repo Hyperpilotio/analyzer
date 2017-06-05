@@ -1,4 +1,4 @@
-"""analyzer URL Configuration
+"""web-service URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/1.11/topics/http/urls/
@@ -19,6 +19,6 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^prediction/', include('prediction.urls')),
-    url(r'^tests/', include('tests.urls'))
+    url(r'^core/', include('core.urls')),
+    url(r'^modeling/', include('modeling.urls'))
 ]

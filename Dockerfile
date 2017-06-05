@@ -1,8 +1,8 @@
 FROM python:2.7.13-onbuild
 
 COPY ./requirements.txt requirements.txt
-COPY ./analyzer analyzer 
+COPY ./web-service web-service 
 
-WORKDIR ./analyzer
+WORKDIR ./web-service
 
 EXPOSE 7781
