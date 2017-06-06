@@ -12,7 +12,7 @@ class PredictionTest(TestCase):
         self.client = Client()
 
     def test_app2app(self):
-        response = self.client.post('/modeling/predict_app2app/',
+        response = self.client.post('/cross_app/predict/',
                                     data=json.dumps(app2app_sample_request()),
                                     content_type="application/json")
 

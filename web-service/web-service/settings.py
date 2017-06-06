@@ -40,8 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'core',
-    'modeling',
     'api',
+    'single_app',
+    'cross_app'
 ]
 
 MIDDLEWARE = [
