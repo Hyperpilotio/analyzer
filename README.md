@@ -21,3 +21,9 @@ configuration file is located in 'config.json'
 	
 #### Prerequisite:
 In order to connect to database, connecting to VPN is needed for now.
+
+#### UI:
+	
+	make docker-build
+	make docker-run
+then connect to: [http://localhost:7781](http://localhost:7781)
