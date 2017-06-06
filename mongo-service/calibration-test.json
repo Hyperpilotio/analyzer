@@ -11,36 +11,16 @@
   "testDuration": 60,
   "testResult": [
     { "loadIntensity": 20, 
-      "latency": 45,
-      "throughput": 40
+      "qosMetric": 45
     },
     { "loadIntensity": 40, 
-      "latency": 68,
-      "throughput": 80
+      "qosMetric": 68
     },
     { "loadIntensity": 60, 
-      "latency": 85,
-      "throughput": 115
+      "qosMetric": 85
       },
     { "loadIntensity": 80, 
-      "latency": 94,
-      "throughput": 124
-      },
-    { "loadIntensity": 100, 
-      "latency": 105,
-      "throughput": 130
-      },
-    { "loadIntensity": 120, 
-      "latency": 119,
-      "throughput": 134
-    },
-    { "loadIntensity": 140, 
-      "latency": 142,
-      "throughput": 136
-    },
-    { "loadIntensity": 160, 
-      "latency": 175,
-      "throughput": 137
-    }
+      "qosMetric": 94
+      }
   ]
 }
