@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.conf import settings
 from pymongo import MongoClient
 from single_app import views as single_app_views
+from core.mongo_util import get_available_apps
 
 
 @csrf_exempt
@@ -38,12 +39,5 @@ def connect_db(request):
 
 
 def empty(request):
-    return render(request, 'core/empty.html', {})
+    return render(request, 'core/empty.html', {'apps': set(get_available_apps(collection='profiling'))})
 
-
-def search(request):
-    if 'q' in request.GET:
-        app_name = request.GET.get('q').strip()
-    else:
-        return redirect('/')
-    return single_app_views.show(request, app_name=app_name)

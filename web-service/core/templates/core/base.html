@@ -6,8 +6,12 @@
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
     <link href="{% static 'css/base.css' %}" rel="stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css">
+    
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
+    <script src="{% static 'js/search.js' %}"></script>
     {% block head %}
     {% endblock %}
   </head>
@@ -27,18 +31,19 @@
               <a class="navbar-brand" href="{% url 'empty' %}">Analyzer</a>
             </div>
             <div class="collapse navbar-collapse" id="menu">
-              <form class="navbar-form navbar-left" role="search" action="{% url 'search' %}">
-                <div class="input-group" style="width:210px">
-                  <input type="text" class="form-control" name="q" placeholder="appName">
-                  <span class="input-group-btn">
-                    <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
-                  </span>
+              <form class="navbar-form navbar-nav" role="search">
+                <div class="input-group">
+                  <select class="selectpicker form-control" data-live-search="true">
+                    <option data-hidden="true">Pick One</option>
+                    {% for app in apps %}
+                      <option value=app>{{app}}</option>
+                    {% endfor %}
+                  </select>
                 </div>
               </form>
               <ul class="nav navbar-nav">
                 <li><a href="#">[Cross-App]</a></li>
               </ul>
-
             </div>
           </div>
         </nav>
