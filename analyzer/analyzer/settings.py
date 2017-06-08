@@ -92,11 +92,7 @@ try:
 except IOError as e:
     raise e
 
-<<<<<<< HEAD
-DATABASE_URL = config['mongoDB']['url']
-=======
 DATABASE_URL = config['mongoDB']['url']+':{}'.format(config['mongoDB']['port'])
->>>>>>> 333b74f6235639dafc34781c55161dc9d8f0975e
 USER = config['analyzer']['mongoDB_user']
 PWD = config['analyzer']['mongoDB_password']
 CONFIG_DB = config['analyzer']['configDB_name']
