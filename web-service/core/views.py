@@ -3,9 +3,12 @@ from __future__ import unicode_literals
 
 import json
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.conf import settings
 from pymongo import MongoClient
+from single_app import views as single_app_views
+from core.mongo_util import get_available_apps
 
 
 @csrf_exempt
@@ -33,3 +36,10 @@ def connect_db(request):
 
     else:
         return JsonResponse({'connect_db': 'OK'})
+
+
+def empty(request):
+    return render(request, 'core/empty.html',
+                  {'calibration_apps': get_available_apps(collection='calibration'),
+                   'profiling_apps': get_available_apps(collection='profiling'),
+                   'validation_apps': get_available_apps(collection='validation')})

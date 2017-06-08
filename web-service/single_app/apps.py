@@ -4,5 +4,5 @@ from __future__ import unicode_literals
 from django.apps import AppConfig
 
 
-class PredictionConfig(AppConfig):
-    name = 'prediction'
+class SingleAppConfig(AppConfig):
+    name = 'single_app'
