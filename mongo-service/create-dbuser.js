@@ -1,6 +1,3 @@
-db = connect('internal-mongo-elb-624130134.us-east-1.elb.amazonaws.com:27017/admin');
-db.auth( "admin", "hyperpilot" );
-
 db = db.getSiblingDB('configdb');
 db.createUser ( {
     user: "analyzer",
