@@ -65,12 +65,13 @@ def services_json(request, app_name):
     return JsonResponse(services_json)
 
 
-def calibration_json(request, app_name):
+def calibration_json(request, app_id):
 
     return JsonResponse({})
 
 
-def profiling_json(request, app_name):
+def profiling_json(request, app_id):
+
     return JsonResponse({})
 
 

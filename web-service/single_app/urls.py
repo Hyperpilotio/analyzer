@@ -6,6 +6,8 @@ urlpatterns = [
         views.calibration, name='calibration'),
     url(r'^profiling/(?P<app_id>[-\w]+)$',
         views.profiling, name='profiling'),
+
+    # endpoints for json data. 
     url(r'^services_json/(?P<app_name>[-\w]+)$',
         views.services_json, name='services_json'),
     url(r'^calibration_json/(?P<app_id>[-\w]+)$',

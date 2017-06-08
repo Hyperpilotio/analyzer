@@ -3,11 +3,16 @@ import numpy as np
 from django.conf import settings
 from pymongo import MongoClient
 
-# still in a mess, code is highly dependent on the database schema
 
-
-def find_all(collection, filt, database=settings.METRIC_DB):
-    """ A wrapper for find_all.
+def find_all(collection, filt={}, proj={}, database=settings.METRIC_DB, return_list=False):
+    """ A wrapper for 'find' to ensure the connection will be closed.
+    Args:
+        collection(str): mongoDB collection
+        filt(dict): mongoDB filter
+        proj(dict): mongoDB projection
+        database(str): name of database
+    Return:
+        documents(cursor): mongoDB cursor 
     """
     try:
         client = MongoClient(settings.DATABASE_URL, waitQueueTimeoutMS=200)
@@ -17,11 +22,20 @@ def find_all(collection, filt, database=settings.METRIC_DB):
     except Exception as e:
         raise e
     else:
-        return documents
+        return documents if not return_list else list(documents)
+    finally:
+        client.close()
 
 
 def find_one(collection, filt, database=settings.METRIC_DB):
-    """ A wrapper for find_all.
+    """ A wrapper for 'findOne' to ensure the connection will be closed.
+    Args:
+        collection(str): mongoDB collection
+        filt(dict): mongoDB filter
+        proj(dict): mongoDB projection
+        database(str): name of database
+    Return:
+        documents(cursor): mongoDB cursor 
     """
     try:
         client = MongoClient(settings.DATABASE_URL, waitQueueTimeoutMS=200)
@@ -32,23 +46,24 @@ def find_one(collection, filt, database=settings.METRIC_DB):
         raise e
     else:
         return document
+    finally:
+        client.close()
 
 
 def get_available_apps(collection):
-    try:
-        # TODO: inefficient?
-        documents = find_all(collection=collection, filt={})
-        apps = []
-        if documents:
-            for i in documents:
-                if 'appName' in i.keys():
-                    apps.append({'appName': i['appName'], 'id': i['_id']})
-    except Exception as e:
-        raise e
-    else:
-        return apps
+    """
+    Return:
+        apps(list): list of dictionary.
+    """
+    documents, apps = find_all(collection=collection, filt={}), []
+    if documents:
+        for i in documents:
+            if 'appName' in i.keys():
+                apps.append({'appName': i['appName'], 'id': i['_id']})
 
+    return apps
 
+#TODO: probably need to change to app_id.
 def create_profiling_dataframe(app_name):
     """ Create a dataframe of features.
     Args:
@@ -81,26 +96,16 @@ def create_profiling_dataframe(app_name):
 
 
 def get_services(app_name):
+    """ Request from configDB, assuming appName is unique here.
+    """
     filt = {'name': app_name}
     database, collection = settings.CONFIG_DB, 'applications'
 
     # alway search from configdb.application.
-    app = find_one(database=database,
-                   collection=collection, filt=filt)
+    app = find_one(database=database, collection=collection, filt=filt)
     if app == None:
         raise KeyError(
             'Cannot find document: filter={}, databse={}, collection={}'.format(filt, database, collection))
     service_names = app['serviceNames']
 
     return service_names
-
-
-def get_calibration_document(app_name):
-    filt = {'appName': app_name}
-    collection = 'calibration'
-    document = find_one(collection=collection, filt=filt)
-    if document == None:
-        raise KeyError(
-            'Cannot find document: filter={}, collection={}'.format(filt, collection))
-
-    return document
