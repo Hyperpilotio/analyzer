@@ -9,6 +9,16 @@ db.createUser ( {
   }
 );
 
+db.createUser ( {
+    user: "profiler",
+    pwd: "hyperpilot",
+    roles: [
+	     { role: "readWrite", db: "configdb" },
+	     { role: "readWrite", db: "metricdb" }
+           ]
+  }
+);
+
 db = db.getSiblingDB('metricdb');
 db.createUser ( {
     user: "analyzer",
@@ -20,11 +30,10 @@ db.createUser ( {
   }
 );
 
-db = db.getSiblingDB('configdb');
 db.createUser ( {
     user: "profiler",
     pwd: "hyperpilot",
-    roles: [ 
+    roles: [
 	     { role: "readWrite", db: "configdb" },
 	     { role: "readWrite", db: "metricdb" }
            ]
