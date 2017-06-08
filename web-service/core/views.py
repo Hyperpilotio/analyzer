@@ -39,5 +39,7 @@ def connect_db(request):
 
 
 def empty(request):
-    return render(request, 'core/empty.html', {'apps': set(get_available_apps(collection='profiling'))})
-
+    return render(request, 'core/empty.html',
+                  {'calibration_apps': get_available_apps(collection='calibration'),
+                   'profiling_apps': get_available_apps(collection='profiling'),
+                   'validation_apps': get_available_apps(collection='validation')})

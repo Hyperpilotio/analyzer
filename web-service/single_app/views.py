@@ -3,43 +3,75 @@ from __future__ import unicode_literals
 
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.conf import settings
+from bson.objectid import ObjectId
 import core.mongo_util as mu
 
 
-def show(request, app_name):
-    """ Load data from mongoDB and construct json objects.
-    Args:
-        app_name(str): The 'appName' in database.
-    """
+def get_apps_helper():
     try:
-        apps = set(mu.get_available_apps(collection='profiling'))
+        calibration_apps = mu.get_available_apps(collection='calibration')
+        profiling_apps = mu.get_available_apps(collection='profiling')
+        validation_apps = mu.get_available_apps(collection='validation')
+        apps = {'calibration_apps': calibration_apps,
+                'profiling_apps': profiling_apps,
+                'validation_apps': validation_apps}
+    except Exception as e:
+        raise e
+    else:
+        return apps
 
-        services = mu.get_services(app_name)
-        services_json = {'num_service': len(
-            services), 'servies_name': services}
 
-        # what information to be sent?
-        calibration_json = {}
-        calibration_document = mu.get_calibration_document(app_name)
-        calibration_json['x_axis'] = [i['loadIntensity']
-                                      for i in calibration_document['testResult']]
-        calibration_json['y_axis'] = [[i['throughput']
-                                       for i in calibration_document['testResult']]]
-        calibration_json['y_axis'].append(
-            [i['latency'] for i in calibration_document['testResult']])
+def calibration(request, app_id):
+    try:
+        dictionary = get_apps_helper()
+        # reverse for appName
+        app_name = mu.find_one(collection='calibration',
+                               database=settings.METRIC_DB, filt={'_id': ObjectId(app_id)})['appName']
 
-        profiling_json = mu.create_profiling_dataframe(app_name).to_json()
-
+        dictionary['app_name'] = app_name
     except Exception as e:
         return JsonResponse({'Exception': str(e)})
     else:
-        return render(request, 'single_app/single_app.html',
-                      {'apps': apps,
-                       'app_name': app_name,
-                       'json': {
-                           'services': services_json,
-                           'calibration': calibration_json,
-                           'profiling': profiling_json}})
+        return render(request, 'single_app/calibration.html', dictionary)
+
+
+def profiling(request, app_id):
+    try:
+        dictionary = get_apps_helper()
+        # reverse for appName
+        app_name = mu.find_one(collection='profiling',
+                               database=settings.METRIC_DB, filt={'_id': ObjectId(app_id)})['appName']
+        dictionary['app_name'] = app_name
+    except Exception as e:
+        return JsonResponse({'Exception': str(e)})
+    else:
+        return render(request, 'single_app/profiling.html', dictionary)
+
+
+def services_json(request, app_name):
+    """ Generate the content for service_component.html
+    """
+    services = mu.get_services(app_name)
+    # make format like this http://sunsp.net/code/main_bubble_json.html
+    services_json = {'name': 'bubble',
+                     'children': [
+                         {'name': app_name,
+                             'description': 'some description here', 'children': []}
+                     ]}
+    for service in services:
+        services_json['children'][0]['children'].append({'name': service})
+
+    return JsonResponse(services_json)
+
+
+def calibration_json(request, app_name):
+
+    return JsonResponse({})
+
+
+def profiling_json(request, app_name):
+    return JsonResponse({})
 
 
 def dummyJson():

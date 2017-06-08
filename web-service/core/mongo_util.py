@@ -38,7 +38,11 @@ def get_available_apps(collection):
     try:
         # TODO: inefficient?
         documents = find_all(collection=collection, filt={})
-        apps = [i['appName'] for i in documents] if documents != None else []
+        apps = []
+        if documents:
+            for i in documents:
+                if 'appName' in i.keys():
+                    apps.append({'appName': i['appName'], 'id': i['_id']})
     except Exception as e:
         raise e
     else:
@@ -53,55 +57,50 @@ def create_profiling_dataframe(app_name):
         df(pandas dataframe): Dataframe with rows of features, where each row is a service.
         (i.e. if an app has N services, where each service has K dimensions, the dataframe would be NxK)
     """
-    try:
-        filt = {'appName': app_name}
+    filt = {'appName': app_name}
+    app = find_one(collection='profiling', filt=filt)
+    if app == None:
+        raise KeyError(
+            'Cannot find document: filter={}'.format(filt))
+    service_names = pd.Index(app['services'])
+    benchmark_names = pd.Index(app['benchmarks'])
+
+    # make dataframe
+    ibench_scores = []
+    for service in service_names:
+        {'appName': app_name, 'serviceInTest': service}
         app = find_one(collection='profiling', filt=filt)
         if app == None:
             raise KeyError(
                 'Cannot find document: filter={}'.format(filt))
-        service_names = pd.Index(app['services'])
-        benchmark_names = pd.Index(app['benchmarks'])
-
-        # make dataframe
-        ibench_scores = []
-        for service in service_names:
-            {'appName': app_name, 'serviceInTest': service}
-            app = find_one(collection='profiling', filt=filt)
-            if app == None:
-                raise KeyError(
-                    'Cannot find document: filter={}'.format(filt))
-            ibench_scores.append([i['toleratedInterference']
-                                  for i in app['testResult']])
-        df = pd.DataFrame(data=np.array(ibench_scores),
-                          index=service_names, columns=benchmark_names)
-    except Exception as e:
-        raise e
-    else:
-        return df
+        ibench_scores.append([i['toleratedInterference']
+                              for i in app['testResult']])
+    df = pd.DataFrame(data=np.array(ibench_scores),
+                      index=service_names, columns=benchmark_names)
+    return df
 
 
 def get_services(app_name):
-    try:
-        filt = {'appName': app_name}
-        app = find_one(collection='profiling', filt=filt)
-        if app == None:
-            raise KeyError(
-                'Cannot find document: filter={}'.format(filt))
-        service_names = app['services']
-    except Exception as e:
-        raise e
-    else:
-        return service_names
+    filt = {'name': app_name}
+    database, collection = settings.CONFIG_DB, 'applications'
+
+    # alway search from configdb.application.
+    app = find_one(database=database,
+                   collection=collection, filt=filt)
+    if app == None:
+        raise KeyError(
+            'Cannot find document: filter={}, databse={}, collection={}'.format(filt, database, collection))
+    service_names = app['serviceNames']
+
+    return service_names
 
 
 def get_calibration_document(app_name):
-    try:
-        filt = {'appName': app_name}
-        document = find_one(collection='calibration', filt=filt)
-        if document == None:
-            raise KeyError(
-                'Cannot find document: filter={}'.format(filt))
-    except Exception as e:
-        raise e
-    else:
-        return document
+    filt = {'appName': app_name}
+    collection = 'calibration'
+    document = find_one(collection=collection, filt=filt)
+    if document == None:
+        raise KeyError(
+            'Cannot find document: filter={}, collection={}'.format(filt, collection))
+
+    return document

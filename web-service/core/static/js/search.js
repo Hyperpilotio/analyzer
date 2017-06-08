@@ -1,6 +1,10 @@
 $(function () {
-    $('.selectpicker').change(function () {
-        var request_data = $('.selectpicker option:selected').text();
-        window.location.href = '/single_app/show/' + request_data;
+    $('.selectpicker-calibration').change(function () {
+        var request_data = $('.selectpicker-calibration option:selected').val();
+        window.location.href = '/single_app/calibration/' + request_data;
+    });
+    $('.selectpicker-profiling').change(function () {
+        var request_data = $('.selectpicker-profiling option:selected').val();
+        window.location.href = '/single_app/profiling/' + request_data;
     });
 });

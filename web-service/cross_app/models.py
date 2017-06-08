@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import pandas as pd
-from mongodb_util import create_profiling_dataframe
+from core.mongo_util import create_profiling_dataframe
 
 class LinearRegression1():
     """ Linear Regression1
