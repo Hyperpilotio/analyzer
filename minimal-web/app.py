@@ -1,6 +1,7 @@
 import json
+from parse import parse
 from pathlib import Path
-from flask import Flask, render_template
+from flask import Flask, render_template, request, abort, redirect
 from pymongo import MongoClient
 
 app = Flask(__name__)
@@ -15,4 +16,22 @@ metricdb.authenticate(config["analyzer"]["mongoDB_user"], config["analyzer"]["mo
 
 @app.route("/")
 def index():
-    return render_template("index.html", apps=configdb.applications.find())
+    apps = list(configdb.applications.find())
+    for app in apps:
+        app["loadTester"] = json.dumps(app["loadTester"], indent=4)
+    return render_template("index.html", apps=apps)
+
+
+@app.route("/modify-slo", methods=["GET"])
+def modification_form():
+    return render_template("modification_form.html", apps=configdb.applications.find())
+
+@app.route("/modify-slo", methods=["POST"])
+def modify_slo():
+    for name, value in request.form.items():
+        match = parse("slo-{name}", name)
+        if match is not None:
+            app_name = match["name"]
+            val = float(value)
+            configdb.applications.update({"name": app_name}, {"$set": {"slo.value": val}})
+    return redirect("/modify-slo")

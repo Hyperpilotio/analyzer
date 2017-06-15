@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analyzer</title>
+</head>
+<body>
+  <form method="POST" action="/modify-slo">
+    {% for app in apps %}
+    <label>{{ app.name }}</label>
+    <table>
+      <tr>
+        <th>Metric: </th>
+        <td>{{ app.slo.metric }}</td>
+      </tr>
+      <tr>
+        <th>Type: </th>
+        <td>{{ app.slo.type }}</td>
+      </tr>
+      <tr>
+        <th>Value: </th>
+        <td>
+          <input type="text" value="{{ app.slo.value }}" name="slo-{{ app.name }}">
+        </td>
+      </tr>
+    </table>
+    <br />
+    {% endfor %}
+    <input type="submit">
+  </form>
+</body>
+</html>

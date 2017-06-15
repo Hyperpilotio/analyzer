@@ -7,9 +7,32 @@
 <body>
   {% for app in apps %}
   <div>
-    {{ app.name }}
-    {{ app.type }}
+    <h2>{{ app.name }}</h2>
+    <p>Type: {{ app.type }}</p>
+    <p>Services: {{ app.serviceNames }}</p>
+    <div>
+      <strong>SLO:</strong>
+      <table>
+        <tr>
+          <th>Metric: </th>
+          <td>{{ app.slo.metric }}</td>
+        </tr>
+        <tr>
+          <th>Type: </th>
+          <td>{{ app.slo.type }}</td>
+        </tr>
+        <tr>
+          <th>Value: </th>
+          <td>{{ app.slo.value }}</td>
+        </tr>
+      </table>
+    </div>
+    <div>
+      <strong>Load tester:</strong>
+      <pre>{{ app.loadTester }}</pre>
+    </div>
   </div>
+  <hr />
   {% endfor %}
 </body>
 </html>
