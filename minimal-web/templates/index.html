@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analyzer</title>
+</head>
+<body>
+  {% for app in apps %}
+  <div>
+    {{ app.name }}
+    {{ app.type }}
+  </div>
+  {% endfor %}
+</body>
+</html>
