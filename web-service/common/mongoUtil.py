@@ -2,9 +2,25 @@ import logging
 import traceback
 import pandas as pd
 import numpy as np
+try:
+    from functools import lru_cache
+except ImportError:
+    from functools32 import lru_cache
 from django.conf import settings
 from pymongo import MongoClient
 log = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def getMongoClient():
+    return MongoClient(settings.DATABASE_URL, waitQueueTimeoutMS=200)
+
+@lru_cache(maxsize=2)
+def getDatabase(database):
+    client = getMongoClient()
+    db = client[database]
+    db.authenticate(settings.USER, settings.PWD, source=database)
+    return db
 
 
 def findAll(collection, filt={}, proj=None, database=settings.METRIC_DB, returnList=False):
@@ -18,11 +34,8 @@ def findAll(collection, filt={}, proj=None, database=settings.METRIC_DB, returnL
         documents(cursor): mongoDB cursor, 'None' if not found.
     """
     try:
-        client = MongoClient(settings.DATABASE_URL, waitQueueTimeoutMS=200)
-        db = client[database]
-        db.authenticate(settings.USER, settings.PWD, source=database)
-        documents = db[collection].find(filt, proj) if proj else db[
-            collection].find(filt)
+        db = getDatabase(database)
+        documents = db[collection].find(filter=filt, projection=proj)
     except Exception as e:
         log.exception(e)
         return [] if returnList else None
@@ -31,8 +44,6 @@ def findAll(collection, filt={}, proj=None, database=settings.METRIC_DB, returnL
             collection, filt, proj, database))
         log.debug('got {}'.format(documents))
         return documents if not returnList else list(documents)
-    finally:
-        client.close()
 
 
 def findOne(collection, filt={}, proj=None, database=settings.METRIC_DB):
@@ -46,11 +57,8 @@ def findOne(collection, filt={}, proj=None, database=settings.METRIC_DB):
         documents(cursor): dictionary, 'None' if not found.
     """
     try:
-        client = MongoClient(settings.DATABASE_URL, waitQueueTimeoutMS=200)
-        db = client[database]
-        db.authenticate(settings.USER, settings.PWD, source=database)
-        documents = db[collection].find_one(filt, proj) if proj else db[
-            collection].find_one(filt)
+        db = getDatabase(database)
+        documents = db[collection].find_one(filter=filt, projection=proj)
     except Exception as e:
         log.exception(e)
         return None
@@ -59,8 +67,6 @@ def findOne(collection, filt={}, proj=None, database=settings.METRIC_DB):
             collection, filt, proj, database))
         log.debug('got {}'.format(documents))
         return documents
-    finally:
-        client.close()
 
 
 def getAvailableApps(collection):
