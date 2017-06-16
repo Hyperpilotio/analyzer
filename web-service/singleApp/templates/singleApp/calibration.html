@@ -1,0 +1,21 @@
+{% extends 'common/base.html' %}
+
+{% block main %}
+
+<div class="container">
+  <h2>Calibration: {{document.appName}} {{document.appId}}</h2>
+  <div class="panel panel-default">
+    <div class="panel-heading">Services</div>
+    <p>bubble plot here?</p>
+    {% include 'singleApp/services_partial.html' with document=document %}
+  </div>
+</div>
+<div class="container">
+  <div class="panel panel-default">
+    <div class="panel-heading">calibration results</div>
+    <p>factorplot here</p>
+    {% include 'singleApp/calibration_partial.html' with document=document %}
+  </div>
+</div>
+
+{% endblock main %}
