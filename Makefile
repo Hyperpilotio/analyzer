@@ -11,3 +11,9 @@ docker-rm:
 	
 docker-test:
 	sudo docker run hyperpilot/analyzer ./manage.py test
+
+build-slo-form:
+	docker build -t hyperpilot/analyzer:config -f Dockerfile.slo-config .
+
+run-slo-form:
+	docker run -d -p 5000:5000 hyperpilot/analyzer:config
