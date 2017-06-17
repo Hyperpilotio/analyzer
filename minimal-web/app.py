@@ -1,10 +1,11 @@
 import json
 from parse import parse
 from pathlib import Path
-from flask import Flask, render_template, request, abort, redirect
+from flask import Flask, render_template, request, redirect, flash, url_for
 from pymongo import MongoClient
 
 app = Flask(__name__)
+app.secret_key = "5b52c330e091daea8979d94b3cbf6e4ff9f43fdf685787c8"
 with open(Path(__file__).absolute().parent.parent / "config.json") as f:
     config = json.load(f)
 
@@ -28,10 +29,18 @@ def modification_form():
 
 @app.route("/modify-slo", methods=["POST"])
 def modify_slo():
+    updated = []
     for name, value in request.form.items():
         match = parse("slo-{name}", name)
         if match is not None:
             app_name = match["name"]
             val = float(value)
-            configdb.applications.update({"name": app_name}, {"$set": {"slo.value": val}})
-    return redirect("/modify-slo")
+            update_result = configdb.applications.update_one(
+                {"name": app_name},
+                {"$set": {"slo.value": val}}
+            )
+            if update_result.modified_count > 0:
+                updated.append(app_name)
+    if updated:
+        flash("Successfully updated SLO values for {}".format(", ".join(updated)))
+    return redirect(url_for("index"))

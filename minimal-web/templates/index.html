@@ -5,6 +5,11 @@
   <title>Analyzer</title>
 </head>
 <body>
+  {% with messages = get_flashed_messages() %}
+    {% for message in messages %}
+    <p style="color: green">{{ message }}</p>
+    {% endfor %}
+  {% endwith %}
   {% for app in apps %}
   <div>
     <h2>{{ app.name }}</h2>
@@ -23,7 +28,7 @@
         </tr>
         <tr>
           <th>Value: </th>
-          <td>{{ app.slo.value }}</td>
+          <td>{{ app.slo.value }} (<a href="{{ url_for('modification_form') }}">Edit</a>)</td>
         </tr>
       </table>
     </div>
