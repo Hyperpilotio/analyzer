@@ -31,13 +31,16 @@ def modification_form():
 def modify_slo():
     updated = []
     for name, value in request.form.items():
-        match = parse("slo-{name}", name)
+        match = parse("slo-{name}-{metric}", name)
         if match is not None:
             app_name = match["name"]
-            val = float(value)
+            metric = match["metric"]
+            val = value
+            if metric == "value":
+                val = float(val)
             update_result = configdb.applications.update_one(
                 {"name": app_name},
-                {"$set": {"slo.value": val}}
+                {"$set": {"slo." + metric: val}}
             )
             if update_result.modified_count > 0:
                 updated.append(app_name)

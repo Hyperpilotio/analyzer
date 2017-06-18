@@ -11,16 +11,20 @@
     <table>
       <tr>
         <th>Metric: </th>
-        <td>{{ app.slo.metric }}</td>
+        <td>
+          <input type="text" value="{{ app.slo.metric }}" name="slo-{{ app.name }}-metric">
+        </td>
       </tr>
       <tr>
         <th>Type: </th>
-        <td>{{ app.slo.type }}</td>
+        <td>
+          <input type="text" value="{{ app.slo.type }}" name="slo-{{ app.name }}-type">
+        </td>
       </tr>
       <tr>
         <th>Value: </th>
         <td>
-          <input type="text" value="{{ app.slo.value }}" name="slo-{{ app.name }}">
+          <input type="text" value="{{ app.slo.value }}" name="slo-{{ app.name }}-value">
         </td>
       </tr>
     </table>
