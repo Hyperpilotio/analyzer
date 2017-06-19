@@ -25,6 +25,9 @@ class Database(object):
         db.authenticate(*self.auth)
         return db
 
+    def __getitem__(self, collection):
+        return self._get_database().get_collection(collection)
+
     def __getattribute__(self, attribute):
         try:
             return super().__getattribute__(attribute)
