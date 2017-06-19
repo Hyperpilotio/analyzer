@@ -49,6 +49,8 @@ class LinearRegression1():
         df1, df2 = createProfilingDataframe(
             app1Name, collection), createProfilingDataframe(app2Name, collection)
         df1.name, df2.name = app1Name, app2Name
+        print df1
+        print df2
 
         caisMatrix = np.zeros((len(df1.index), len(df2.index)))
 

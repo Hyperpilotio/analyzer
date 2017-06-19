@@ -103,7 +103,7 @@ def createProfilingDataframe(appName, collection='profiling'):
     # make dataframe
     ibenchScores = []
     for service in serviceNames:
-        {'appName': appName, 'serviceInTest': service}
+        filt = {'appName': appName, 'serviceInTest': service}
         app = findOne(collection=collection, filt=filt)
         if app == None:
             raise KeyError(
