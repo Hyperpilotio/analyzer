@@ -1,9 +1,37 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import numpy as np
 import pandas as pd
-from common.mongoUtil import createProfilingDataframe
+from .db import metricdb
+
+
+#TODO: probably need to change to app_id.
+def create_profiling_dataframe(app_name):
+    """ Create a dataframe of features.
+    Args:
+        app_name(str): Map to the 'appName' in Mongo database.
+    Returns:
+        df(pandas dataframe): Dataframe with rows of features, where each row is a service.
+        (i.e. if an app has N services, where each service has K dimensions, the dataframe would be NxK)
+    """
+    filt = {'appName': app_name}
+    app = metricdb.profiling.find_one(filt)
+    if app == None:
+        raise KeyError(f"Cannot find document: filter={filt}")
+    service_names = pd.Index(app['services'])
+    benchmark_names = pd.Index(app['benchmarks'])
+
+    # make dataframe
+    ibench_scores = []
+    for service in service_names:
+        {'appName': app_name, 'serviceInTest': service}
+        metricdb.profiling.find_one(filt)
+        # app = find_one(collection='profiling', filt=filt)
+        if app == None:
+            raise KeyError(f"Cannot find document: filter={filt}")
+        ibench_scores.append([i['toleratedInterference']
+                              for i in app['testResult']])
+    df = pd.DataFrame(data=np.array(ibench_scores),
+                      index=service_names, columns=benchmark_names)
+    return df
 
 
 class LinearRegression1():
@@ -49,20 +77,10 @@ class LinearRegression1():
         df1, df2 = createProfilingDataframe(
             app1Name, collection), createProfilingDataframe(app2Name, collection)
         df1.name, df2.name = app1Name, app2Name
-        print df1
-        print df2
+        print(df1)
+        print(df2)
 
         caisMatrix = np.zeros((len(df1.index), len(df2.index)))
 
         for i, (service_i, feature_i) in enumerate(df1.iterrows()):
             for j, (service_j, feature_j) in enumerate(df2.iterrows()):
-                caisMatrix[i, j] = self._predictService(feature_i, feature_j)
-
-        caisDataframe = pd.DataFrame(data=caisMatrix, index=pd.Index(
-            df1.index.values), columns=pd.Index(df2.index.values))
-
-        return caisDataframe
-
-    def validate(self, data, target, lossMetric='mse'):
-        # TODO: implement it.
-        pass

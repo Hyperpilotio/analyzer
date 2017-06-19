@@ -1,7 +1,8 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, abort, make_response
 from .config import get_config
 from .util import JSONEncoderWithMongo
 from .db import configdb, metricdb
+from . import models
 
 
 app = Flask(__name__)
@@ -28,3 +29,13 @@ def get_available_apps():
 def services_json(app_name):
     app = configdb.applications.find_one({"name": app_name})
     return jsonify(app=app["name"], services=app["serviceNames"])
+
+@app.route("/cross-app/predict", methods=["POST"])
+def predict():
+    body = request.get_json()
+    if body["model"] == "LinearRegression1":
+        model = models.LinearRegression1(num_dims=3)
+        result = model.fit(None, None).predict(body["app_1"], body["app_2"])
+        return jsonify(result.to_dict())
+    else:
+        abort(make_response(jsonify(error="Model not found")), 404)
