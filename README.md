@@ -1,5 +1,5 @@
 # analyzer
-Analyzer performs interference prediction and validation
+Analyzer performs interference prediction and validation and visualizes the data.
 
 #### Usage:
 	
@@ -23,7 +23,7 @@ configuration file is located in 'config.json'
 In order to connect to database, connecting to VPN is needed for now.
 
 #### UI:
-	
 	make docker-build
 	make docker-run
+	
 then connect to: [http://localhost:7781](http://localhost:7781)
