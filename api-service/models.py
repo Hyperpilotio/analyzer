@@ -84,3 +84,13 @@ class LinearRegression1():
 
         for i, (service_i, feature_i) in enumerate(df1.iterrows()):
             for j, (service_j, feature_j) in enumerate(df2.iterrows()):
+                caisMatrix[i, j] = self._predictService(feature_i, feature_j)
+
+        caisDataframe = pd.DataFrame(data=caisMatrix, index=pd.Index(
+            df1.index.values), columns=pd.Index(df2.index.values))
+
+        return caisDataframe
+
+    def validate(self, data, target, lossMetric='mse'):
+        # TODO: implement it.
+        pass
