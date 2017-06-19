@@ -1,5 +1,5 @@
 # analyzer
-Analyzer performs interference prediction and validation and visaulizes the data.
+Analyzer performs interference prediction and validation and visualizes the data.
 
 #### Usage:
 	
