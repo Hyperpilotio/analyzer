@@ -1,6 +1,6 @@
-from flask import Flask, jsonify, request, abort, make_response
+from flask import Flask, jsonify, request
 from .config import get_config
-from .util import JSONEncoderWithMongo
+from .util import JSONEncoderWithMongo, ObjectIdConverter
 from .db import configdb, metricdb
 from . import models
 
@@ -9,6 +9,7 @@ app = Flask(__name__)
 
 app.config.update(get_config())
 app.json_encoder = JSONEncoderWithMongo
+app.url_map.converters["objectid"] = ObjectIdConverter
 
 
 @app.route("/")
