@@ -1,5 +1,6 @@
 import bson
 from flask.json import JSONEncoder
+from flask import jsonify
 from pymongo.cursor import Cursor
 from werkzeug.routing import BaseConverter, ValidationError
 
@@ -24,3 +25,17 @@ class ObjectIdConverter(BaseConverter):
 
     def to_url(self, value):
         return str(value)
+
+
+def ensure_document_found(document, **kwargs):
+    if document is None:
+        response = jsonify(error="Document not found")
+        response.status_code = 404
+        return response
+    else:
+        if kwargs:
+            document = {
+                new_key: document[original_key]
+                for new_key, original_key in kwargs.items()
+            }
+        return jsonify(document)

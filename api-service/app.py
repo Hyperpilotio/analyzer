@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from .config import get_config
-from .util import JSONEncoderWithMongo, ObjectIdConverter
+from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
 from . import models
 
@@ -19,30 +19,30 @@ def index():
 @app.route("/available-apps")
 def get_available_apps():
     return jsonify({
-        collection: metricdb[collection].find({
-            "appName": {"$exists": 1}},
-            {"appName": 1},
+        collection: metricdb[collection].find(
+            filter={"appName": {"$exists": 1}},
+            projection={"appName": 1},
         )
         for collection in ("calibration", "profiling", "validation")
     })
 
 @app.route("/single-app/services/<app_name>")
 def services_json(app_name):
-    app = configdb.applications.find_one(
+    app_config = configdb.applications.find_one(
         filter={"name": app_name},
         projection={"_id": 0, "name": 1, "serviceNames": 1},
     )
-    return jsonify(app=app["name"], services=app["serviceNames"])
+    return ensure_document_found(app_config, app="name", services="serviceNames")
 
 @app.route("/single-app/profiling/<objectid:app_id>")
 def profiling_json(app_id):
-    app = metricdb.profiling.find_one(app_id)
-    return jsonify(app)
+    profiling = metricdb.profiling.find_one(app_id)
+    return ensure_document_found(profiling)
 
 @app.route("/single-app/calibration/<objectid:app_id>")
 def calibration_json(app_id):
-    app = metricdb.calibration.find_one(app_id)
-    return jsonify(app)
+    calibration = metricdb.calibration.find_one(app_id)
+    return ensure_document_found(calibration)
 
 @app.route("/cross-app/predict", methods=["POST"])
 def predict():
