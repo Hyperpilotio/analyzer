@@ -39,6 +39,11 @@ def profiling_json(app_id):
     app = metricdb.profiling.find_one(app_id)
     return jsonify(app)
 
+@app.route("/single-app/calibration/<objectid:app_id>")
+def calibration_json(app_id):
+    app = metricdb.calibration.find_one(app_id)
+    return jsonify(app)
+
 @app.route("/cross-app/predict", methods=["POST"])
 def predict():
     body = request.get_json()
