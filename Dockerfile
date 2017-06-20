@@ -1,8 +1,15 @@
-FROM python:2.7.13-onbuild
+FROM python:3.6
 
-COPY ./requirements.txt requirements.txt
-COPY ./web-service web-service 
+# RUN apk add --update gcc gfortran
+ADD https://raw.github.com/kennethreitz/pipenv/master/get-pipenv.py /get-pipenv.py
+RUN python /get-pipenv.py
+COPY . /app
+WORKDIR /app
 
-WORKDIR ./web-service
+RUN pipenv install --system
 
-EXPOSE 7781
+ENV FLASK_APP api_service/app.py
+
+EXPOSE 5000
+
+CMD flask run -h 0.0.0.0 -p 5000
