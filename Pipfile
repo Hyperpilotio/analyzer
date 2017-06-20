@@ -7,7 +7,7 @@ python_version = "3.6"
 python_full_version = "3.6.1"
 
 [packages]
-Flask = ">=0.12.2"
-pymongo = ">=3.4.0"
-numpy = ">=1.13.0"
-pandas = ">=0.20.2"
+Flask = "==0.12.2"
+pymongo = "==3.4.0"
+numpy = "==1.13.0"
+pandas = "==0.20.2"
