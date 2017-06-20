@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 from .config import get_config
 from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
-from . import models
+from analyzer.linear_regression import LinearRegression1
 
 
 app = Flask(__name__)
@@ -48,8 +48,12 @@ def calibration_json(app_id):
 def predict():
     body = request.get_json()
     if body.get("model") == "LinearRegression1":
-        model = models.LinearRegression1(num_dims=3)
-        result = model.fit(None, None).predict(body["app_1"], body["app_2"])
+        model = LinearRegression1(numDims=3)
+        result = model.fit(None, None).predict(
+            body.get("app1"),
+            body.get("app2"),
+            body.get("collection")
+        )
         return jsonify(result.to_dict())
     else:
         response = jsonify(error="Model not found")

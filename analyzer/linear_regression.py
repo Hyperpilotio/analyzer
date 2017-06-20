@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import pandas as pd
+from functools import reduce
 from .util import createProfilingDataframe
 
 

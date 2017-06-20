@@ -6,10 +6,11 @@ log = logging.getLogger(__name__)
 import json
 import os
 import pandas as pd
-import common.mongoUtil as mu
 from pymongo import MongoClient
-from django.test import TestCase, Client
-from django.conf import settings
+from pathlib import Path
+from api_service.app import app as api_service_app
+from api_service.db import metricdb, configdb
+from unittest import TestCase
 
 
 TEST_COLLECTION = 'test-collection'
@@ -18,44 +19,38 @@ TEST_COLLECTION = 'test-collection'
 class PredictionTest(TestCase):
 
     def setUp(self):
-        log.debug('Creating django client')
-        self.client = Client()
+        log.debug('Creating flask client')
+        self.client = api_service_app.test_client()
 
     def testPrediction(self):
         try:
-            log.debug('Getting database {}'.format(settings.METRIC_DB))
-            mongoClient = MongoClient(
-                settings.DATABASE_URL, waitQueueTimeoutMS=200)
-            db = mongoClient[settings.METRIC_DB]
-            status = db.authenticate(
-                settings.USER, settings.PWD, source=settings.METRIC_DB)
-            log.debug('Auth stats: {}'.format(status))
+            log.debug(f'Getting database {metricdb.name}')
+            db = metricdb._get_database() # This triggers lazy-loading
             log.debug('Setting up test documents')
-            testFiles = [i for i in os.listdir(
-                settings.BASE_DIR + '/crossApp/testProfiles') if '.json' in i]
-            for i in testFiles:
-                log.debug("Adding: {}".format(i))
-                with open(settings.BASE_DIR + '/crossApp/testProfiles/' + i, 'r') as f:
+            testFiles = (Path(__file__).parent / 'testProfiles').rglob('*.json')
+            for path in testFiles:
+                log.debug("Adding: {}".format(path))
+                with path.open('r') as f:
                     doc = json.load(f)
-                    db[TEST_COLLECTION].insert(doc)
-            response = self.client.post('/crossApp/predict/',
+                    db[TEST_COLLECTION].insert_one(doc)
+            response = self.client.post('/cross-app/predict',
                                         data=json.dumps(
                                             predictSampleRequest()),
                                         content_type="application/json")
-            self.assertEquals(response.status_code, 200, response)
-            data = json.loads(response.content)
+            self.assertEqual(response.status_code, 200, response)
+            data = json.loads(response.data)
 
-            log.debug('====Request====')
-            log.debug('\n{}'.format(predictSampleRequest()))
+            log.debug('====Request====\n')
+            log.debug(predictSampleRequest())
 
-            log.debug('====Cross-App Interference Score Prediction====')
-            log.debug('\n{}'.format(pd.read_json(response.content)))
+            log.debug('====Cross-App Interference Score Prediction====\n')
+            log.debug(pd.read_json(response.data))
         except Exception as e:
             raise e
         finally:
-            log.debug('Clean up test collection: {}'.format(TEST_COLLECTION))
+            log.debug(f'Clean up test collection: {TEST_COLLECTION}')
             db[TEST_COLLECTION].drop()
-            mongoClient.close()
+            db.client.close()
             log.debug('client connection closed')
 
 
