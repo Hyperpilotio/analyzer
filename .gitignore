@@ -105,3 +105,6 @@ ENV/
 
 #django db
 db.sqlite3
+
+node_modules/
+static/
