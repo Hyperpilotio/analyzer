@@ -8,7 +8,7 @@ PYTHON_VERSION = $(shell $(PYTHON) --version)
 PY_VERSION_OK = $(shell $(PYTHON) -c 'import sys; print(int(sys.version_info >= (3, 6, 1)))')
 PIPENV = $(shell which pipenv)
 
-init: init-python init-node
+init: init-python init-js
 
 init-python:
 	@if [ $(PY_VERSION_OK) = 0 ]; then\
@@ -26,21 +26,22 @@ init-python:
 		pipenv install --three;\
 	fi
 
-init-node:
+init-js:
 ifneq (, $(shell which yarn))
-	yarn install
+	cd frontend && yarn install
 else
-	npm install
+	cd frontend && npm install
 endif
 
 build-js:
 ifneq (, $(shell which yarn))
-	yarn build
+	cd frontend && yarn build
 else
-	npm run build
+	cd frontend && npm run build
 endif
 
 test:
+	$(PIPENV) check
 	$(PIPENV) run python -m unittest
 
 docker-build:

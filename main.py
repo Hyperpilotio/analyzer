@@ -2,11 +2,12 @@ from flask import Flask, url_for
 from werkzeug.wsgi import DispatcherMiddleware
 from api_service.app import app as api_service_app
 
-frontend_app = Flask(__name__)
+main_app = Flask(__name__, static_folder="frontend/dist")
 
 index_html = """
 <html>
 <head>
+  <title>HyperPilot Analyzer</title>
 </head>
 <body>
   <div id="react-root"></div>
@@ -15,14 +16,14 @@ index_html = """
 </html>
 """
 
-@frontend_app.route("/")
+@main_app.route("/")
 def index():
     return index_html % url_for("static", filename="bundle.js")
 
-app = DispatcherMiddleware(frontend_app, {
+application = DispatcherMiddleware(main_app, {
     "/api": api_service_app,
 })
 
 if __name__ == "__main__":
     from werkzeug.serving import run_simple
-    run_simple("0.0.0.0", 5000, app)
+    run_simple("0.0.0.0", 5000, application)

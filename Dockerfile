@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Install dependencies
 RUN pipenv install --system
-RUN yarn && yarn build
+RUN make init-js build-js
 
 # Run app
 EXPOSE 5000
