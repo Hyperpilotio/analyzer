@@ -20,4 +20,4 @@ RUN make init-js build-js
 
 # Run app
 EXPOSE 5000
-CMD python main.py
+CMD gunicorn main:application --access-logfile - --workers 4 --bind 0.0.0.0:5000

@@ -44,6 +44,9 @@ test:
 	$(PIPENV) check
 	$(PIPENV) run python -m unittest
 
+serve: build-js
+	$(PIPENV) run gunicorn main:application --access-logfile - --workers 4 --bind 0.0.0.0:5000
+
 docker-build:
 	docker build -t $(ANALYZER_IMAGE) .
 
