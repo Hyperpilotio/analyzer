@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "repository": "https://github.com/Hyperpilotio/analyzer",
   "scripts": {
-    "build": "webpack"
+    "build": "webpack",
+    "develop": "webpack --watch"
   },
   "devDependencies": {
     "babel-core": "^6.25.0",

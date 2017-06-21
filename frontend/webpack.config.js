@@ -5,9 +5,10 @@ module.exports = {
     "./js/app.js"
   ],
   output: {
-    path: __dirname + '/static',
+    path: __dirname + '/dist',
     filename: "bundle.js"
   },
+  devtool: 'inline-source-map',
   module: {
     loaders: [
       {
