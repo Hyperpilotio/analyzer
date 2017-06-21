@@ -3,6 +3,7 @@ from .config import get_config
 from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
+from analyzer.util import get_calibration_data
 
 
 app = Flask(__name__)
@@ -43,6 +44,11 @@ def profiling_json(app_id):
 def calibration_json(app_id):
     calibration = metricdb.calibration.find_one(app_id)
     return ensure_document_found(calibration)
+
+@app.route("/single-app/calibration-data/<objectid:app_id>")
+def calibration_data(app_id):
+    data = get_calibration_data(app_id)
+    return ensure_document_found(data)
 
 @app.route("/cross-app/predict", methods=["POST"])
 def predict():

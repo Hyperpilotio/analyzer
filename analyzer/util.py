@@ -33,3 +33,14 @@ def createProfilingDataframe(appName, collection='profiling'):
     df = pd.DataFrame(data=np.array(ibenchScores),
                       index=serviceNames, columns=benchmarkNames)
     return df
+
+
+def get_calibration_data(calibration_id):
+    document = metricdb.calibration.find_one(calibration_id)
+    if document is None:
+        return None
+    df = pd.DataFrame(document["testResult"])
+    data = df.groupby("loadIntensity").apply(
+        lambda group: group["qosMetric"].describe()[["mean", "min", "max"]]
+    ).reset_index()
+    return data.to_dict(orient="records")
