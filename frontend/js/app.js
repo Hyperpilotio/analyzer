@@ -60,6 +60,11 @@ class CalibrationChart extends Component {
     const res = await fetch("/api/single-app/calibration-data/59406aa9e3fd9e5094db7f3b");
     const data = await res.json();
     this.setState({ option: {
+      title: {
+        text: "Calibration Results",
+        subtext: "App: redis, Load Tester: redis-bench",
+        left: "center"
+      },
       tooltip: {
         trigger: "axis",
         formatter: (params) => {
@@ -72,14 +77,16 @@ class CalibrationChart extends Component {
                   Max: ${minMax.data[2]}`;
         }
       },
-      xAxis: {
-        type: "value"
-      },
-      yAxis: {
+      xAxis: [{
+        type: "value",
+        name: "Load Intensity"
+      }],
+      yAxis: [{
+        name: "Throughput",
         type: "value",
         min: 15000,
         max: 50000
-      },
+      }],
       series: [
         {
           name: "throughput",
