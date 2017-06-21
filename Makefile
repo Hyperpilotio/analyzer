@@ -1,5 +1,8 @@
 .PHONY : docker-build docker-run
 
+test:
+	python -m unittest
+
 docker-build:
 	sudo docker build -t hyperpilot/analyzer .
 
