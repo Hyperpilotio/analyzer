@@ -1,22 +1,6 @@
 # analyzer
 Analyzer performs interference prediction and validation and visualizes the data.
 
-## # Running the api service app
-
-### Requirements:
-- Python **3.6.1**
-- pipenv
-
-### Setup:
-- Install Python 3.6.1 (`brew install python3` on Mac)
-- Install pipenv (`curl raw.github.com/kennethreitz/pipenv/master/get-pipenv.py | python3`)
-- `pipenv install --three`
-
-### Running
-Don't forget to open your VPN first!
-- `pipenv shell`
-- `FLASK_APP=api_service/app.py flask run`
-
 #### Usage:
 	
 1. Build docker image
@@ -32,7 +16,7 @@ Don't forget to open your VPN first!
 		make docker-test
 		
 #### Configuration:
-configuration file is located in 'config.json'
+configuration file is located in 'config.ini'
 
 	
 #### Prerequisite:
@@ -42,4 +26,11 @@ In order to connect to database, connecting to VPN is needed for now.
 	make docker-build
 	make docker-run
 	
-then connect to: [http://localhost:7781](http://localhost:7781)
+then connect to: [http://localhost:5000](http://localhost:5000)
+
+
+### Setting up and running the app (without Docker)
+- `make init`
+- `make serve` (don't forget to connect to VPN first)
+
+Please install Python 3.6.1 or later if you see the message from running `make init` saying that the Python version is outdated.
