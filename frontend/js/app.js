@@ -2,6 +2,9 @@ import "babel-polyfill";
 import "whatwg-fetch";
 import React, { Component } from "react";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
+import Drawer from "material-ui/Drawer";
+import MenuItem from "material-ui/MenuItem";
 import ReactEcharts from "echarts-for-react";
 import ReactDOM from "react-dom";
 import _ from "lodash";
@@ -9,11 +12,43 @@ import _ from "lodash";
 class App extends Component {
   render() {
     return <Router>
-      <div>
-        <Route exact={true} path="/" render={() => <Link to="/calibration/59406aa9e3fd9e5094db7f3b">Redis</Link>} />
-        <Route path="/calibration/:calibrationId" component={Calibration} />
-      </div>
+      <MuiThemeProvider>
+        <div>
+          <Navbar />
+          <Route exact={true} path="/" render={() => <Link to="/calibration/59406aa9e3fd9e5094db7f3b">Redis</Link>} />
+          <Route path="/calibration/:calibrationId" component={Calibration} />
+        </div>
+      </MuiThemeProvider>
     </Router>;
+  }
+}
+
+class Navbar extends Component {
+
+  constructor(props) {
+    super(props);
+    this.state = { calibration: [] };
+  }
+
+  async componentDidMount() {
+    const res = await fetch("/api/available-apps");
+    const data = await res.json();
+    this.setState({ calibration: data.calibration });
+  }
+
+  render() {
+    return (
+      <Drawer open>
+        {this.state.calibration.map((item, i) => (
+          <MenuItem key={i}>
+            <Link to={`/calibration/${item._id}`}
+                  style={{color: "black", textDecoration: "none"}}>
+              {item.appName} ({_.truncate(item._id, { length: 12 })})
+            </Link>
+          </MenuItem>
+        ))}
+      </Drawer>
+    );
   }
 }
 
