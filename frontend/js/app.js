@@ -18,7 +18,6 @@ class App extends Component {
       <MuiThemeProvider>
         <div>
           <Navbar />
-          <Route exact={true} path="/" render={() => <Link to="/calibration/59406aa9e3fd9e5094db7f3b">Redis</Link>} />
           <Route path="/calibration/:calibrationId" component={Calibration} />
         </div>
       </MuiThemeProvider>
@@ -120,7 +119,7 @@ class CalibrationChart extends Component {
   async fetchData(calibrationId) {
     const res = await fetch(`/api/single-app/calibration-data/${calibrationId}`);
     const data = await res.json();
-    const results = data.testResults;
+    const results = data.testResult;
 
     const minValue = _.min(_.map(results, "min"));
     const maxValue = _.max(_.map(results, "max"));

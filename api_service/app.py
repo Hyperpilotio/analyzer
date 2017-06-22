@@ -50,7 +50,7 @@ def calibration_data(app_id):
     calibration = metricdb.calibration.find_one(app_id)
     data = get_calibration_dataframe(calibration)
     if data is not None:
-        calibration["testResults"] = data
+        calibration["testResult"] = data
     return ensure_document_found(calibration)
 
 @app.route("/cross-app/predict", methods=["POST"])
