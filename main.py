@@ -16,8 +16,9 @@ index_html = """
 </html>
 """
 
-@main_app.route("/")
-def index():
+@main_app.route("/", defaults={"path": ""})
+@main_app.route("/<path:path>")
+def index(path):
     return index_html % url_for("static", filename="bundle.js")
 
 application = DispatcherMiddleware(main_app, {

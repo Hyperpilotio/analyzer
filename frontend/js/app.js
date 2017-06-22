@@ -1,14 +1,29 @@
 import "babel-polyfill";
 import "whatwg-fetch";
 import React, { Component } from "react";
+import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import ReactEcharts from "echarts-for-react";
 import ReactDOM from "react-dom";
 
+class App extends Component {
+  render() {
+    return <Router>
+      <div>
+        <Route exact={true} path="/" render={() => <Link to="/calibration/59406aa9e3fd9e5094db7f3b">Redis</Link>} />
+        <Route path="/calibration/:calibrationId" component={Calibration} />
+      </div>
+    </Router>;
+  }
+}
+
+const Calibration = ({ match }) => (
+  <CalibrationChart calibrationId={match.params.calibrationId} />
+);
 
 class CalibrationChart extends Component {
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = { option: {series: []} };
   }
 
@@ -57,8 +72,13 @@ class CalibrationChart extends Component {
   }
 
   async componentDidMount() {
-    const res = await fetch("/api/single-app/calibration-data/59406aa9e3fd9e5094db7f3b");
+    const { calibrationId } = this.props;
+    const res = await fetch(`/api/single-app/calibration-data/${calibrationId}`);
     const data = await res.json();
+    const minValue = Math.min(...data.map(row => row.min));
+    const maxValue = Math.max(...data.map(row => row.max));
+    const minX = Math.min(...data.map(row => row.loadIntensity));
+    const maxX = Math.max(...data.map(row => row.loadIntensity));
     this.setState({ option: {
       title: {
         text: "Calibration Results",
@@ -79,13 +99,15 @@ class CalibrationChart extends Component {
       },
       xAxis: [{
         type: "value",
-        name: "Load Intensity"
+        name: "Load Intensity",
+        min: minX - (maxX - minX) * 0.1,
+        max: maxX + (maxX - minX) * 0.1
       }],
       yAxis: [{
         name: "Throughput",
         type: "value",
-        min: 15000,
-        max: 50000
+        min: (minValue - (maxValue - minValue) * 0.1).toPrecision(2),
+        max: (maxValue + (maxValue - minValue) * 0.1).toPrecision(2)
       }],
       series: [
         {
@@ -127,4 +149,4 @@ class CalibrationChart extends Component {
 }
 
 
-ReactDOM.render(<CalibrationChart />, document.getElementById("react-root"));
+ReactDOM.render(<App />, document.getElementById("react-root"));
