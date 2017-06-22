@@ -63,7 +63,14 @@ class CalibrationChart extends Component {
 
   constructor(props) {
     super(props);
-    this.state = { option: {series: []} };
+    this.state = { option: {series: []}, loading: true };
+  }
+
+  componentWillReceiveProps(props) {
+    if (props.calibrationId !== this.props.calibrationId) {
+      this.setState({loading: true});
+      this.fetchData(props.calibrationId);
+    }
   }
 
   onChartReady(chart) {
@@ -110,8 +117,7 @@ class CalibrationChart extends Component {
     };
   }
 
-  async componentDidMount() {
-    const { calibrationId } = this.props;
+  async fetchData(calibrationId) {
     const res = await fetch(`/api/single-app/calibration-data/${calibrationId}`);
     const data = await res.json();
     const results = data.testResults;
@@ -123,66 +129,72 @@ class CalibrationChart extends Component {
 
     const finalIntensityIndex = _.findIndex(results, {loadIntensity: data.finalIntensity});
 
-    this.setState({ option: {
-      title: {
-        text: "Calibration Results",
-        subtext: `App: ${data.appName}, Load Tester: ${data.loadTester}, Final Intensity: ${data.finalIntensity}`,
-        left: "center"
-      },
-      tooltip: {
-        trigger: "axis",
-        formatter: (params) => {
-          let mean = params[0];
-          let minMax = params[1];
-          return `Load Intesity: ${mean.axisValue}<br />
-                  ${mean.marker} ${data.qosMetrics[0]}:<br />
-                  Mean: ${mean.data[1].toFixed(2)}<br />
-                  Min: ${minMax.data[1]}<br />
-                  Max: ${minMax.data[2]}`;
-        }
-      },
-      xAxis: [{
-        type: "value",
-        name: "Load Intensity",
-        min: (minX - (maxX - minX) * 0.1).toPrecision(2),
-        max: (maxX + (maxX - minX) * 0.1).toPrecision(2)
-      }],
-      yAxis: [{
-        name: data.qosMetrics[0],
-        type: "value",
-        min: (minValue - (maxValue - minValue) * 0.1).toPrecision(2),
-        max: (maxValue + (maxValue - minValue) * 0.1).toPrecision(2)
-      }],
-      series: [
-        {
-          name: data.qosMetrics[0],
-          type: "line",
-          data: results.map(row => [row.loadIntensity, row.mean]),
-          markArea: {
-            data: [
-              [
-                { name: "Final Intensity",
-                  xAxis: data.finalIntensity - (data.finalIntensity - results[finalIntensityIndex - 1].loadIntensity) / 2 },
-                { xAxis: data.finalIntensity + (results[finalIntensityIndex + 1].loadIntensity - data.finalIntensity) / 2 }
-              ]
-            ]
+    this.setState({
+      option: {
+        title: {
+          text: "Calibration Results",
+          subtext: `App: ${data.appName}, Load Tester: ${data.loadTester}, Final Intensity: ${data.finalIntensity}`,
+          left: "center"
+        },
+        tooltip: {
+          trigger: "axis",
+          formatter: (params) => {
+            let mean = params[0];
+            let minMax = params[1];
+            return `Load Intesity: ${mean.axisValue}<br />
+                    ${mean.marker} ${data.qosMetrics[0]}:<br />
+                    Mean: ${mean.data[1].toFixed(2)}<br />
+                    Min: ${minMax.data[1]}<br />
+                    Max: ${minMax.data[2]}`;
           }
         },
-        {
-          name: "minmax",
-          type: "custom",
-          data: results.map(row => [row.loadIntensity, row.min, row.max]),
-          renderItem: this.renderErrorBar,
-          itemStyle: {
-            normal: {
-              borderWidth: 1.5,
-              color: "#77bef7"
+        xAxis: [{
+          type: "value",
+          name: "Load Intensity",
+          min: (minX - (maxX - minX) * 0.1).toPrecision(2),
+          max: (maxX + (maxX - minX) * 0.1).toPrecision(2)
+        }],
+        yAxis: [{
+          name: data.qosMetrics[0],
+          type: "value",
+          min: (minValue - (maxValue - minValue) * 0.1).toPrecision(2),
+          max: (maxValue + (maxValue - minValue) * 0.1).toPrecision(2)
+        }],
+        series: [
+          {
+            name: data.qosMetrics[0],
+            type: "line",
+            data: results.map(row => [row.loadIntensity, row.mean]),
+            markArea: {
+              data: [
+                [
+                  { name: "Final Intensity",
+                    xAxis: data.finalIntensity - (data.finalIntensity - results[finalIntensityIndex - 1].loadIntensity) / 2 },
+                  { xAxis: data.finalIntensity + (results[finalIntensityIndex + 1].loadIntensity - data.finalIntensity) / 2 }
+                ]
+              ]
+            }
+          },
+          {
+            name: "minmax",
+            type: "custom",
+            data: results.map(row => [row.loadIntensity, row.min, row.max]),
+            renderItem: this.renderErrorBar,
+            itemStyle: {
+              normal: {
+                borderWidth: 1.5,
+                color: "#77bef7"
+              }
             }
           }
-        }
-      ]
-    } });
-    this.chart.hideLoading();
+        ]
+      },
+      loading: false
+    });
+  }
+
+  componentDidMount() {
+    this.fetchData(this.props.calibrationId);
   }
 
   render() {
@@ -191,7 +203,7 @@ class CalibrationChart extends Component {
         style={{height: "500px", paddingLeft: "256px"}}
         onChartReady={this.onChartReady.bind(this)}
         option={this.state.option}
-        showLoading={true} />
+        showLoading={this.state.loading} />
     );
   }
 
