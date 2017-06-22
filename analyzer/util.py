@@ -35,11 +35,10 @@ def createProfilingDataframe(appName, collection='profiling'):
     return df
 
 
-def get_calibration_data(calibration_id):
-    document = metricdb.calibration.find_one(calibration_id)
-    if document is None:
+def get_calibration_dataframe(calibration_document):
+    if calibration_document is None:
         return None
-    df = pd.DataFrame(document["testResult"])
+    df = pd.DataFrame(calibration_document["testResult"])
     data = df.groupby("loadIntensity").apply(
         lambda group: group["qosMetric"].describe()[["mean", "min", "max"]]
     ).reset_index()
