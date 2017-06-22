@@ -23,6 +23,7 @@
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
     "react-router-dom": "^4.1.1",
+    "react-tap-event-plugin": "^2.0.1",
     "whatwg-fetch": "^2.0.3"
   }
 }
