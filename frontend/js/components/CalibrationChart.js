@@ -50,7 +50,7 @@ export default ({ data, loading }) => {
   if (data !== null) {
 		const results = data.testResult;
 		const minValue = _.min(_.map(results, "min"));
-		const maxValue = _.max(_.map(results, ""));
+		const maxValue = _.max(_.map(results, "max"));
 		const minX = _.min(_.map(results, "loadIntensity"));
 		const maxX = _.max(_.map(results, "loadIntensity"));
 
@@ -77,13 +77,13 @@ export default ({ data, loading }) => {
       xAxis: [{
         type: "value",
         name: "Load Intensity",
-        min: (minX - (maxX - minX) * 0.1).toPrecision(2),
+        min: _.max([(minX - (maxX - minX) * 0.1).toPrecision(2), 0]),
         max: (maxX + (maxX - minX) * 0.1).toPrecision(2)
       }],
       yAxis: [{
         name: data.qosMetrics[0],
         type: "value",
-        min: (minValue - (maxValue - minValue) * 0.1).toPrecision(2),
+        min: _.max([0, (minValue - (maxValue - minValue) * 0.1).toPrecision(2)]),
         max: (maxValue + (maxValue - minValue) * 0.1).toPrecision(2)
       }],
       series: [
@@ -93,13 +93,20 @@ export default ({ data, loading }) => {
           data: results.map(row => [row.loadIntensity, row.mean]),
           markArea: {
             label: {
-              position: "bottom"
+              normal: {
+                position: "bottom",
+                offset: [0, 20]
+              },
+              emphasis: {
+                position: "bottom",
+                offset: [0, 20]
+              }
             },
             data: [
               [
                 { name: "Final Intensity",
-                  xAxis: data.finalIntensity - (data.finalIntensity - results[finalIntensityIndex - 1].loadIntensity) / 2 },
-                { xAxis: data.finalIntensity + (results[finalIntensityIndex + 1].loadIntensity - data.finalIntensity) / 2 }
+                  xAxis: data.finalIntensity - (data.finalIntensity - results[finalIntensityIndex - 1].loadIntensity) / 4 },
+                { xAxis: data.finalIntensity + (results[finalIntensityIndex + 1].loadIntensity - data.finalIntensity) / 4 }
               ]
             ]
           }
