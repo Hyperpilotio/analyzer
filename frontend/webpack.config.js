@@ -2,7 +2,7 @@ var webpack = require('webpack');
 module.exports = {  
   entry: [
     "babel-polyfill",
-    "./js/app.js"
+    "./app.js"
   ],
   output: {
     path: __dirname + '/dist',
