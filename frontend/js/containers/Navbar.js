@@ -1,16 +1,18 @@
 import React, { Component } from "react";
-import _ from "lodash";
 import NavbarComponent from "../components/Navbar";
 
 
 export default class Navbar extends Component {
 
-  state = { calibration: [], profiling: [], validation: [] }
+  state = {
+    apps: { calibration: [], profiling: [], validation: [] },
+    loading: true
+  }
 
   async fetchData() {
     const res = await fetch("/api/available-apps");
-    const data = await res.json();
-    this.setState(data);
+    const apps = await res.json();
+    this.setState({ apps, loading: false });
   }
 
   componentDidMount() {
@@ -22,6 +24,7 @@ export default class Navbar extends Component {
     return <NavbarComponent
       selectedItem={history.location.pathname}
       selectItem={(e, path) => history.push(path)}
-      availableApps={this.state} />
+      loading={this.state.loading}
+      availableApps={this.state.apps} />
   }
 }

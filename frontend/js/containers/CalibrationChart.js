@@ -1,6 +1,5 @@
 import React, { Component } from "react";
 import CalibrationChartComponent from "../components/CalibrationChart";
-import _ from "lodash";
 
 
 export default class CalibrationChart extends Component {
