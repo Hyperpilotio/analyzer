@@ -1,19 +1,30 @@
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
 import Drawer from "material-ui/Drawer";
-import MenuItem from "material-ui/MenuItem";
+import AppBar from "material-ui/AppBar";
+import { List, ListItem, makeSelectable } from "material-ui/List";
 import _ from "lodash";
 
+const SelectableList = makeSelectable(List);
 
-export default ({ availableApps }) => (
+export default ({ availableApps, selectedItem, selectItem }) => (
   <Drawer open>
-    {availableApps.calibration.map(item => (
-      <Link to={`/calibration/${item._id}`}
-            style={{color: "black", textDecoration: "none"}}>
-        <MenuItem key={item._id}>
-          {item.appName} ({_.truncate(item._id, { length: 12 })})
-        </MenuItem>
-      </Link>
-    ))}
+    <AppBar title="Analyzer" />
+    <SelectableList value={selectedItem} onChange={selectItem}>
+      {_.map(availableApps, (apps, category) => (
+        <ListItem
+          key={category}
+          primaryText={_.capitalize(category)}
+          primaryTogglesNestedList={true}
+          initiallyOpen={true}
+          nestedItems={apps.map(({ _id, appName }) => (
+            <ListItem
+              primaryText={appName}
+              secondaryText={_id}
+              value={`/${category}/${_id}`}
+              key={_id} />
+          ))}
+        />
+      ))}
+    </SelectableList>
   </Drawer>
 )

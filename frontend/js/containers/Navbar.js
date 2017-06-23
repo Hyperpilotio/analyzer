@@ -18,6 +18,10 @@ export default class Navbar extends Component {
   }
 
   render() {
-    return <NavbarComponent availableApps={this.state} />
+    const { history } = this.props;
+    return <NavbarComponent
+      selectedItem={history.location.pathname}
+      selectItem={(e, path) => history.push(path)}
+      availableApps={this.state} />
   }
 }

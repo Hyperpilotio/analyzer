@@ -21,10 +21,12 @@ class App extends Component {
   render() {
     return <Router>
       <MuiThemeProvider>
-        <div>
-          <Navbar />
-          <Route path="/calibration/:calibrationId" component={App.Calibration} />
-        </div>
+        <Route path="/" children={({ match, history }) => (
+          <div>
+            <Navbar history={history} />
+            <Route path="/calibration/:calibrationId" component={App.Calibration} />
+          </div>
+        )} />
       </MuiThemeProvider>
     </Router>;
   }
