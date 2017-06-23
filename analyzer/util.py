@@ -43,3 +43,21 @@ def get_calibration_dataframe(calibration_document):
         lambda group: group["qosMetric"].describe()[["mean", "min", "max"]]
     ).reset_index()
     return data.to_dict(orient="records")
+
+
+def percentile(n):
+    f = lambda series: series.quantile(n / 100)
+    f.__name__ = f"percentile_{n}"
+    return f
+
+
+def get_profiling_dataframe(profiling_document):
+    if profiling_document is None:
+        return None
+    df = pd.DataFrame(profiling_document["testResult"])
+    data = df.groupby("benchmark").apply(
+        lambda group: group.groupby("intensity")["qos"].agg(
+            ["mean", percentile(10), percentile(90)]
+        ).reset_index().to_dict(orient="records")
+    )
+    return data.to_dict()

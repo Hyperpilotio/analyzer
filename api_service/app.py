@@ -3,7 +3,7 @@ from .config import get_config
 from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
-from analyzer.util import get_calibration_dataframe
+from analyzer.util import get_calibration_dataframe, get_profiling_dataframe
 
 
 app = Flask(__name__)
@@ -38,6 +38,14 @@ def services_json(app_name):
 @app.route("/single-app/profiling/<objectid:app_id>")
 def profiling_json(app_id):
     profiling = metricdb.profiling.find_one(app_id)
+    return ensure_document_found(profiling)
+
+@app.route("/single-app/profiling-data/<objectid:app_id>")
+def profiling_data(app_id):
+    profiling = metricdb.profiling.find_one(app_id)
+    data = get_profiling_dataframe(profiling)
+    if data is not None:
+        profiling["testResult"] = data
     return ensure_document_found(profiling)
 
 @app.route("/single-app/calibration/<objectid:app_id>")
