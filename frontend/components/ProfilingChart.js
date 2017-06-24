@@ -7,8 +7,17 @@ export default class ProfilingChart extends Component {
 
   componentWillReceiveProps(props) {
     if (!_.isEqual(props.data, this.props.data)) {
-      this.chart.clear();
-      this.chart.setOption(this.makeOptions(props.data));
+      const originalSeries = this.chart.getOption().series;
+      let newOption = this.makeOptions(props.data);
+      originalSeries.forEach(series => {
+        if (!_.includes(_.map(newOption.series, "name"), series.name)) {
+          newOption.series.push({
+            name: series.name,
+            data: null
+          });
+        }
+      });
+      this.chart.setOption(newOption);
     }
   }
 
