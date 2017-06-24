@@ -13,7 +13,8 @@ export default class ProfilingChart extends Component {
         if (!_.includes(_.map(newOption.series, "name"), series.name)) {
           newOption.series.push({
             name: series.name,
-            data: null
+            data: null,
+            markLine: null
           });
         }
       });
@@ -34,11 +35,41 @@ export default class ProfilingChart extends Component {
           name: data.sloMetric,
           type: "value"
         },
-        series: _.map(data.testResult, (points, benchmark) => ({
-          name: benchmark,
-          type: "line",
-          data: points.map(res => [res.intensity, res.mean])
-        }))
+        tooltip: {
+          trigger: "axis"
+        },
+        legend: {
+          data: _.keys(data.testResult)
+        },
+        series: _.concat(..._.map(data.testResult, (points, benchmark) => [
+          {
+            name: benchmark,
+            type: "line",
+            symbol: "circle",
+            lineStyle: {
+              normal: {
+                width: 3
+              }
+            },
+            data: points.map(res => [res.intensity, res.mean]),
+            markLine: {
+              data: points.map(res => [
+                {
+                  coord: [ res.intensity, res.percentile_10 ],
+                  symbolSize: 2
+                },
+                {
+                  coord: [ res.intensity, res.percentile_90 ],
+                  symbol: "circle",
+                  symbolSize: 2,
+                  lineStyle: {
+                    normal: { width: 2, type: "solid", opacity: 0.5 }
+                  }
+                }
+              ])
+            }
+          }
+        ]))
       }
     }
     return options;
