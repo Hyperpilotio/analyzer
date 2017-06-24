@@ -6,6 +6,7 @@ import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
 import ReactDOM from "react-dom";
 import Navbar from "./containers/Navbar";
 import CalibrationChart from "./containers/CalibrationChart";
+import ProfilingChart from "./containers/ProfilingChart";
 import _ from "lodash";
 
 import injectTapEventPlugin from "react-tap-event-plugin";
@@ -15,7 +16,11 @@ injectTapEventPlugin();
 class App extends Component {
 
   static Calibration = ({ match }) => (
-    <CalibrationChart calibrationId={match.params.calibrationId} />
+    <CalibrationChart {...match.params} />
+  )
+
+  static Profiling = ({ match }) => (
+    <ProfilingChart {...match.params} />
   )
 
   render() {
@@ -25,6 +30,7 @@ class App extends Component {
           <div>
             <Navbar history={history} />
             <Route path="/calibration/:calibrationId" component={App.Calibration} />
+            <Route path="/profiling/:profilingId" component={App.Profiling} />
           </div>
         )} />
       </MuiThemeProvider>
