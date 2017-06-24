@@ -55,9 +55,7 @@ def get_profiling_dataframe(profiling_document):
     if profiling_document is None:
         return None
     df = pd.DataFrame(profiling_document["testResult"])
-    if "qos" in df:
-        df["qosValue"] = df["qos"]
-        del df["qos"]
+    df = df.rename(columns={"qos": "qosValue"})
     data = df.groupby("benchmark").apply(
         lambda group: group.groupby("intensity")["qosValue"].agg(
             ["mean", percentile(10), percentile(90)]
