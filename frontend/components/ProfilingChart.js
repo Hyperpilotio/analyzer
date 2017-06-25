@@ -8,7 +8,7 @@ export default class ProfilingChart extends Component {
   componentWillReceiveProps(props) {
     if (!_.isEqual(props.data, this.props.data)) {
       const originalSeries = this.chart.getOption().series;
-      let newOption = this.makeOptions(props.data);
+      let newOption = ProfilingChart.makeOptions(props.data);
       originalSeries.forEach(series => {
         if (!_.includes(_.map(newOption.series, "name"), series.name)) {
           newOption.series.push({
@@ -22,8 +22,12 @@ export default class ProfilingChart extends Component {
     }
   }
 
-  makeOptions(data) {
+  static makeOptions(data) {
     let options = { series: [] };
+    const flattenedResults = _.flatMap(data.testResult);
+    const minValue = _.min(_.map(flattenedResults, "percentile_10"));
+    const maxValue = _.max(_.map(flattenedResults, "percentile_90"));
+    const yAxisMin = _.max([0, (minValue - (maxValue - minValue) * 0.1).toPrecision(2)]);
 
     if (data !== null) {
       options = {
@@ -33,10 +37,22 @@ export default class ProfilingChart extends Component {
         },
         yAxis: {
           name: data.sloMetric,
-          type: "value"
+          type: "value",
+          min: yAxisMin
         },
         tooltip: {
-          trigger: "axis"
+          trigger: "axis",
+          axisPointer: {
+            type: "cross"
+          },
+          formatter: params => {
+            let intensity = params[0].axisValue;
+            let s = `Load Intensity: ${intensity}<br />`
+            for (let series of params) {
+              s += `${series.marker} ${series.seriesName} ${series.data[1].toFixed(2)}<br />`
+            }
+            return s;
+          }
         },
         legend: {
           data: _.keys(data.testResult)
