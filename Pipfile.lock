@@ -1,0 +1,59 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "28bd850eef12327f9bc298f0a5029e421bdeef662d35fc2c815fa0c13703147f"
+        },
+        "requires": {
+            "python_full_version": "3.6.1",
+            "python_version": "3.6"
+        },
+        "sources": [
+            {
+                "url": "https://pypi.python.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "click": {
+            "version": "==6.7"
+        },
+        "flask": {
+            "version": "==0.12.2"
+        },
+        "gunicorn": {
+            "version": "==19.7.1"
+        },
+        "itsdangerous": {
+            "version": "==0.24"
+        },
+        "jinja2": {
+            "version": "==2.9.6"
+        },
+        "markupsafe": {
+            "version": "==1.0"
+        },
+        "numpy": {
+            "version": "==1.13.0"
+        },
+        "pandas": {
+            "version": "==0.20.2"
+        },
+        "pymongo": {
+            "version": "==3.4.0"
+        },
+        "python-dateutil": {
+            "version": "==2.6.0"
+        },
+        "pytz": {
+            "version": "==2017.2"
+        },
+        "six": {
+            "version": "==1.10.0"
+        },
+        "werkzeug": {
+            "version": "==0.12.2"
+        }
+    },
+    "develop": {}
+}

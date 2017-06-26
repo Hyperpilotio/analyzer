@@ -1,0 +1,10 @@
+**/__pycache__
+**/*.py[cod]
+**/node_modules
+**/dist
+**/Dockerfile
+.dockerignore
+legacy-web-service
+mongo-service
+*.ipynb
+.git

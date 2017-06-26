@@ -1,4 +1,5 @@
 import json
+from configparser import ConfigParser
 from parse import parse
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, flash, url_for
@@ -6,14 +7,14 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 app.secret_key = "5b52c330e091daea8979d94b3cbf6e4ff9f43fdf685787c8"
-with open(Path(__file__).absolute().parent.parent / "config.json") as f:
-    config = json.load(f)
+config = ConfigParser()
+config.read(Path(__file__).resolve().parent.parent / "config.ini")
 
-mongo = MongoClient(host=config["mongoDB"]["url"], port=config["mongoDB"]["port"])
-configdb = mongo.get_database(config["analyzer"]["configDB_name"])
-configdb.authenticate(config["analyzer"]["mongoDB_user"], config["analyzer"]["mongoDB_password"])
-metricdb = mongo.get_database(config["analyzer"]["metricDB_name"])
-metricdb.authenticate(config["analyzer"]["mongoDB_user"], config["analyzer"]["mongoDB_password"])
+mongo = MongoClient(host=config["MONGODB"]["HOST"], port=config["MONGODB"].getint("PORT"))
+configdb = mongo.get_database(config["ANALYZER"]["CONFIGDB_NAME"])
+configdb.authenticate(config["MONGODB"]["USERNAME"], config["MONGODB"]["PASSWORD"])
+metricdb = mongo.get_database(config["ANALYZER"]["METRICDB_NAME"])
+metricdb.authenticate(config["MONGODB"]["USERNAME"], config["MONGODB"]["PASSWORD"])
 
 @app.route("/")
 def index():
@@ -35,15 +36,17 @@ def modify_slo():
         if match is not None:
             app_name = match["name"]
             metric = match["metric"]
-            val = value
             if metric == "value":
-                val = float(val)
+                try:
+                    value = int(value)
+                except ValueError:
+                    value = float(value)
             update_result = configdb.applications.update_one(
                 {"name": app_name},
-                {"$set": {"slo." + metric: val}}
+                {"$set": {f"slo.{metric}": value}}
             )
             if update_result.modified_count > 0:
                 updated.append(app_name)
     if updated:
-        flash("Successfully updated SLO values for {}".format(", ".join(updated)))
+        flash("Successfully updated SLO values for %s" % ", ".join(updated))
     return redirect(url_for("index"))

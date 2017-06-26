@@ -2,8 +2,8 @@ FROM python:3.6-alpine
 
 RUN pip install flask pymongo parse
 
-ADD ./minimal-web /web
-ADD config.json /config.json
+ADD ./slo_config /web
+ADD config.ini /config.ini
 
 WORKDIR /web
 EXPOSE 5000
