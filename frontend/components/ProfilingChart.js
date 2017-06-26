@@ -31,6 +31,11 @@ export default class ProfilingChart extends Component {
 
     if (data !== null) {
       options = {
+        title: {
+          text: "Profiling Results",
+          subtext: `App: ${data.appName}, Service: ${data.serviceInTest}, Load Tester: ${data.loadTester}, App Capacity: ${data.appCapacity}`,
+          left: "center"
+        },
         xAxis: {
           type: "value",
           name: "Load Intensity"
@@ -55,7 +60,8 @@ export default class ProfilingChart extends Component {
           }
         },
         legend: {
-          data: _.keys(data.testResult)
+          data: _.keys(data.testResult),
+          top: "bottom"
         },
         series: _.concat(..._.map(data.testResult, (points, benchmark) => [
           {
