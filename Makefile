@@ -8,6 +8,8 @@ PYTHON_VERSION = $(shell $(PYTHON) --version)
 PY_VERSION_OK = $(shell $(PYTHON) -c 'import sys; print(int(sys.version_info >= (3, 6, 1)))')
 PIPENV = $(shell which pipenv)
 
+GUNICORN_ARGS = --access-logfile - --workers 3 -k gevent --bind 0.0.0.0:5000
+
 init: init-python init-js
 
 init-python:
@@ -45,10 +47,10 @@ test:
 	$(PIPENV) run python -m unittest
 
 serve: build-js
-	$(PIPENV) run gunicorn main:application --access-logfile - --workers 4 --bind 0.0.0.0:5000
+	$(PIPENV) run gunicorn main:application $(GUNICORN_ARGS)
 
 dev-py:
-	$(PIPENV) run gunicorn main:application --access-logfile - --workers 4 --bind 0.0.0.0:5000 --reload
+	$(PIPENV) run gunicorn main:application $(GUNICORN_ARGS) --reload
 
 dev-js:
 ifneq (, $(shell which yarn))
