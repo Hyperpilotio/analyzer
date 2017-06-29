@@ -40,7 +40,7 @@ def get_calibration_dataframe(calibration_document):
         return None
     df = pd.DataFrame(calibration_document["testResult"])
     data = df.groupby("loadIntensity").apply(
-        lambda group: group["qosMetric"].describe()[["mean", "min", "max"]]
+        lambda group: group["qosValue"].describe()[["mean", "min", "max"]]
     ).reset_index()
     return data.to_dict(orient="records")
 
