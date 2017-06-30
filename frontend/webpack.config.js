@@ -11,7 +11,7 @@ module.exports = {
   entry: [
     "babel-polyfill",
     "./app.js",
-    "./styles/index.scss"
+    "./styles/index.sass"
   ],
   output: {
     path: __dirname + "/dist",
