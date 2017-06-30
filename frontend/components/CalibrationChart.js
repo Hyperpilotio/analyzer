@@ -70,6 +70,13 @@ export default ({ data, loading }) => {
           xAxes: [{
             id: "x-axis",
             type: "linear"
+          }],
+          yAxes: [{
+            type: "linear",
+            ticks: {
+              suggestedMin: _.min(_.map(data.testResult, "min")),
+              suggestedMax: _.max(_.map(data.testResult, "max"))
+            }
           }]
         },
         tooltips: {
