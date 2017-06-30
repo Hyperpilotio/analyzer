@@ -1,4 +1,5 @@
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
 
 const extractSass = new ExtractTextPlugin({
   filename: "[hash].bundle.css",
@@ -37,6 +38,7 @@ module.exports = {
     ]
   },
   plugins: [
+    new WebpackCleanupPlugin(),
     extractSass,
     function() {
       this.plugin("done", stats => {
