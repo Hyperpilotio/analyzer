@@ -1,135 +1,93 @@
-import React from "react";
-import ReactEcharts from "echarts-for-react";
+import React, { Component } from "react";
+import { Line } from "react-chartjs-2";
 import _ from "lodash";
 
 
-const renderErrorBar = (params, api) => {
-  let xValue = api.value(0);
-  let [xCoord, minPoint] = api.coord([xValue, api.value(1)]);
-  let [_, maxPoint] = api.coord([xValue, api.value(2)]);
+class LineWithErrorBars extends Component {
 
-  let style = api.style({
-    stroke: api.visual("color")
-  });
+  static errorBarsPlugin = {
+    afterDatasetsDraw: ({ chart, ctx, options, scales, data }) => {
+      if (options.plugins.errorBars) {
+        const xScale = scales["x-axis"];
+        const yScale = scales["y-axis-0"];
+        // The horizontal little bar is 1% of the whole graph
+        const errorBarWidth = (xScale.right - xScale.left) / 100 / 2;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = options.plugins.errorBars.strokeStyle || options.elements.line.borderColor;
 
-  return {
-    type: "group",
-    children: [
-      {
-        type: "line",
-        shape: {
-          x1: xCoord, y1: minPoint,
-          x2: xCoord, y2: maxPoint
-        },
-        style: style
-      },
-      {
-        type: "line",
-        shape: {
-          x1: xCoord - 5, y1: maxPoint,
-          x2: xCoord + 5, y2: maxPoint
-        },
-        style: style
-      },
-      {
-        type: "line",
-        shape: {
-          x1: xCoord - 5, y1: minPoint,
-          x2: xCoord + 5, y2: minPoint
-        },
-        style: style
-      }
-    ]
-  };
-};
-
-
-export default ({ data, loading }) => {
-  let options = { series: [] };
-
-  if (data !== null) {
-		const results = data.testResult;
-		const minValue = _.min(_.map(results, "min"));
-		const maxValue = _.max(_.map(results, "max"));
-		const minX = _.min(_.map(results, "loadIntensity"));
-		const maxX = _.max(_.map(results, "loadIntensity"));
-
-		const finalIntensityIndex = _.findIndex(results, {loadIntensity: data.finalIntensity});
-
-    options = {
-      title: {
-        text: "Calibration Results",
-        subtext: `App: ${data.appName}, Load Tester: ${data.loadTester}, Final Intensity: ${data.finalIntensity}`,
-        left: "center"
-      },
-      tooltip: {
-        trigger: "axis",
-        formatter: (params) => {
-          let mean = params[0];
-          let minMax = params[1];
-          return `Load Intesity: ${mean.axisValue}<br />
-                  ${mean.marker} ${data.qosMetrics[0]}:<br />
-                  Mean: ${mean.data[1].toFixed(2)}<br />
-                  Min: ${minMax.data[1]}<br />
-                  Max: ${minMax.data[2]}`;
-        }
-      },
-      xAxis: [{
-        type: "value",
-        name: "Load Intensity",
-        min: _.max([(minX - (maxX - minX) * 0.1).toPrecision(2), 0]),
-        max: (maxX + (maxX - minX) * 0.1).toPrecision(2)
-      }],
-      yAxis: [{
-        name: data.qosMetrics[0],
-        type: "value",
-        min: _.max([0, (minValue - (maxValue - minValue) * 0.1).toPrecision(2)]),
-        max: (maxValue + (maxValue - minValue) * 0.1).toPrecision(2)
-      }],
-      series: [
-        {
-          name: data.qosMetrics[0],
-          type: "line",
-          data: results.map(row => [row.loadIntensity, row.mean]),
-          markArea: {
-            label: {
-              normal: {
-                position: "bottom",
-                offset: [0, 20]
-              },
-              emphasis: {
-                position: "bottom",
-                offset: [0, 20]
-              }
-            },
-            data: [
-              [
-                { name: "Final Intensity",
-                  xAxis: data.finalIntensity - (maxX - minX) / 50 },
-                { xAxis: data.finalIntensity + (maxX - minX) / 50 }
-              ]
-            ]
-          }
-        },
-        {
-          name: "minmax",
-          type: "custom",
-          data: results.map(row => [row.loadIntensity, row.min, row.max]),
-          renderItem: renderErrorBar,
-          itemStyle: {
-            normal: {
-              borderWidth: 1.5,
-              color: "#77bef7"
+        for (let fraction of ["top", "bottom"]) {
+          if (options.plugins.errorBars[fraction]) {
+            for (let [index, point] of _.entries(options.plugins.errorBars[fraction])) {
+              // Calculate pixel points
+              let pointX = xScale.getPixelForValue(point.x);
+              let pointY = yScale.getPixelForValue(point.y);
+              let meanPoint = data.datasets[0].data[index];
+              let meanPointX = xScale.getPixelForValue(meanPoint.x);
+              let meanPointY = yScale.getPixelForValue(meanPoint.y);
+              // Draw the bar from the mean point to the min/max point
+              ctx.beginPath();
+              ctx.moveTo(meanPointX, meanPointY);
+              ctx.lineTo(pointX, pointY);
+              ctx.stroke();
+              // Draw the horizontal bar
+              ctx.beginPath();
+              ctx.moveTo(pointX - errorBarWidth, pointY);
+              ctx.lineTo(pointX + errorBarWidth, pointY);
+              ctx.stroke();
             }
           }
         }
-      ]
-    };
+      }
+    }
   }
 
-  return <ReactEcharts
-    style={{height: "500px", paddingLeft: "256px"}}
-    option={options}
-    showLoading={loading}
-  />;
+  render() {
+    return (
+      <Line
+        plugins={_
+          .get(this.props, "plugins", [])
+          .concat([LineWithErrorBars.errorBarsPlugin])}
+        {..._.omit(this.props, "plugins")} />
+    );
+  }
+}
+
+export default ({ data, loading }) => {
+  let element = <div>loading</div>;
+  if (!loading) {
+    element = <LineWithErrorBars
+      data={{
+        datasets: [{
+          label: "Calibration",
+          data: data.testResult.map(
+            point => ({ x: point.loadIntensity, y: point.mean })
+          ),
+          xAxisID: "x-axis"
+        }]
+      }}
+      options={{
+        scales: {
+          xAxes: [{
+            id: "x-axis",
+            type: "linear"
+          }]
+        },
+        tooltips: {
+          intersect: false
+        },
+        plugins: {
+          errorBars: {
+            top: data.testResult.map(
+              point => ({ x: point.loadIntensity, y: point.max })
+            ),
+            bottom: data.testResult.map(
+              point => ({ x: point.loadIntensity, y: point.min })
+            ),
+            strokeStyle: "rgba(0,0,0,0.4)"
+          }
+        }
+      }}
+    />;
+  }
+  return <div className="main-container">{element}</div>;
 }
