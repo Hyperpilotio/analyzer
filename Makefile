@@ -46,7 +46,9 @@ test:
 	$(PIPENV) check
 	$(PIPENV) run python -m unittest
 
-serve: build-js
+serve: build-js run-server
+
+run-server:
 	$(PIPENV) run gunicorn main:application $(GUNICORN_ARGS)
 
 dev-py:

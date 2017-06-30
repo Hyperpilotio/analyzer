@@ -15,9 +15,12 @@ COPY . /app
 WORKDIR /app
 
 # Install dependencies
-RUN pipenv install --system
-RUN make init-js build-js
+RUN make init
+
+# Build app
+ENV NODE_ENV production
+RUN make build-js
 
 # Run app
 EXPOSE 5000
-CMD gunicorn main:application --access-logfile - --workers 4 --bind 0.0.0.0:5000
+CMD make run-server
