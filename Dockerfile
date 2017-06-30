@@ -18,7 +18,6 @@ WORKDIR /app
 RUN make init
 
 # Build app
-ENV NODE_ENV production
 RUN make build-js
 
 # Run app
