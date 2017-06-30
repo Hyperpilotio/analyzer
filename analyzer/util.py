@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
-from api_service.db import metricdb
-
+from api_service.db import metricdb, configdb
 
 # TODO: probably need to change to appId.
+
+
 def createProfilingDataframe(appName, collection='profiling'):
     """ Create a dataframe of features.
     Args:
@@ -63,3 +64,84 @@ def get_profiling_dataframe(profiling_document):
         ).reset_index().to_dict(orient="records")
     )
     return data.to_dict()
+
+
+def get_radar_dataframe(profiling_document):
+    # Currently calibration document and profilng document are not related
+    # together.
+    final_result = metricdb['calibration'].find_one({'appName': 'kafka', 'finalIntensity': profiling_document[
+        'appCapacity']}, {'finalResult': 1})['finalResult']
+
+    qos_value = final_result['qosValue']
+    slo = configdb['applications'].find_one(
+        {'name': 'kafka'})['slo']
+
+    slo_value, slo_metric_type = slo['value'], slo['type']
+    test_results = pd.DataFrame(profiling_document['testResult'])
+
+    radar_data = {}
+    radar_data['benchmark'], radar_data[
+        'tolerated_interference'], radar_data['score'] = [], [], []
+    for benchmark, df in test_results.groupby(['benchmark', 'intensity'])['qosValue'].agg("mean").groupby(level=0):
+        df.index = df.index.droplevel(level=0)
+        result = compute_tolerated_interference(
+            df, slo_value, metric_type=slo_metric_type)
+        radar_data['benchmark'].append(benchmark)
+        radar_data['tolerated_interference'].append(min(result))
+        # compute score
+        radar_data['score'].append(100. - min(result))
+
+    return radar_data
+
+
+def compute_tolerated_interference(benchmarks, slo_value, metric_type, tolerated_percentage=10.):
+    """ Compute Tolerated Interference, with linear interpolation.  
+    Args: 
+        benchmarks(DataFrame): index=intensity and columns=['qosValue']
+        slo_value(float): service level objective for the application
+        metric_type(str): 'throughput', 'latency'
+        tolerated_percentage(float): percentage of slo tolerance
+    Return:
+        ti(float): tolerated interference between [0, 100].
+    """
+    def _linearIntp(tup1, tup2, y3):
+        x1, y1 = tup1
+        x2, y2 = tup2
+        if y1 > y2:
+            return _linearIntp((x2, y2), (x1, y1), y3)
+        if y3 < y1 or y3 > y2:
+            return None
+        else:
+            return (y3 - y1) * (x2 - x1) / (y2 - y1) + x1
+
+    intensities, slo_values = np.append(
+        0, benchmarks.index.values), np.append(slo_value, benchmarks.values)
+    candidates = []
+
+    # check metric type
+    if metric_type == 'throughput':
+        tolerated_slo_value = slo_value * (1. - tolerated_percentage / 100.)
+        if min(slo_values) > tolerated_slo_value:
+            candidates.append(100.)
+    elif metric_type == 'latency':
+        tolerated_slo_value = slo_value * (1. + tolerated_percentage / 100.)
+        if max(slo_values) < tolerated_slo_value:
+            candidates.append(100.)
+    else:
+        assert False, 'invalid metric type'
+
+    # check input data
+    assert (sorted(intensities) == intensities).all(
+    ), 'intensities are not monotonic. intensities: {}'.format(intensities)
+    assert all(intensity >= 0 and intensity <=
+               100 for intensity in intensities), 'invalid intensities. intensites: {}'.format(intensities)
+    assert len(slo_values) == len(
+        intensities), 'length of slo_values and intensities does not match. slo_values: {}, intensities: {}'.format(slo_values, intensities)
+
+    for i in range(len(slo_values) - 1):  # edge case tested
+        x = _linearIntp((intensities[i], slo_values[i]), (intensities[
+                        i + 1], slo_values[i + 1]), tolerated_slo_value)
+        if x:
+            candidates.append(x)
+
+    return sorted(candidates)
