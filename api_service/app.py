@@ -3,15 +3,13 @@ from .config import get_config
 from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
-from analyzer.util import get_calibration_dataframe, get_profiling_dataframe
-
+from analyzer.util import get_calibration_dataframe, get_profiling_dataframe, get_radar_dataframe
 
 app = Flask(__name__)
 
 app.config.update(get_config())
 app.json_encoder = JSONEncoderWithMongo
 app.url_map.converters["objectid"] = ObjectIdConverter
-
 
 @app.route("/")
 def index():
@@ -76,3 +74,12 @@ def predict():
         response = jsonify(error="Model not found")
         response.status_code = 404
         return response
+
+@app.route("/radar-data/<objectid:app_id>")
+def radar_data(app_id):
+    profiling = metricdb.profiling.find_one(app_id)
+    data = get_radar_dataframe(profiling)
+    if data is not None:
+        profiling['radarChartData'] = data
+
+    return ensure_document_found(profiling)
