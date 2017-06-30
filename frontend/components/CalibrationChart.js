@@ -105,8 +105,8 @@ export default ({ data, loading }) => {
             data: [
               [
                 { name: "Final Intensity",
-                  xAxis: data.finalIntensity - (data.finalIntensity - results[finalIntensityIndex - 1].loadIntensity) / 4 },
-                { xAxis: data.finalIntensity + (results[finalIntensityIndex + 1].loadIntensity - data.finalIntensity) / 4 }
+                  xAxis: data.finalIntensity - (maxX - minX) / 50 },
+                { xAxis: data.finalIntensity + (maxX - minX) / 50 }
               ]
             ]
           }
