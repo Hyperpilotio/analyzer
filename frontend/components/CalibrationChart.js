@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { Chart, Line } from "react-chartjs-2";
+import CircularProgress from "material-ui/CircularProgress";
 import _ from "lodash";
 
 
@@ -62,9 +63,9 @@ Chart.plugins.register({
 
 
 export default ({ data, loading }) => {
-  let element = <div>loading</div>;
-  if (!loading) {
-    element = <Line
+  let lineChartElement;
+  if (data !== null) {
+    lineChartElement = <Line
       data={{
         datasets: [{
           label: "Calibration",
@@ -110,5 +111,10 @@ export default ({ data, loading }) => {
       }}
     />;
   }
-  return <div className="main-container">{element}</div>;
+
+  let divForLoading;
+  if (loading) {
+    divForLoading = <div className="loading-container"><CircularProgress /></div>
+  }
+  return <div className="main-container">{lineChartElement}{divForLoading}</div>;
 }
