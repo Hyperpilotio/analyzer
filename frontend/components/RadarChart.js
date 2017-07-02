@@ -11,8 +11,28 @@ export default ({ data, loading }) => {
       data={{
         labels: data.radarChartData.benchmark,
         datasets: [{
+          label: "Score",
           data: data.radarChartData.score
+        }, {
+          label: "Tolerated Interference",
+          data: data.radarChartData.tolerated_interference
         }]
+      }}
+      options={{
+        scale: {
+          ticks: {
+            min: 0,
+            max: 100,
+            stepSize: 20,
+            fontSize: 8,
+          },
+          pointLabels: {
+            fontSize: 12
+          }
+        },
+        tooltips: {
+          mode: "label"
+        }
       }}
     />;
   }
