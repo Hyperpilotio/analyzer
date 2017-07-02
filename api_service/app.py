@@ -81,5 +81,6 @@ def radar_data(app_id):
     data = get_radar_dataframe(profiling)
     if data is not None:
         profiling['radarChartData'] = data
+        del profiling['testResult']
 
     return ensure_document_found(profiling)

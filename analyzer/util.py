@@ -69,23 +69,25 @@ def get_profiling_dataframe(profiling_document):
 def get_radar_dataframe(profiling_document):
     # Currently calibration document and profilng document are not related
     # together.
-    final_result = metricdb['calibration'].find_one({'appName': 'kafka', 'finalIntensity': profiling_document[
-        'appCapacity']}, {'finalResult': 1})['finalResult']
+    app_name = profiling_document['appName']
+    slo = configdb.applications.find_one({'name': app_name})['slo']
 
-    qos_value = final_result['qosValue']
-    slo = configdb['applications'].find_one(
-        {'name': 'kafka'})['slo']
-
-    slo_value, slo_metric_type = slo['value'], slo['type']
     test_results = pd.DataFrame(profiling_document['testResult'])
+    test_results = test_results.rename(columns={'qos': 'qosValue'})
 
-    radar_data = {}
-    radar_data['benchmark'], radar_data[
-        'tolerated_interference'], radar_data['score'] = [], [], []
-    for benchmark, df in test_results.groupby(['benchmark', 'intensity'])['qosValue'].agg("mean").groupby(level=0):
-        df.index = df.index.droplevel(level=0)
+    radar_data = {
+        'benchmark': [],
+        'tolerated_interference': [],
+        'score': [],
+    }
+
+    for benchmark, df in test_results.groupby(['benchmark', 'intensity'])['qosValue'].mean().groupby(level='benchmark'):
+        df.index = df.index.droplevel('benchmark')
         result = compute_tolerated_interference(
-            df, slo_value, metric_type=slo_metric_type)
+            benchmarks=df,
+            slo_value=slo['value'],
+            metric_type=slo['type'],
+        )
         radar_data['benchmark'].append(benchmark)
         radar_data['tolerated_interference'].append(min(result))
         # compute score
