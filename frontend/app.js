@@ -7,6 +7,7 @@ import ReactDOM from "react-dom";
 import Navbar from "./containers/Navbar";
 import CalibrationChart from "./containers/CalibrationChart";
 import ProfilingChart from "./containers/ProfilingChart";
+import RadarChart from "./containers/RadarChart";
 import _ from "lodash";
 
 import injectTapEventPlugin from "react-tap-event-plugin";
@@ -20,7 +21,10 @@ class App extends Component {
   )
 
   static Profiling = ({ match }) => (
-    <ProfilingChart {...match.params} />
+    <div>
+      <ProfilingChart {...match.params} />
+      <RadarChart {...match.params} />
+    </div>
   )
 
   render() {
