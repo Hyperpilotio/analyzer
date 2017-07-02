@@ -4,8 +4,10 @@ import _ from "lodash";
 
 Chart.defaults.global.animation.duration = 500;
 
+
+// Error Bars for Calibration Line Chart
 Chart.plugins.register({
-  afterDatasetsDraw: ({ ctx, options, scales, data, ...props }) => {
+  afterDatasetsDraw: ({ ctx, options, scales, data }) => {
     if (options.plugins.errorBars) {
       const xScale = scales["x-axis"];
       const yScale = scales["y-axis-0"];
@@ -40,8 +42,10 @@ Chart.plugins.register({
   }
 });
 
+
+// Final Intensity Marking Area
 Chart.plugins.register({
-  afterDatasetsDraw: ({ ctx, options, scales, data }) => {
+  afterDatasetsDraw: ({ ctx, options, scales }) => {
     if (options.plugins.finalIntensity) {
       const xScale = scales["x-axis"];
       const yScale = scales["y-axis-0"];
@@ -57,6 +61,33 @@ Chart.plugins.register({
         intensityAreaWidth, // width
         yScale.bottom - yScale.top // height
       );
+    }
+  }
+});
+
+
+// Confidence Intervals for Profiling Line Chart
+Chart.plugins.register({
+  afterDatasetsDraw: ({ ctx, chart, options, scales, data }) => {
+    if (options.plugins.confidenceIntervals) {
+      const xScale = scales["x-axis"];
+      const yScale = scales["y-axis-0"];
+      // Each benchmarks drawn as different datasets
+      for (let dataset of options.plugins.confidenceIntervals.datasets) {
+        ctx.strokeStyle = dataset.strokeStyle || options.elements.line.borderColor;
+        ctx.lineWidth = dataset.lineWidth || options.elements.line.borderWidth;
+
+        for (let point of dataset.data) {
+          const pointX = xScale.getPixelForValue(point.x);
+          const bottomY = yScale.getPixelForValue(point.bottom);
+          const topY = yScale.getPixelForValue(point.top);
+          // Stroke confidence interval
+          ctx.beginPath();
+          ctx.moveTo(pointX, bottomY);
+          ctx.lineTo(pointX, topY);
+          ctx.stroke();
+        }
+      }
     }
   }
 });
