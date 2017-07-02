@@ -35,7 +35,6 @@ else
 	cd frontend && npm install
 endif
 
-build-js: export NODE_ENV = production
 build-js:
 ifneq (, $(shell which yarn))
 	cd frontend && yarn build

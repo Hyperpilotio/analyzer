@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "repository": "https://github.com/Hyperpilotio/analyzer",
   "scripts": {
-    "build": "webpack",
+    "build": "NODE_ENV=production webpack",
     "develop": "webpack --watch"
   },
   "devDependencies": {
@@ -23,8 +23,6 @@
     "babel-polyfill": "^6.23.0",
     "babel-preset-stage-0": "^6.24.1",
     "chart.js": "^2.6.0",
-    "echarts": "^3.6.2",
-    "echarts-for-react": "^1.4.4",
     "lodash": "^4.17.4",
     "material-ui": "^0.18.3",
     "react": "^15.6.1",
