@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { Line } from "react-chartjs-2";
+import CircularProgress from "material-ui/CircularProgress";
 import "./chart-plugins";
 import _ from "lodash";
 
@@ -62,5 +63,11 @@ export default ({ data, loading }) => {
       }}
     />;
   }
-  return <div className="main-container">{lineChartElement}</div>;
+
+  let divForLoading;
+  if (loading) {
+    divForLoading = <div className="loading-container"><CircularProgress /></div>
+  }
+
+  return <div className="main-container">{lineChartElement}{divForLoading}</div>;
 }
