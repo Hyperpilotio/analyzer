@@ -65,9 +65,8 @@ export default ({ data, loading }) => {
   }
 
   let divForLoading;
-  if (loading) {
-    divForLoading = <div className="loading-container"><CircularProgress /></div>
-  }
+  if (loading)
+    divForLoading = <div className="loading-container"><CircularProgress /></div>;
 
   return <div className="main-container">{lineChartElement}{divForLoading}</div>;
 }

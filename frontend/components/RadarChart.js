@@ -2,6 +2,7 @@ import React from "react";
 import _ from "lodash";
 import "./chart-plugins";
 import { Radar } from "react-chartjs-2";
+import CircularProgress from "material-ui/CircularProgress";
 
 
 export default ({ data, loading }) => {
@@ -36,5 +37,10 @@ export default ({ data, loading }) => {
       }}
     />;
   }
-  return <div className="main-container">{radarChartElement}</div>;
+
+  let divForLoading;
+  if (loading)
+    divForLoading = <div className="loading-container"><CircularProgress /></div>;
+
+  return <div className="main-container">{radarChartElement}{divForLoading}</div>;
 }
