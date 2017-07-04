@@ -1,3 +1,4 @@
+const webpack = require("webpack");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
 
@@ -7,7 +8,7 @@ const extractSass = new ExtractTextPlugin({
 });
 
 
-module.exports = {  
+let config = module.exports = {
   entry: [
     "babel-polyfill",
     "./app.js",
@@ -39,6 +40,11 @@ module.exports = {
   },
   plugins: [
     new WebpackCleanupPlugin(),
+    new webpack.DefinePlugin({
+      "process.env": {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+      }
+    }),
     extractSass,
     function() {
       this.plugin("done", stats => {
@@ -60,3 +66,10 @@ module.exports = {
     }
   ]
 };
+
+
+if (process.env.NODE_ENV === "production") {
+  config.plugins.push(new webpack.optimize.UglifyJsPlugin({
+    comments: false
+  }));
+}
