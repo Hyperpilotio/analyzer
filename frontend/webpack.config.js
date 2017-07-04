@@ -46,7 +46,7 @@ let config = module.exports = {
         })
       },
       {
-        test: /\.(jpe?g|png|gif|svg)$/i,
+        test: /\.(jpe?g|png|gif|svg|ttf|woff|woff2)$/i,
         loader: "file-loader"
       }
     ]

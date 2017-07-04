@@ -27,6 +27,7 @@
     "chart.js": "^2.6.0",
     "lodash": "^4.17.4",
     "material-ui": "^0.18.3",
+    "normalize.css": "^7.0.0",
     "react": "^15.6.1",
     "react-chartjs-2": "^2.1.0",
     "react-dom": "^15.6.1",
