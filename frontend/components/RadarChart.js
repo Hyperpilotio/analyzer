@@ -14,9 +14,6 @@ export default ({ data, loading }) => {
         datasets: [{
           label: "Score",
           data: data.radarChartData.score
-        }, {
-          label: "Tolerated Interference",
-          data: data.radarChartData.tolerated_interference
         }]
       }}
       options={{
