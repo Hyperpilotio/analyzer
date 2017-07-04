@@ -2,8 +2,8 @@ import React from "react";
 
 export default () => (
   <div>
-    <div className="container">
-      <nav className="navbar">
+    <nav className="navbar">
+      <div className="container">
 
         {/* HyperPilot icon */}
         <div className="nav-left">
@@ -29,13 +29,13 @@ export default () => (
           </div>
         </div>
 
-      </nav>
-    </div>
+      </div>
+    </nav>
 
     <div className="divider" />
 
     {/* Header */}
-    <div className="subnav">
+    <div className="header">
       <div className="container">
         <div className="current-location">Organization name</div>
         <button className="settings-button">
