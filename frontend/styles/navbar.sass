@@ -1,0 +1,44 @@
+.navbar
+  display: flex
+  justify-content: space-between
+  align-items: center
+  height: 50px
+
+  .nav-left
+    margin-right: auto
+
+  .nav-right
+    margin-left: auto
+
+  .nav-center
+    margin: 0 auto
+
+  .navbar-item .brand
+    height: 65%
+    width: auto
+    border-radius: 0.3em
+
+  .navbar-item input[type=search]
+    width: 400px
+    height: 65%
+    border-radius: 100px
+    border: solid 1px #748ffc
+    background-color: #f7f9fc
+
+    &::placeholder
+      padding-left: 36px
+      color: #748ffc
+      height: 21px
+      font-size: 15px
+      font-family: WorkSans
+      letter-spacing: 0.5px
+ 
+  .nav-sublist
+    display: flex
+    .navbar-item
+      padding: 0 0.5rem
+
+.divider
+  width: 100%
+  height: 0
+  border-bottom: 3px solid #748ffc
