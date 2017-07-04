@@ -16,7 +16,8 @@ let config = module.exports = {
   ],
   output: {
     path: __dirname + "/dist",
-    filename: "[hash].bundle.js"
+    filename: "[hash].bundle.js",
+    publicPath: "/dist/"
   },
   devtool: "inline-source-map",
   module: {
@@ -33,8 +34,20 @@ let config = module.exports = {
         test: /\.s[ca]ss$/,
         use: extractSass.extract({
           fallback: "style-loader",
-          use: ["css-loader", "sass-loader"]
+          use: [
+            "css-loader", "sass-loader",
+            {
+              loader: "resolve-url-loader",
+              query: {
+                silent: true
+              }
+            }
+          ]
         })
+      },
+      {
+        test: /\.(jpe?g|png|gif|svg)$/i,
+        loader: "file-loader"
       }
     ]
   },
