@@ -1,11 +1,12 @@
 import "babel-polyfill";
 import "whatwg-fetch";
 import React, { Component } from "react";
-import { BrowserRouter as Router, Route } from "react-router-dom";
+import { BrowserRouter as Router, Route, Redirect } from "react-router-dom";
 // import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
 import ReactDOM from "react-dom";
 // import Navbar from "./containers/Navbar";
 import HeaderNav from "./components/HeaderNav";
+import DashboardHome from "./components/DashboardHome";
 // import CalibrationChart from "./containers/CalibrationChart";
 // import ProfilingChart from "./containers/ProfilingChart";
 // import RadarChart from "./containers/RadarChart";
@@ -31,7 +32,11 @@ class App extends Component {
   render() {
     return (
       <Router>
-        <HeaderNav />
+        <div>
+          <HeaderNav />
+          <Route exact path="/" render={() => <Redirect to="/dashboard" />} />
+          <Route path="/dashboard" component={DashboardHome} />
+        </div>
       </Router>
     );
   }

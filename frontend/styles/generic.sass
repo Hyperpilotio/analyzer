@@ -25,3 +25,12 @@ a
 .center
   margin-left: auto
   margin-right: auto
+
+.columns
+  display: flex
+  flex-direction: row
+
+  .column:not(:first-child)
+    padding-left: 2rem
+  .column:not(:last-child)
+    padding-right: 2rem

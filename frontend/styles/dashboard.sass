@@ -1,0 +1,33 @@
+.key-info
+  height: 160px
+  background-color: $color-light
+
+  .container
+    box-sizing: border-box
+    display: flex
+    height: 100%
+    padding: 15px 0
+
+
+.info-list
+  display: flex
+  flex-direction: column
+  justify-content: space-around
+
+  &.column:not(:last-child)
+    border-right: 1px solid $color-divider
+  
+.info-section
+  display: flex
+  flex-direction: column
+  margin: 0.2rem 0
+
+  .info-key
+    color: $color-light-grey
+    margin-bottom: 0.2rem
+    font-size: 16px
+
+  .info-value
+    color: $color-dark-grey
+    margin-top: 0.2rem
+    font-size: 19px
