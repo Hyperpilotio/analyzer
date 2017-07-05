@@ -15,7 +15,12 @@
   justify-content: space-around
 
   &.column:not(:last-child)
+    margin-right: 0
+    padding-right: 2rem
     border-right: 1px solid $color-divider
+  &.column:not(:first-child)
+    margin-left: 0
+    padding-left: 2rem
   
 .info-section
   display: flex
@@ -31,3 +36,48 @@
     color: $color-dark-grey
     margin-top: 0.2rem
     font-size: 19px
+
+
+.info-value.status-indicator-list
+  margin-top: 1rem
+
+.status-indicator
+  border: 1px solid $color-divider
+  border-radius: 4px
+  padding: 0.5rem 1rem
+  display: flex
+  justify-content: space-between
+  align-items: center
+  min-width: 150px
+
+  &.column:not(:first-child)
+    margin-left: 0.5rem
+  &.column:not(:last-child)
+    margin-right: 0.5rem
+
+  & > *:not(:first-child)
+    margin-left: 1rem
+  & > *:not(:last-child)
+    margin-right: 1rem
+
+  .key-stat
+    font-size: 30px
+    color: $color-primary
+
+  .key-stat-label
+    font-size: 14px
+    color: $color-grey
+
+
+.badge
+  border-radius: 4px
+  padding: 0.25rem 0.75rem
+  font-size: 16px
+
+  @each $name, $pair in $colors
+    $color: nth($pair, 1)
+    $background: nth($pair, 2)
+    &.#{$name}
+      border: 1px solid $color
+      color: $color
+      background-color: $background
