@@ -1,7 +1,7 @@
 .navbar
   height: 60px
-  background-color: #f7f9fc
-  border-bottom: 3px solid #748ffc
+  background-color: $color-light
+  border-bottom: 3px solid $color-blue
 
   .container
     display: flex
@@ -9,43 +9,43 @@
     align-items: center
     height: 100%
 
-  .nav-left
-    margin-right: auto
-
-  .nav-right
-    margin-left: auto
-
-  .nav-center
-    margin: 0 auto
-
-  .navbar-item .brand
+  .navbar-item
     height: 65%
-    width: auto
-    border-radius: 0.3em
 
-  .navbar-item input[type=search]
-    width: 400px
-    height: 65%
-    border-radius: 100px
-    border: solid 1px #748ffc
-    background-color: #f7f9fc
+    .brand
+      width: auto
+      border-radius: 0.3em
 
-    &::placeholder
-      padding-left: 36px
-      color: #748ffc
-      height: 21px
-      font-size: 15px
-      font-family: WorkSans
-      letter-spacing: 0.5px
+    input[type=search]
+      width: 400px
+      height: 100%
+      border-radius: 100px
+      border: solid 1px $color-blue
+      background-color: $color-light
+
+      &::placeholder
+        font-family: WorkSans
+        font-size: 15px
+        padding-left: 36px
+        height: 21px
+        letter-spacing: 0.5px
+        color: $color-blue
  
   .nav-sublist
     display: flex
-    .navbar-item
-      padding: 0 0.5rem
+
+    .navbar-item:not(:first-child)
+      margin-left: 0.25rem
+    .navbar-item:not(:last-child)
+      margin-right: 0.25rem
+
+.menu-icon, .user-icon
+  width: 40px
+  height: 40px
 
 .header
   height: 60px
-  background-color: #1c293c
+  background-color: $color-dark
 
   .container
     display: flex
@@ -57,18 +57,19 @@
   letter-spacing: 1.5px
   font-size: 16px
   height: 19px
-  color: white
+  color: $color-white
 
 .settings-button
   padding: 5px 10px
   border-radius: 4px
-  background-color: #273750
-  border: solid 1px #748ffc
+  // background-color: #273750
+  background-color: lighten($color-dark, 10%)
+  border: solid 1px $color-blue
   letter-spacing: 1.5px
-  color: #748ffc
+  color: $color-blue
 
 .placehold-settings-icon
-  border: 2px solid #748ffc
+  border: 2px solid $color-blue
   padding: 0 8px
   margin-right: 10px
 
@@ -76,7 +77,7 @@
 .subnav
   height: 45px
   margin-top: 5px
-  border-bottom: 1px solid #eef0fa
+  border-bottom: 1px solid $color-divider
 
   .container
     display: flex
@@ -99,10 +100,10 @@
       margin-right: 15px
 
     &:not(.selected) a
-      color: #888998
+      color: $color-grey
 
     &.selected
       box-sizing: border-box
-      border-bottom: 3px solid #748ffc
+      border-bottom: 3px solid $color-blue
       a
-        color: #5677fa
+        color: $color-blue
