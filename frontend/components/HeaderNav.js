@@ -32,8 +32,6 @@ export default () => (
       </div>
     </nav>
 
-    <div className="divider" />
-
     {/* Header */}
     <div className="header">
       <div className="container">
