@@ -34,3 +34,16 @@ a
     margin-left: 1rem
   .column:not(:last-child)
     margin-right: 1rem
+
+.badge
+  border-radius: 4px
+  padding: 0.25rem 0.75rem
+  font-size: 16px
+
+  @each $name, $pair in $colors
+    $color: nth($pair, 1)
+    $background: nth($pair, 2)
+    &.#{$name}
+      border: 1px solid $color
+      color: $color
+      background-color: $background
