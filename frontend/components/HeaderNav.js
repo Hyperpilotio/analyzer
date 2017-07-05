@@ -1,4 +1,8 @@
 import React from "react";
+import HyperPilotLogo from "../assets/images/asset_hyperpilot_nav_logo.svg";
+import MainMenuIcon from "../assets/images/icon_main_menu.svg";
+import UserIcon from "../assets/images/icon_user.svg";
+
 
 export default () => (
   <div>
@@ -8,7 +12,7 @@ export default () => (
         {/* HyperPilot icon */}
         <div className="left">
           <div className="navbar-item">
-            <img className="brand" src="http://placehold.it/40/40" />
+            <img className="brand" src={HyperPilotLogo} />
           </div>
         </div>
 
@@ -22,10 +26,10 @@ export default () => (
         {/* Menu and account icon */}
         <div className="right nav-sublist">
           <div className="navbar-item">
-            <img className="menu-icon" src="http://placehold.it/40/40" />
+            <img className="menu-icon" src={MainMenuIcon} />
           </div>
           <div className="navbar-item">
-            <img className="user-icon" src="http://placehold.it/40/40" />
+            <img className="user-icon" src={UserIcon} />
           </div>
         </div>
 

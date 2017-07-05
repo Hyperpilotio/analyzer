@@ -29,9 +29,9 @@ export default () => (
                 <div className="column status-indicator">
                   <div>
                     <div className="key-stat">12</div>
-                    <div className="key-stat-label">apps</div>
+                    <div className="key-stat-label">Interfering</div>
                   </div>
-                  <span className="badge danger">Interfering</span>
+                  <span className="badge danger">High</span>
                 </div>
                 <div className="column status-indicator">
                   <div>
