@@ -36,9 +36,9 @@ export default () => (
     <div className="header">
       <div className="container">
         <div className="current-location">Organization name</div>
-        <button className="badge info settings-button">
+        <a href="#" className="badge info settings-button">
           <span className="placehold-settings-icon" /> Settings
-        </button>
+        </a>
       </div>
     </div>
 
