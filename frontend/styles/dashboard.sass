@@ -7,3 +7,53 @@
     padding: 0 0.75rem
   span:not(:last-child)
     border-right: 1px solid $color-divider
+
+
+.dashboard h3
+  font-size: 18px
+  letter-spacing: 0.6px
+  color: $color-light-grey
+
+.apps-container
+  width: 600px
+
+  article
+    height: 150px
+    box-sizing: border-box
+    margin: 1.5rem 0
+    border: 1px solid $color-divider
+    border-radius: 4px
+    padding: 1rem 2rem
+    display: flex
+
+    aside
+      margin-right: 1.5rem
+      img
+        width: 45px
+
+    section
+      display: flex
+      flex-direction: column
+      justify-content: space-between
+
+      header
+        h1
+          font-size: 22px
+          color: $color-dark-grey
+          margin: 0 0 0.5rem 0
+        p
+          font-size: 16px
+          color: $color-light-grey
+          margin: 0.25rem 0
+
+      footer
+        a
+          font-size: 16px
+          color: #78c1f9
+
+    mark
+      background-color: transparent
+      .badge
+        padding: 0
+        width: 1.5rem
+        height: 1.5rem
