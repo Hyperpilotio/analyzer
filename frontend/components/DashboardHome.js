@@ -46,6 +46,9 @@ export default () => (
             </div>
           </div>
         </div>
+        <div className="right run-optimizer">
+          <button>Run Optimizer</button>
+        </div>
       </div>
     </div>
   </div>
