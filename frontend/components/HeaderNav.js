@@ -43,5 +43,15 @@ export default () => (
         </button>
       </div>
     </div>
+
+    {/* Subnav */}
+    <nav className="subnav">
+      <div className="container">
+        <div className="nav-item selected"><a href="#">Dashboard</a></div>
+        <div className="nav-item"><a href="#">Autopilot</a></div>
+        <div className="nav-item"><a href="#">Apps</a></div>
+        <div className="nav-item"><a href="#">Services</a></div>
+      </div>
+    </nav>
   </div>
 )

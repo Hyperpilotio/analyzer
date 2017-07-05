@@ -75,3 +75,37 @@
   border: 2px solid #748ffc
   padding: 0 8px
   margin-right: 10px
+
+
+.subnav
+  height: 40px
+  margin-top: 5px
+
+  .container
+    display: flex
+    justify-content: flex-start
+    align-items: center
+    height: 100%
+
+  .nav-item
+    height: 100%
+    display: flex
+    align-items: center
+
+    a
+      letter-spacing: 0.5px
+
+    &:not(:first-child)
+      margin-left: 15px
+
+    &:not(:last-child)
+      margin-right: 15px
+
+    &:not(.selected) a
+      color: #888998
+
+    &.selected
+      box-sizing: border-box
+      border-bottom: 3px solid #748ffc
+      a
+        color: #5677fa
