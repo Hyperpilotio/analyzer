@@ -34,14 +34,16 @@
 
   .nav-sublist
     display: flex
+    .navbar-item
+      display: flex
+      align-items: center
 
     .navbar-item:not(:first-child)
-      margin-left: 0.25rem
+      margin-left: 0.75rem
     .navbar-item:not(:last-child)
-      margin-right: 0.25rem
+      margin-right: 0.75rem
 
 .menu-icon, .user-icon
-  width: 30px
   height: 30px
 
 .header
