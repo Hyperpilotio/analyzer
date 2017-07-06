@@ -21,7 +21,7 @@ export default ({ children, match }) => (
           </div>
           <div className="info-section">
             <span className="info-key">Interfering severity</span>
-            <div className="info-value"><span className="danger badge">High</span></div>
+            <div className="info-value"><span className="danger badge small">High</span></div>
           </div>
         </div>
         <div className="column info-list">
