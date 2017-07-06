@@ -1,8 +1,10 @@
 import { Chart } from "react-chartjs-2";
 import _ from "lodash";
+import { numberWithCommas } from "./util";
 
 
 Chart.defaults.global.animation.duration = 500;
+Chart.defaults.global.defaultFont = "WorkSans";
 
 
 // Error Bars for Calibration Line Chart
@@ -57,9 +59,9 @@ Chart.plugins.register({
 
       ctx.fillRect(
         pointX - intensityAreaWidth / 2, // upper-left x
-        yScale.top, // upper-left y
+        0, // upper-left y
         intensityAreaWidth, // width
-        yScale.bottom - yScale.top // height
+        yScale.bottom // height
       );
     }
   }
@@ -88,6 +90,19 @@ Chart.plugins.register({
           ctx.stroke();
         }
       }
+    }
+  }
+});
+
+Chart.plugins.register({
+  afterDraw: ({ ctx, options, scales }) => {
+    let yScale = scales["y-axis-0"];
+    let xScale = scales["x-axis"];
+    let xPos = xScale.getPixelForTick(0);
+    ctx.fillStyle = "#e5e6e8";
+    for (let i = 0; i < yScale.ticks.length - 1; i ++) {
+      let yPos = yScale.getPixelForTick(i) + 20;
+      ctx.fillText(numberWithCommas(yScale.ticks[i]), xPos, yPos);
     }
   }
 });

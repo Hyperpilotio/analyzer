@@ -31,6 +31,11 @@ export default ({ data, loading }) => {
       }}
       options={{
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 50,
+          }
+        },
         legend: {
           display: false
         },
@@ -46,20 +51,29 @@ export default ({ data, loading }) => {
             color: "#eef0fa",
             gridLines: {
               drawBorder: false
+            },
+            ticks: {
+              display: false
             }
           }]
         },
         tooltips: {
-          display: false
+          enabled: false
         },
         hover: {
-          mode: "nearest",
-          intersect: false
+          mode: "x-axis"
         },
         plugins: {
           finalIntensity: {
             value: data.finalIntensity,
             fillStyle: "rgba(140, 177, 250, 0.2)"
+          }
+        },
+        ticks: {
+          callbacks: {
+            beforeBuildTicks: function() {
+              console.log(arguments);
+            }
           }
         }
       }}
