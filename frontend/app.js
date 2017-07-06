@@ -39,11 +39,7 @@ class App extends Component {
             <HeaderNav history={history} />
             <Switch>
               <Route path="/dashboard" component={DashboardHome} />
-              <Route path="/apps/:appId" render={(props) => (
-                <AppPage {...props}>
-                  <Route path="/apps/:appId/calibration" component={AppCalibration} />
-                </AppPage>
-                )} />
+              <Route path="/apps/:appId" component={AppPage} />
               <Redirect from="/" to="/dashboard" />
             </Switch>
           </div>

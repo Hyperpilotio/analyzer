@@ -2,8 +2,8 @@ import React from "react";
 import KeyInfo from "./KeyInfo";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 
-export default ({ children, match }) => (
-  <div>
+export default ({ match }) => (
+  <div className="app-page-body">
 
     <KeyInfo>
       <div className="left app-identity">
@@ -46,6 +46,13 @@ export default ({ children, match }) => (
         </div>
       </div>
     </KeyInfo>
-    { children }
+
+    <nav className="subnav">
+      <div className="container">
+        <a href="#" className="nav-item selected">Calibration</a>
+        <a href="#" className="nav-item">Profiling</a>
+      </div>
+    </nav>
+
   </div>
 )
