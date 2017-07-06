@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import KeyInfo from "./KeyInfo";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 import mongoLogo from "../assets/images/asset_mongoDB_logo.svg";
@@ -79,7 +80,7 @@ export default () => (
                 <p>ID: 59306145e3fd9e5094db04e6</p>
                 <p>More summary info</p>
               </header>
-              <footer><a href="#">Analysis Workflow</a></footer>
+              <footer><Link to="/apps/59306145e3fd9e5094db04e6">Analysis Workflow</Link></footer>
             </section>
             <mark className="right"><div className="danger badge" /></mark>
           </article>

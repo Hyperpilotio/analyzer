@@ -83,13 +83,13 @@
     align-items: center
     height: 100%
 
-  .nav-item
+  a.nav-item
     height: 100%
     display: flex
     align-items: center
-
-    a
-      letter-spacing: 0.5px
+    letter-spacing: 0.5px
+    box-sizing: border-box
+    border-bottom: 3px solid transparent
 
     &:not(:first-child)
       margin-left: 15px
@@ -97,11 +97,9 @@
     &:not(:last-child)
       margin-right: 15px
 
-    &:not(.selected) a
+    &:not(.selected)
       color: $color-grey
 
     &.selected
-      box-sizing: border-box
       border-bottom: 3px solid $color-blue
-      a
-        color: $color-blue
+      color: $color-blue

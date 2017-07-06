@@ -34,18 +34,20 @@ class App extends Component {
   render() {
     return (
       <Router>
-        <div>
-          <HeaderNav />
-          <Switch>
-            <Route path="/dashboard" component={DashboardHome} />
-            <Route path="/apps/:appId" render={(props) => (
-              <AppPage {...props}>
-                <Route path="/apps/:appId/calibration" component={AppCalibration} />
-              </AppPage>
-              )} />
-            <Redirect from="/" to="/dashboard" />
-          </Switch>
-        </div>
+        <Route children={({ history }) => (
+          <div>
+            <HeaderNav history={history} />
+            <Switch>
+              <Route path="/dashboard" component={DashboardHome} />
+              <Route path="/apps/:appId" render={(props) => (
+                <AppPage {...props}>
+                  <Route path="/apps/:appId/calibration" component={AppCalibration} />
+                </AppPage>
+                )} />
+              <Redirect from="/" to="/dashboard" />
+            </Switch>
+          </div>
+        )} />
       </Router>
     );
   }

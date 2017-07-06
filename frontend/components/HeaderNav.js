@@ -2,9 +2,10 @@ import React from "react";
 import HyperPilotLogo from "../assets/images/asset_hyperpilot_nav_logo.svg";
 import MainMenuIcon from "../assets/images/icon_main_menu.svg";
 import UserIcon from "../assets/images/icon_user.svg";
+import { NavLink } from "react-router-dom";
 
 
-export default () => (
+export default ({ history }) => (
   <div>
     <nav className="navbar">
       <div className="container">
@@ -49,10 +50,18 @@ export default () => (
     {/* Subnav */}
     <nav className="subnav">
       <div className="container">
-        <div className="nav-item selected"><a href="#">Dashboard</a></div>
-        <div className="nav-item"><a href="#">Autopilot</a></div>
-        <div className="nav-item"><a href="#">Apps</a></div>
-        <div className="nav-item"><a href="#">Services</a></div>
+        <NavLink to="/dashboard" className="nav-item" activeClassName="selected">
+          Dashboard
+        </NavLink>
+        <NavLink to="/autopilot" className="nav-item" activeClassName="selected">
+          Autopilot
+        </NavLink>
+        <NavLink to="/apps" className="nav-item" activeClassName="selected">
+          Apps
+        </NavLink>
+        <NavLink to="/services" className="nav-item" activeClassName="selected">
+          Services
+        </NavLink>
       </div>
     </nav>
   </div>

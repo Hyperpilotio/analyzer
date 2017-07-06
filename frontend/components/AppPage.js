@@ -4,6 +4,7 @@ import redisLogo from "../assets/images/asset_redis_logo.svg";
 
 export default ({ children, match }) => (
   <div>
+
     <KeyInfo>
       <div className="left app-identity">
         <div className="name-and-icon">
