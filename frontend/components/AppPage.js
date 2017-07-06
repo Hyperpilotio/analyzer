@@ -1,6 +1,7 @@
 import React from "react";
 import KeyInfo from "./KeyInfo";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
+import CalibrationChart from "../containers/CalibrationChart";
 
 export default ({ match }) => (
   <div className="app-page-body">
@@ -53,6 +54,10 @@ export default ({ match }) => (
         <a href="#" className="nav-item">Profiling</a>
       </div>
     </nav>
+
+    <div className="container">
+      <CalibrationChart calibrationId="59406aa9e3fd9e5094db7f3b" />
+    </div>
 
   </div>
 )
