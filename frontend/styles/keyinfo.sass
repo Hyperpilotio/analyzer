@@ -17,10 +17,12 @@
   &.column:not(:last-child)
     margin-right: 0
     padding-right: 2rem
-    border-right: 1px solid $color-divider
   &.column:not(:first-child)
     margin-left: 0
     padding-left: 2rem
+
+.columns.with-divider .info-list.column:not(:last-child)
+  border-right: 1px solid $color-divider
 
 .info-section
   display: flex
@@ -31,11 +33,16 @@
     color: $color-light-grey
     margin-bottom: 0.2rem
     font-size: 16px
+    letter-spacing: 0.5px
 
   .info-value
     color: $color-dark-grey
     margin-top: 0.2rem
     font-size: 19px
+    letter-spacing: 0.5px
+
+    .badge
+      padding: 0.1rem 0.5rem
 
 
 .info-value.status-indicator-list
@@ -82,5 +89,3 @@
     letter-spacing: 1.5px
     font-size: 18px
     border: none
-
-    
