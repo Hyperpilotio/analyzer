@@ -80,6 +80,50 @@ Chart.plugins.register({
     xPos = xScale.right - ctx.measureText(xLabel).width;
     ctx.fillText(xLabel, xPos, yScale.bottom - 15);
 
+    // Draw tooltip
+    const vm = chart.tooltip._view;
+    if (!_.isUndefined(chart.tooltip.currentPoints)) {
+      let [mean, min, max] = chart.tooltip.currentPoints;
+      ctx.textAlign = vm.xAlign;
+
+      ctx.beginPath();
+      let xPos = mean.x + vm.xPadding;
+      ctx.textBaseline = "top";
+
+      let texts = [
+        { style: "important", text: mean.xLabel, label: "Load intensity" },
+        { style: "important", text: Number(mean.yLabel.toFixed(2)), label: "Mean" },
+        { style: "secondary", text: min.yLabel, label: "Min" },
+        { style: "secondary", text: max.yLabel, label: "Max" }
+      ];
+
+      if (vm.xAlign === "left")
+        xPos = mean.x + vm.xPadding;
+      else
+        xPos = mean.x - vm.xPadding;
+
+      texts.forEach(({ style, text, label }, i) => {
+        if (style === "important") {
+          ctx.font = "bold 20px WorkSans";
+          ctx.fillStyle = "#5677fa";
+        } else if (style === "secondary") {
+          ctx.font = "bold 16px WorkSans";
+          ctx.fillStyle = "#606175";
+        }
+
+        // Draw individual staticstic
+        let yPos = vm.yPadding + 40 * i;
+        ctx.fillText(text, xPos, yPos);
+
+        ctx.font = "lighter 10px WorkSans";
+        ctx.fillStyle = "#b9bacb";
+        // Draw label for statistics
+        yPos += 20 + (style === "important") * 5
+        ctx.fillText(label, xPos, yPos);
+      });
+
+    }
+
     ctx.restore();
   }
 });

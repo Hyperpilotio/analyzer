@@ -29,7 +29,7 @@ export default class CalibrationChart extends Component {
             data: data.testResult.map(
               point => ({ x: point.loadIntensity, y: point[metric] })
             ),
-            label: "min",
+            label: metric,
             showLine: false,
             pointRadius: 0,
             pointHoverRadius: 0
@@ -39,17 +39,11 @@ export default class CalibrationChart extends Component {
       options={{
         layout: {
           padding: {
-            top: 80
+            top: 100
           }
         },
         legend: {
           display: false
-        },
-        tooltips: {
-          custom(tooltip) {
-            Chart.defaults.global.tooltips.custom.call(this, tooltip);
-            console.log(tooltip);
-          }
         },
         scales: {
           xAxes: [{
