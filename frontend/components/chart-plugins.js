@@ -7,8 +7,13 @@ Chart.defaults.global.animation.duration = 500;
 Chart.defaults.global.defaultFontFamily = "WorkSans";
 Chart.defaults.global.tooltips.mode = "x-axis";
 Chart.defaults.global.hover.mode = "x-axis";
+Chart.defaults.global.hover.intersect = false;
 Chart.defaults.global.maintainAspectRatio = false;
+Chart.defaults.global.elements.line.tension = 0;
 Chart.defaults.scale.gridLines.drawBorder = false;
+Chart.defaults.scale.gridLines.display = false;
+Chart.defaults.scale.ticks.display = false;
+
 
 Chart.defaults.global.tooltips.custom = function(tooltip) {
   // Store currently hovered data points
@@ -20,39 +25,71 @@ Chart.defaults.global.tooltips.custom = function(tooltip) {
 
 Chart.plugins.register({
   afterInit: chart => {
-    chart.tooltip.draw = function() {
-      const ctx = chart.ctx;
-      ctx.strokeStyle = "#8cb1fa";
-      // Draw previously stored data points to leave the tooltip after mouseout
-      if (_.size(this.currentPoints) >= 1) {
-        const point = this.currentPoints[0];
-        ctx.beginPath();
-        ctx.moveTo(point.x, 0);
-        ctx.lineTo(point.x, chart.chartArea.bottom);
-        ctx.stroke();
-      }
-    }
+    chart.tooltip.draw = function() {};
   },
 
-  afterDraw: ({ ctx, options, scales, ...args }) => {
+  beforeDraw: ({ ctx, chart, scales }) => {
+    ctx.fillStyle = "#f7f9fc";
+    ctx.fillRect(0, 0, chart.width, chart.chartArea.bottom);
+
+    let yScale = scales["y-axis-0"];
+    let xScale = scales["x-axis-0"];
+    // Draw grid lines
+    ctx.strokeStyle = yScale.options.color;
+    ctx.beginPath();
+    for (let tick of yScale.ticksAsNumbers) {
+      let yPos = yScale.getPixelForValue(tick);
+      ctx.moveTo(0, yPos);
+      ctx.lineTo(chart.width, yPos);
+    }
+    ctx.stroke();
+
+    // Draw vertical tooltip bar
+    if (_.size(chart.tooltip.currentPoints) >= 1) {
+      ctx.strokeStyle = "#8cb1fa";
+      const point = chart.tooltip.currentPoints[0];
+      ctx.beginPath();
+      ctx.moveTo(point.x, 0);
+      ctx.lineTo(point.x, chart.chartArea.bottom);
+      ctx.stroke();
+    }
+
+  },
+
+  afterDraw: ({ chart, ctx, options, scales }) => {
+
+    ctx.save();
+
     // Draw ticks
     let yScale = scales["y-axis-0"];
-    let xScale = scales["x-axis"];
+    let xScale = scales["x-axis-0"];
     let xPos = xScale.getPixelForTick(0);
     ctx.fillStyle = "#e5e6e8";
     for (let i = 0; i < yScale.ticks.length - 1; i ++) {
       let yPos = yScale.getPixelForTick(i) + 20;
       ctx.fillText(numberWithCommas(yScale.ticks[i]), xPos, yPos);
     }
+
+    // Draw y-axis title
+    ctx.fillStyle = "#b9bacb";
+    ctx.font = "14px WorkSans";
+    ctx.fillText(yScale.options.scaleLabel.labelString, xPos, 25);
+
+    // Draw x-axis title
+    const xLabel = xScale.options.scaleLabel.labelString;
+    xPos = xScale.right - ctx.measureText(xLabel).width;
+    ctx.fillText(xLabel, xPos, yScale.bottom - 15);
+
+    ctx.restore();
   }
 });
 
 
 // Final Intensity Marking Area
 Chart.plugins.register({
-  afterDatasetsDraw: ({ ctx, options, scales }) => {
+  beforeDatasetsDraw: ({ ctx, options, scales }) => {
     if (options.plugins.finalIntensity) {
-      const xScale = scales["x-axis"];
+      const xScale = scales["x-axis-0"];
       const yScale = scales["y-axis-0"];
       const intensityAreaWidth = (xScale.right - xScale.left) / 40;
       const pointX = xScale.getPixelForValue(options.plugins.finalIntensity.value);
@@ -77,12 +114,12 @@ Chart.plugins.register({
 Chart.plugins.register({
   afterDatasetsDraw: ({ ctx, options, scales, data }) => {
     if (options.plugins.errorBars) {
-      const xScale = scales["x-axis"];
+      const xScale = scales["x-axis-0"];
       const yScale = scales["y-axis-0"];
       // The horizontal little bar is 1% of the whole graph
       const errorBarWidth = (xScale.right - xScale.left) / 100 / 2;
       ctx.lineWidth = 2;
-      ctx.strokeStyle = options.plugins.errorBars.strokeStyle || options.elements.line.borderColor;
+      ctx.strokeStyle = options.plugins.errorBars.strokeStyle;
 
       for (let fraction of ["top", "bottom"]) {
         if (options.plugins.errorBars[fraction]) {
@@ -115,7 +152,7 @@ Chart.plugins.register({
 Chart.plugins.register({
   afterDatasetsDraw: ({ ctx, chart, options, scales, data }) => {
     if (options.plugins.confidenceIntervals) {
-      const xScale = scales["x-axis"];
+      const xScale = scales["x-axis-0"];
       const yScale = scales["y-axis-0"];
       // Each benchmarks drawn as different datasets
       for (let dataset of options.plugins.confidenceIntervals.datasets) {
