@@ -9,7 +9,6 @@ export default ({ data, loading }) => {
   let lineChartElement;
   if (data !== null) {
     lineChartElement = <Line
-      height={500}
       data={{
         datasets: [{
           label: "Calibration",
