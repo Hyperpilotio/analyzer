@@ -25,6 +25,7 @@ export default class CalibrationChart extends PureComponent {
             pointHoverBorderColor: "#5677fa",
             pointHoverRadius: 5
           },
+          // Add hidden min and max datasets to make getting data for tooltips easier
           ...["min", "max"].map(metric => ({
             data: data.testResult.map(
               point => ({ x: point.loadIntensity, y: point[metric] })

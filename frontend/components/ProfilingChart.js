@@ -1,20 +1,18 @@
-import React, { Component } from "react";
+import React, { PureComponent } from "react";
 import { Line } from "react-chartjs-2";
-import CircularProgress from "material-ui/CircularProgress";
 import "./chart-plugins";
 import _ from "lodash";
 
 
-export default ({ data, loading }) => {
-  let lineChartElement;
-  if (data !== null) {
+export default class ProfilingChart extends PureComponent {
+
+  createLineChart(data) {
     let flattenedResults = _.flatMap(data.testResult);
-    lineChartElement = <Line
+    return <Line
       data={{
         datasets: _.map(data.testResult, (points, benchmark) => ({
           label: benchmark,
           data: points.map(row => ({ x: row.intensity, y: row.mean })),
-          xAxisID: "x-axis",
           fill: false,
           lineTension: 0
         }))
@@ -22,7 +20,6 @@ export default ({ data, loading }) => {
       options={{
         scales: {
           xAxes: [{
-            id: "x-axis",
             type: "linear",
             ticks: {
               min: 0,
@@ -64,9 +61,13 @@ export default ({ data, loading }) => {
     />;
   }
 
-  let divForLoading;
-  if (loading)
-    divForLoading = <div className="loading-container"><CircularProgress /></div>;
+  render() {
+    return (
+      <div className="chart-container">
+        { this.props.data && this.createLineChart(this.props.data) }
+        { this.props.loading && "Loading" }
+      </div>
+    );
+  }
 
-  return <div className="main-container">{lineChartElement}{divForLoading}</div>;
 }

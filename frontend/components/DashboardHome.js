@@ -80,7 +80,7 @@ export default () => (
                 <p>ID: 59306145e3fd9e5094db04e6</p>
                 <p>More summary info</p>
               </header>
-              <footer><Link to="/apps/59306145e3fd9e5094db04e6">Analysis Workflow</Link></footer>
+              <footer><Link to="/apps/59306145e3fd9e5094db04e6/">Analysis Workflow</Link></footer>
             </section>
             <mark className="right"><div className="danger badge" /></mark>
           </article>

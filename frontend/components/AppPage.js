@@ -1,7 +1,10 @@
 import React from "react";
+import { Switch, Route, Redirect } from "react-router";
+import { NavLink } from "react-router-dom";
 import KeyInfo from "./KeyInfo";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 import CalibrationChart from "../containers/CalibrationChart";
+import ProfilingChart from "../containers/ProfilingChart";
 
 export default ({ match }) => (
   <div className="app-page-body">
@@ -50,13 +53,22 @@ export default ({ match }) => (
 
     <nav className="subnav">
       <div className="container">
-        <a href="#" className="nav-item selected">Calibration</a>
-        <a href="#" className="nav-item">Profiling</a>
+        <NavLink to={`/apps/${match.params.appId}/calibration`} className="nav-item" activeClassName="selected">
+          Calibration
+        </NavLink>
+        <NavLink to={`/apps/${match.params.appId}/profiling`} className="nav-item" activeClassName="selected">
+          Profiling
+        </NavLink>
       </div>
     </nav>
 
     <div className="container">
-      <CalibrationChart calibrationId="59406aa9e3fd9e5094db7f3b" />
+      <Switch>
+        <Route path="/apps/:appId/calibration" render={() => <CalibrationChart calibrationId="59406aa9e3fd9e5094db7f3b" />} />
+        <Route path="/apps/:appId/profiling" render={() => <ProfilingChart profilingId="59548437e3fd9e5094ddac86" />} />
+        <Redirect to="calibration" />
+      </Switch>
+
     </div>
 
   </div>
