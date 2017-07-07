@@ -30,10 +30,9 @@ export default ({ data, loading }) => {
         }]
       }}
       options={{
-        maintainAspectRatio: false,
         layout: {
           padding: {
-            top: 50,
+            top: 50
           }
         },
         legend: {
@@ -44,36 +43,20 @@ export default ({ data, loading }) => {
             id: "x-axis",
             type: "linear",
             gridLines: {
-              display: false
+              display: false,
             }
           }],
           yAxes: [{
             color: "#eef0fa",
-            gridLines: {
-              drawBorder: false
-            },
             ticks: {
               display: false
             }
           }]
         },
-        tooltips: {
-          enabled: false
-        },
-        hover: {
-          mode: "x-axis"
-        },
         plugins: {
           finalIntensity: {
             value: data.finalIntensity,
             fillStyle: "rgba(140, 177, 250, 0.2)"
-          }
-        },
-        ticks: {
-          callbacks: {
-            beforeBuildTicks: function() {
-              console.log(arguments);
-            }
           }
         }
       }}

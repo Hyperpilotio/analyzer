@@ -4,8 +4,74 @@ import { numberWithCommas } from "./util";
 
 
 Chart.defaults.global.animation.duration = 500;
-Chart.defaults.global.defaultFont = "WorkSans";
+Chart.defaults.global.defaultFontFamily = "WorkSans";
+Chart.defaults.global.tooltips.mode = "x-axis";
+Chart.defaults.global.hover.mode = "x-axis";
+Chart.defaults.global.maintainAspectRatio = false;
+Chart.defaults.scale.gridLines.drawBorder = false;
 
+Chart.defaults.global.tooltips.custom = function(tooltip) {
+  // Store currently hovered data points
+  if (!_.isUndefined(tooltip.dataPoints)) {
+    this.currentPoints = tooltip.dataPoints;
+  }
+}
+
+
+Chart.plugins.register({
+  afterInit: chart => {
+    chart.tooltip.draw = function() {
+      const ctx = chart.ctx;
+      ctx.strokeStyle = "#8cb1fa";
+      // Draw previously stored data points to leave the tooltip after mouseout
+      if (_.size(this.currentPoints) >= 1) {
+        const point = this.currentPoints[0];
+        ctx.beginPath();
+        ctx.moveTo(point.x, 0);
+        ctx.lineTo(point.x, chart.chartArea.bottom);
+        ctx.stroke();
+      }
+    }
+  },
+
+  afterDraw: ({ ctx, options, scales, ...args }) => {
+    // Draw ticks
+    let yScale = scales["y-axis-0"];
+    let xScale = scales["x-axis"];
+    let xPos = xScale.getPixelForTick(0);
+    ctx.fillStyle = "#e5e6e8";
+    for (let i = 0; i < yScale.ticks.length - 1; i ++) {
+      let yPos = yScale.getPixelForTick(i) + 20;
+      ctx.fillText(numberWithCommas(yScale.ticks[i]), xPos, yPos);
+    }
+  }
+});
+
+
+// Final Intensity Marking Area
+Chart.plugins.register({
+  afterDatasetsDraw: ({ ctx, options, scales }) => {
+    if (options.plugins.finalIntensity) {
+      const xScale = scales["x-axis"];
+      const yScale = scales["y-axis-0"];
+      const intensityAreaWidth = (xScale.right - xScale.left) / 40;
+      const pointX = xScale.getPixelForValue(options.plugins.finalIntensity.value);
+
+      if (options.plugins.finalIntensity.fillStyle)
+        ctx.fillStyle = options.plugins.finalIntensity.fillStyle;
+
+      ctx.fillRect(
+        pointX - intensityAreaWidth / 2, // upper-left x
+        0, // upper-left y
+        intensityAreaWidth, // width
+        yScale.bottom // height
+      );
+    }
+  }
+});
+
+
+/////////////////// Currently unused plugins below ///////////////////
 
 // Error Bars for Calibration Line Chart
 Chart.plugins.register({
@@ -45,29 +111,6 @@ Chart.plugins.register({
 });
 
 
-// Final Intensity Marking Area
-Chart.plugins.register({
-  afterDatasetsDraw: ({ ctx, options, scales }) => {
-    if (options.plugins.finalIntensity) {
-      const xScale = scales["x-axis"];
-      const yScale = scales["y-axis-0"];
-      const intensityAreaWidth = (xScale.right - xScale.left) / 40;
-      const pointX = xScale.getPixelForValue(options.plugins.finalIntensity.value);
-
-      if (options.plugins.finalIntensity.fillStyle)
-        ctx.fillStyle = options.plugins.finalIntensity.fillStyle;
-
-      ctx.fillRect(
-        pointX - intensityAreaWidth / 2, // upper-left x
-        0, // upper-left y
-        intensityAreaWidth, // width
-        yScale.bottom // height
-      );
-    }
-  }
-});
-
-
 // Confidence Intervals for Profiling Line Chart
 Chart.plugins.register({
   afterDatasetsDraw: ({ ctx, chart, options, scales, data }) => {
@@ -90,19 +133,6 @@ Chart.plugins.register({
           ctx.stroke();
         }
       }
-    }
-  }
-});
-
-Chart.plugins.register({
-  afterDraw: ({ ctx, options, scales }) => {
-    let yScale = scales["y-axis-0"];
-    let xScale = scales["x-axis"];
-    let xPos = xScale.getPixelForTick(0);
-    ctx.fillStyle = "#e5e6e8";
-    for (let i = 0; i < yScale.ticks.length - 1; i ++) {
-      let yPos = yScale.getPixelForTick(i) + 20;
-      ctx.fillText(numberWithCommas(yScale.ticks[i]), xPos, yPos);
     }
   }
 });
