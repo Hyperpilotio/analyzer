@@ -8,6 +8,7 @@ Chart.defaults.global.defaultFontFamily = "WorkSans";
 Chart.defaults.global.tooltips.mode = "x-axis";
 Chart.defaults.global.hover.mode = "x-axis";
 Chart.defaults.global.hover.intersect = false;
+Chart.defaults.global.legend.display = false;
 Chart.defaults.global.maintainAspectRatio = false;
 Chart.defaults.global.elements.line.tension = 0;
 Chart.defaults.scale.gridLines.drawBorder = false;
@@ -29,6 +30,7 @@ Chart.plugins.register({
   },
 
   beforeDraw: ({ ctx, chart, scales }) => {
+    ctx.lineWidth = 1;
     ctx.fillStyle = "#f7f9fc";
     ctx.fillRect(0, 0, chart.width, chart.chartArea.bottom);
 
@@ -65,60 +67,62 @@ Chart.plugins.register({
     let xScale = scales["x-axis-0"];
     let xPos = xScale.getPixelForTick(0);
     ctx.fillStyle = "#e5e6e8";
+    ctx.textBaseline = "top";
     for (let i = 0; i < yScale.ticks.length - 1; i ++) {
-      let yPos = yScale.getPixelForTick(i) + 20;
+      let yPos = yScale.getPixelForTick(i) + 5;
       ctx.fillText(numberWithCommas(yScale.ticks[i]), xPos, yPos);
     }
 
     // Draw y-axis title
     ctx.fillStyle = "#b9bacb";
     ctx.font = "14px WorkSans";
-    ctx.fillText(yScale.options.scaleLabel.labelString, xPos, 25);
+    ctx.fillText(yScale.options.scaleLabel.labelString, xPos, 10);
 
     // Draw x-axis title
     const xLabel = xScale.options.scaleLabel.labelString;
     xPos = xScale.right - ctx.measureText(xLabel).width;
-    ctx.fillText(xLabel, xPos, yScale.bottom - 15);
+    ctx.fillText(xLabel, xPos, yScale.bottom - 20);
 
-    // Draw tooltip
-    const vm = chart.tooltip._view;
-    if (!_.isUndefined(chart.tooltip.currentPoints)) {
-      let [mean, min, max] = chart.tooltip.currentPoints;
-      ctx.textAlign = vm.xAlign;
-      ctx.textBaseline = "top";
+    if (options.plugins.calibration === true) {
+      // Draw tooltip
+      const vm = chart.tooltip._view;
+      if (!_.isUndefined(chart.tooltip.currentPoints)) {
+        let [mean, min, max] = chart.tooltip.currentPoints;
+        ctx.textAlign = vm.xAlign;
 
-      let texts = [
-        { style: "important", text: mean.xLabel, label: "Load intensity" },
-        { style: "important", text: Number(mean.yLabel.toFixed(2)), label: "Mean" },
-        { style: "secondary", text: min.yLabel, label: "Min" },
-        { style: "secondary", text: max.yLabel, label: "Max" }
-      ];
+        let texts = [
+          { style: "important", text: mean.xLabel, label: "Load intensity" },
+          { style: "important", text: Number(mean.yLabel.toFixed(2)), label: "Mean" },
+          { style: "secondary", text: min.yLabel, label: "Min" },
+          { style: "secondary", text: max.yLabel, label: "Max" }
+        ];
 
-      if (vm.xAlign === "left")
-        xPos = mean.x + 15;
-      else
-        xPos = mean.x - 15;
+        if (vm.xAlign === "left")
+          xPos = mean.x + 15;
+        else
+          xPos = mean.x - 15;
 
-      texts.forEach(({ style, text, label }, i) => {
-        if (style === "important") {
-          ctx.font = "bold 20px WorkSans";
-          ctx.fillStyle = "#5677fa";
-        } else if (style === "secondary") {
-          ctx.font = "bold 16px WorkSans";
-          ctx.fillStyle = "#606175";
-        }
+        texts.forEach(({ style, text, label }, i) => {
+          if (style === "important") {
+            ctx.font = "bold 20px WorkSans";
+            ctx.fillStyle = "#5677fa";
+          } else if (style === "secondary") {
+            ctx.font = "bold 16px WorkSans";
+            ctx.fillStyle = "#606175";
+          }
 
-        // Draw individual staticstic
-        let yPos = 5 + 40 * i;
-        ctx.fillText(text, xPos, yPos);
+          // Draw individual staticstic
+          let yPos = 5 + 40 * i;
+          ctx.fillText(text, xPos, yPos);
 
-        ctx.font = "lighter 10px WorkSans";
-        ctx.fillStyle = "#b9bacb";
-        // Draw label for statistics
-        yPos += 20 + (style === "important") * 5
-        ctx.fillText(label, xPos, yPos);
-      });
+          ctx.font = "lighter 10px WorkSans";
+          ctx.fillStyle = "#b9bacb";
+          // Draw label for statistics
+          yPos += 20 + (style === "important") * 5
+          ctx.fillText(label, xPos, yPos);
+        });
 
+      }
     }
 
     ctx.restore();

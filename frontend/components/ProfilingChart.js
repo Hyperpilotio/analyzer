@@ -4,58 +4,49 @@ import "./chart-plugins";
 import _ from "lodash";
 
 
+const colors = ["#c1ccf9", "#8cb1fa", "#acaecd", "#e5e6e8", "#78c1fa", "#6590e2"];
+
 export default class ProfilingChart extends PureComponent {
 
   createLineChart(data) {
     let flattenedResults = _.flatMap(data.testResult);
     return <Line
       data={{
-        datasets: _.map(data.testResult, (points, benchmark) => ({
+        datasets: _.entries(data.testResult).map(([benchmark, points], i) => ({
           label: benchmark,
           data: points.map(row => ({ x: row.intensity, y: row.mean })),
           fill: false,
-          lineTension: 0
+          borderColor: colors[i],
+          pointRadius: 0,
+          pointHoverBorderColor: "#5677fa",
+          pointHoverBackgroundColor:  "#fff",
+          pointHoverRadius: 5
         }))
       }}
       options={{
+        layout: {
+          padding: {
+            top: 80
+          }
+        },
         scales: {
           xAxes: [{
             type: "linear",
             ticks: {
+              fontColor: "#e5e6e8",
+              display: true,
               min: 0,
               max: 110,
               stepSize: 25,
               callback: x => x === 110 ? null : x
-            }
+            },
           }],
           yAxes: [{
-            type: "linear",
-            ticks: {
-              suggestedMin: _.min(_.map(flattenedResults, "percentile_10")),
-              suggestedMax: _.max(_.map(flattenedResults, "percentile_90"))
+            color: "#eef0fa",
+            scaleLabel: {
+              labelString: "QoS Value"
             }
           }]
-        },
-        tooltips: {
-          mode: "label",
-          intersect: false,
-          callbacks: {
-            title: items => `Intensity: ${items[0].xLabel}`,
-            label: (item, { datasets }) => (
-              `${datasets[item.datasetIndex].label}: ${item.yLabel.toFixed(2)}`
-            )
-          }
-        },
-        plugins: {
-          confidenceIntervals: {
-            datasets: _.map(data.testResult, (points, benchmark) => ({
-              data: _.map(points, point => ({
-                x: point.intensity,
-                top: point.percentile_10,
-                bottom: point.percentile_90
-              }))
-            }))
-          }
         }
       }}
     />;

@@ -68,7 +68,8 @@ export default class CalibrationChart extends PureComponent {
           finalIntensity: {
             value: data.finalIntensity,
             fillStyle: "rgba(140, 177, 250, 0.2)"
-          }
+          },
+          calibration: true
         }
       }}
     />;
