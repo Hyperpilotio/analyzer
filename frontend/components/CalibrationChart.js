@@ -1,9 +1,9 @@
-import React, { Component } from "react";
+import React, { PureComponent } from "react";
 import { Chart, Line } from "react-chartjs-2";
 import "./chart-plugins";
 import _ from "lodash";
 
-export default class CalibrationChart extends Component {
+export default class CalibrationChart extends PureComponent {
 
   createLineChart(data) {
     return <Line

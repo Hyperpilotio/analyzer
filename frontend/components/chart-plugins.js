@@ -85,9 +85,6 @@ Chart.plugins.register({
     if (!_.isUndefined(chart.tooltip.currentPoints)) {
       let [mean, min, max] = chart.tooltip.currentPoints;
       ctx.textAlign = vm.xAlign;
-
-      ctx.beginPath();
-      let xPos = mean.x + vm.xPadding;
       ctx.textBaseline = "top";
 
       let texts = [
@@ -98,9 +95,9 @@ Chart.plugins.register({
       ];
 
       if (vm.xAlign === "left")
-        xPos = mean.x + vm.xPadding;
+        xPos = mean.x + 15;
       else
-        xPos = mean.x - vm.xPadding;
+        xPos = mean.x - 15;
 
       texts.forEach(({ style, text, label }, i) => {
         if (style === "important") {
@@ -112,7 +109,7 @@ Chart.plugins.register({
         }
 
         // Draw individual staticstic
-        let yPos = vm.yPadding + 40 * i;
+        let yPos = 5 + 40 * i;
         ctx.fillText(text, xPos, yPos);
 
         ctx.font = "lighter 10px WorkSans";
