@@ -1,10 +1,9 @@
 import React, { PureComponent } from "react";
 import { Line } from "react-chartjs-2";
+import { colors } from "./util";
 import "./chart-plugins";
 import _ from "lodash";
 
-
-const colors = ["#c1ccf9", "#8cb1fa", "#acaecd", "#e5e6e8", "#78c1fa", "#6590e2"];
 
 export default class ProfilingChart extends PureComponent {
 
@@ -47,6 +46,9 @@ export default class ProfilingChart extends PureComponent {
               labelString: "QoS Value"
             }
           }]
+        },
+        plugins: {
+          profiling: true
         }
       }}
     />;

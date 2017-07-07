@@ -1,6 +1,6 @@
 import { Chart } from "react-chartjs-2";
+import { numberWithCommas, colors } from "./util";
 import _ from "lodash";
-import { numberWithCommas } from "./util";
 
 
 Chart.defaults.global.animation.duration = 500;
@@ -92,7 +92,11 @@ Chart.plugins.register({
 
         let texts = [
           { style: "important", text: mean.xLabel, label: "Load intensity" },
-          { style: "important", text: Number(mean.yLabel.toFixed(2)), label: "Mean" },
+          {
+            style: "important",
+            text: numberWithCommas(Number(mean.yLabel.toFixed(2))),
+            label: "Mean"
+          },
           { style: "secondary", text: min.yLabel, label: "Min" },
           { style: "secondary", text: max.yLabel, label: "Max" }
         ];
@@ -122,6 +126,34 @@ Chart.plugins.register({
           ctx.fillText(label, xPos, yPos);
         });
 
+      }
+
+    } else if (options.plugins.profiling === true) {
+      // Draw tooltip / legend for profiling charts
+      ctx.textAlign = "right";
+
+      const tooltipPoints = chart.tooltip.currentPoints || [];
+      for (let point of tooltipPoints) {
+        let offset = 30;
+        offset += (tooltipPoints.length - point.datasetIndex - 1) * 120;
+
+        // Write statistic
+        ctx.fillStyle = colors[point.datasetIndex];
+        ctx.font = "bold 20px WorkSans";
+        ctx.fillText(
+          numberWithCommas(point.yLabel.toFixed(2)),
+          chart.chartArea.right - offset,
+          20
+        );
+
+        // Write benchmark name
+        ctx.fillStyle = "#606175";
+        ctx.font = "lighter 10px WorkSans";
+        ctx.fillText(
+          chart.config.data.datasets[point.datasetIndex].label,
+          chart.chartArea.right - offset,
+          50
+        );
       }
     }
 
