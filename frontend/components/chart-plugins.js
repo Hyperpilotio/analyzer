@@ -62,6 +62,12 @@ Chart.plugins.register({
         ctx.lineTo(point.x, chart.chartArea.bottom);
         ctx.stroke();
       }
+
+    } else if (chart.config.type === "radar") {
+      // Adjusting margin for point labels in a hacky way
+      chart.scale._pointLabelSizes.forEach(size => {
+        size.h = 18;
+      });
     }
 
   },
