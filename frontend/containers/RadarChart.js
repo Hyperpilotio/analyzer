@@ -7,8 +7,14 @@ export default class RadarChart extends Component {
   state = { data: null, loading: true };
 
   async fetchData(profilingId) {
-    const res = await fetch(`/api/radar-data/${profilingId}`);
-    const data = await res.json();
+    // const res = await fetch(`/api/radar-data/${profilingId}`);
+    // const data = await res.json();
+    const data = {
+      radarChartData: {
+        benchmark: ["cpu", "memCap", "memBw", "l3", "l2", "iperf"],
+        score: [55, 78, 79, 60, 89, 85]
+      }
+    };
     this.setState({ data, loading: false });
   }
 
