@@ -1,8 +1,8 @@
 import React, { Component } from "react";
-import RadarChartComponent from "../components/RadarChart";
+import InterferenceChartComponent from "../components/InterferenceChart";
 
 
-export default class RadarChart extends Component {
+export default class InterferenceChart extends Component {
 
   state = { data: null, loading: true };
 
@@ -30,7 +30,7 @@ export default class RadarChart extends Component {
   }
 
   render() {
-    return <RadarChartComponent {...this.state} />
+    return <InterferenceChartComponent {...this.state} />
   }
 
 }
