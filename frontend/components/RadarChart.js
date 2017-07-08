@@ -1,43 +1,32 @@
 import React from "react";
-import _ from "lodash";
-import "./chart-plugins";
+import ChartWithLoading from "./ChartWithLoading";
 import { Radar } from "react-chartjs-2";
-import CircularProgress from "material-ui/CircularProgress";
+import "./chart-plugins";
 
-
-export default ({ data, loading }) => {
-  let radarChartElement;
-  if (data !== null) {
-    radarChartElement = <Radar
-      data={{
-        labels: data.radarChartData.benchmark,
-        datasets: [{
-          label: "Score",
-          data: data.radarChartData.score
-        }]
-      }}
-      options={{
-        scale: {
-          ticks: {
-            min: 0,
-            max: 100,
-            stepSize: 20,
-            fontSize: 8,
-          },
-          pointLabels: {
-            fontSize: 12
-          }
+export default ChartWithLoading( ({ data }) => (
+  <Radar
+    data={{
+      labels: data.radarChartData.benchmark,
+      datasets: [{
+        label: "Score",
+        data: data.radarChartData.score
+      }]
+    }}
+    options={{
+      layout: {
+        padding: { left: 20, top: 20, right: 20, bottom: 20 }
+      },
+      scale: {
+        ticks: {
+          min: 0,
+          max: 100,
+          stepSize: 20,
+          fontSize: 8,
         },
-        tooltips: {
-          mode: "label"
+        gridLines: {
+          display: true
         }
-      }}
-    />;
-  }
-
-  let divForLoading;
-  if (loading)
-    divForLoading = <div className="loading-container"><CircularProgress /></div>;
-
-  return <div className="main-container">{radarChartElement}{divForLoading}</div>;
-}
+      }
+    }}
+  />
+) )

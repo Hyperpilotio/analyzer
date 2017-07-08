@@ -1,6 +1,8 @@
 import { Chart } from "react-chartjs-2";
 import { numberWithCommas, colors } from "./util";
 import _ from "lodash";
+// Importing styles to ensure the font is loaded
+import "../styles/index.sass";
 
 
 Chart.defaults.global.animation.duration = 1000;
@@ -30,30 +32,36 @@ Chart.plugins.register({
   },
 
   beforeDraw: ({ ctx, chart, scales }) => {
-    ctx.lineWidth = 1;
+    // Draw background
     ctx.fillStyle = "#f7f9fc";
-    ctx.fillRect(0, 0, chart.width, chart.chartArea.bottom);
+    if (chart.config.type === "radar")
+      ctx.fillRect(0, 0, chart.width, chart.height);
+    else
+      ctx.fillRect(0, 0, chart.width, chart.chartArea.bottom);
 
-    let yScale = scales["y-axis-0"];
-    let xScale = scales["x-axis-0"];
-    // Draw grid lines
-    ctx.strokeStyle = yScale.options.color;
-    ctx.beginPath();
-    for (let tick of yScale.ticksAsNumbers) {
-      let yPos = yScale.getPixelForValue(tick);
-      ctx.moveTo(0, yPos);
-      ctx.lineTo(chart.width, yPos);
-    }
-    ctx.stroke();
-
-    // Draw vertical tooltip bar
-    if (_.size(chart.tooltip.currentPoints) >= 1) {
-      ctx.strokeStyle = "#8cb1fa";
-      const point = chart.tooltip.currentPoints[0];
+    if (chart.config.type === "line") {
+      ctx.lineWidth = 1;
+      let yScale = scales["y-axis-0"];
+      let xScale = scales["x-axis-0"];
+      // Draw grid lines
+      ctx.strokeStyle = yScale.options.color;
       ctx.beginPath();
-      ctx.moveTo(point.x, 0);
-      ctx.lineTo(point.x, chart.chartArea.bottom);
+      for (let tick of yScale.ticksAsNumbers) {
+        let yPos = yScale.getPixelForValue(tick);
+        ctx.moveTo(0, yPos);
+        ctx.lineTo(chart.width, yPos);
+      }
       ctx.stroke();
+
+      // Draw vertical tooltip bar
+      if (_.size(chart.tooltip.currentPoints) >= 1) {
+        ctx.strokeStyle = "#8cb1fa";
+        const point = chart.tooltip.currentPoints[0];
+        ctx.beginPath();
+        ctx.moveTo(point.x, 0);
+        ctx.lineTo(point.x, chart.chartArea.bottom);
+        ctx.stroke();
+      }
     }
 
   },
@@ -62,29 +70,32 @@ Chart.plugins.register({
 
     ctx.save();
 
-    // Draw ticks
-    let yScale = scales["y-axis-0"];
-    let xScale = scales["x-axis-0"];
-    let xPos = xScale.getPixelForTick(0);
-    ctx.fillStyle = "#e5e6e8";
-    ctx.textBaseline = "top";
-    for (let i = 0; i < yScale.ticks.length - 1; i ++) {
-      let yPos = yScale.getPixelForTick(i) + 5;
-      ctx.fillText(numberWithCommas(yScale.ticks[i]), xPos, yPos);
+    if (chart.config.type === "line") {
+      // Draw ticks
+      let yScale = scales["y-axis-0"];
+      let xScale = scales["x-axis-0"];
+      let xPos = xScale.getPixelForTick(0);
+      ctx.fillStyle = "#e5e6e8";
+      ctx.textBaseline = "top";
+      for (let i = 0; i < yScale.ticks.length - 1; i ++) {
+        let yPos = yScale.getPixelForTick(i) + 5;
+        ctx.fillText(numberWithCommas(yScale.ticks[i]), xPos, yPos);
+      }
+
+      // Draw y-axis title
+      ctx.fillStyle = "#b9bacb";
+      ctx.font = "14px WorkSans";
+      ctx.fillText(yScale.options.scaleLabel.labelString, xPos, 10);
+
+      // Draw x-axis title
+      const xLabel = xScale.options.scaleLabel.labelString;
+      xPos = xScale.right - ctx.measureText(xLabel).width;
+      ctx.fillText(xLabel, xPos, yScale.bottom - 20);
     }
-
-    // Draw y-axis title
-    ctx.fillStyle = "#b9bacb";
-    ctx.font = "14px WorkSans";
-    ctx.fillText(yScale.options.scaleLabel.labelString, xPos, 10);
-
-    // Draw x-axis title
-    const xLabel = xScale.options.scaleLabel.labelString;
-    xPos = xScale.right - ctx.measureText(xLabel).width;
-    ctx.fillText(xLabel, xPos, yScale.bottom - 20);
 
     if (options.plugins.calibration === true) {
       // Draw tooltip
+      let xPos;
       const vm = chart.tooltip._view;
       if (!_.isUndefined(chart.tooltip.currentPoints)) {
         let [mean, min, max] = chart.tooltip.currentPoints;

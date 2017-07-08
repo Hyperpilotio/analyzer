@@ -5,6 +5,7 @@ import KeyInfo from "./KeyInfo";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 import CalibrationChart from "../containers/CalibrationChart";
 import ProfilingChart from "../containers/ProfilingChart";
+import RadarChart from "../containers/RadarChart";
 
 export default ({ match }) => (
   <div className="app-page-body">
@@ -72,6 +73,16 @@ export default ({ match }) => (
         )} />
         <Redirect to="calibration" />
       </Switch>
+      <div className="radar-charts columns">
+        <div className="column">
+          <h3 className="title">Interference Score</h3>
+          <RadarChart />
+        </div>
+        <div className="column">
+          <h3 className="title">Cross-app Interference</h3>
+          <div className="chart-container"></div>
+        </div>
+      </div>
 
     </div>
 

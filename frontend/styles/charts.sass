@@ -8,3 +8,23 @@
 .sk-spinner
   margin: auto
   color: $color-blue
+
+.radar-charts
+  margin-top: 2rem
+  display: flex
+  justify-content: space-between
+
+  .chart-container
+    width: 100%
+
+  .column
+    width: 45%
+    &:not(:first-child)
+      margin-left: 3rem
+    &:not(:last-child)
+      margin-right: 3rem
+
+  .title
+    font-size: 16px
+    font-weight: normal
+    color: $color-grey
