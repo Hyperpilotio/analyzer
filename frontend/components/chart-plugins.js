@@ -3,7 +3,7 @@ import { numberWithCommas, colors } from "./util";
 import _ from "lodash";
 
 
-Chart.defaults.global.animation.duration = 500;
+Chart.defaults.global.animation.duration = 1000;
 Chart.defaults.global.defaultFontFamily = "WorkSans";
 Chart.defaults.global.tooltips.mode = "x-axis";
 Chart.defaults.global.hover.mode = "x-axis";
