@@ -7,6 +7,9 @@ import CalibrationChart from "../containers/CalibrationChart";
 import ProfilingChart from "../containers/ProfilingChart";
 import InterferenceChart from "../containers/InterferenceChart";
 
+// For cross-app interference chart, use random dataset for now
+import CrossAppInterfChart from "./CrossAppInterfChart";
+
 export default ({ match }) => (
   <div className="app-page-body">
 
@@ -80,7 +83,7 @@ export default ({ match }) => (
         </div>
         <div className="column">
           <h3 className="title">Cross-app Interference</h3>
-          <div className="chart-container"></div>
+          <CrossAppInterfChart loading={false} data={true} />
         </div>
       </div>
 
