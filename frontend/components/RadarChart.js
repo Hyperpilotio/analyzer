@@ -1,7 +1,7 @@
 import React from "react";
-import ChartWithLoading from "./ChartWithLoading";
+import ChartWithLoading from "../helpers/ChartWithLoading";
 import { Radar } from "react-chartjs-2";
-import "./chart-plugins";
+import "../helpers/chart-plugins";
 
 export default ChartWithLoading( ({ data }) => (
   <Radar

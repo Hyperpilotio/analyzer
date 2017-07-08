@@ -1,9 +1,9 @@
 import React from "react";
-import ChartWithLoading from "./ChartWithLoading";
 import { Line } from "react-chartjs-2";
-import { colors } from "./util";
-import "./chart-plugins";
 import _ from "lodash";
+import ChartWithLoading from "../helpers/ChartWithLoading";
+import { colors } from "../helpers/util";
+import "../helpers/chart-plugins";
 
 
 export default ChartWithLoading( ({ data }) => (
