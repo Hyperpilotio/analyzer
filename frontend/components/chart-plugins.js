@@ -31,13 +31,13 @@ Chart.plugins.register({
     chart.tooltip.draw = function() {};
   },
 
-  beforeDraw: ({ ctx, chart, scales }) => {
+  beforeDraw: ({ ctx, chart, chartArea, scales, scale, tooltip }) => {
     // Draw background
     ctx.fillStyle = "#f7f9fc";
     if (chart.config.type === "radar")
       ctx.fillRect(0, 0, chart.width, chart.height);
     else
-      ctx.fillRect(0, 0, chart.width, chart.chartArea.bottom);
+      ctx.fillRect(0, 0, chart.width, chartArea.bottom);
 
     if (chart.config.type === "line") {
       ctx.lineWidth = 1;
@@ -54,25 +54,25 @@ Chart.plugins.register({
       ctx.stroke();
 
       // Draw vertical tooltip bar
-      if (_.size(chart.tooltip.currentPoints) >= 1) {
+      if (_.size(tooltip.currentPoints) >= 1) {
         ctx.strokeStyle = "#8cb1fa";
-        const point = chart.tooltip.currentPoints[0];
+        const point = tooltip.currentPoints[0];
         ctx.beginPath();
         ctx.moveTo(point.x, 0);
-        ctx.lineTo(point.x, chart.chartArea.bottom);
+        ctx.lineTo(point.x, chartArea.bottom);
         ctx.stroke();
       }
 
     } else if (chart.config.type === "radar") {
       // Adjusting margin for point labels in a hacky way
-      chart.scale._pointLabelSizes.forEach(size => {
+      scale._pointLabelSizes.forEach(size => {
         size.h = 18;
       });
     }
 
   },
 
-  afterDraw: ({ chart, ctx, options, scales }) => {
+  afterDraw: ({ chart, chartArea, ctx, options, scales, scale, tooltip }) => {
 
     ctx.save();
 
@@ -102,9 +102,9 @@ Chart.plugins.register({
     if (options.plugins.calibration === true) {
       // Draw tooltip
       let xPos;
-      const vm = chart.tooltip._view;
-      if (!_.isUndefined(chart.tooltip.currentPoints)) {
-        let [mean, min, max] = chart.tooltip.currentPoints;
+      const vm = tooltip._view;
+      if (!_.isUndefined(tooltip.currentPoints)) {
+        let [mean, min, max] = tooltip.currentPoints;
         ctx.textAlign = vm.xAlign;
 
         let texts = [
@@ -149,7 +149,7 @@ Chart.plugins.register({
       // Draw tooltip / legend for profiling charts
       ctx.textAlign = "right";
 
-      const tooltipPoints = chart.tooltip.currentPoints || [];
+      const tooltipPoints = tooltip.currentPoints || [];
       for (let point of tooltipPoints) {
         let offset = 30;
         offset += (tooltipPoints.length - point.datasetIndex - 1) * 120;
@@ -159,7 +159,7 @@ Chart.plugins.register({
         ctx.font = "bold 20px WorkSans";
         ctx.fillText(
           numberWithCommas(point.yLabel.toFixed(2)),
-          chart.chartArea.right - offset,
+          chartArea.right - offset,
           20
         );
 
@@ -168,10 +168,27 @@ Chart.plugins.register({
         ctx.font = "lighter 10px WorkSans";
         ctx.fillText(
           chart.config.data.datasets[point.datasetIndex].label,
-          chart.chartArea.right - offset,
+          chartArea.right - offset,
           50
         );
       }
+
+    } else if (options.plugins.interference === true) {
+      // Draw tooltip content at the top-right corner
+      ctx.textAlign = "right";
+      _.each(tooltip.currentPoints, point => {
+        ctx.font = "bold 25px WorkSans";
+        ctx.fillStyle = "#5677fa";
+        ctx.fillText(`${point.yLabel}%`, chartArea.right, chartArea.top);
+
+        ctx.font = "lighter 15px WorkSans";
+        ctx.fillStyle = "#b9bacb";
+        ctx.fillText(
+          scale.pointLabels[point.index],
+          chartArea.right,
+          chartArea.top + 30
+        );
+      });
     }
 
     ctx.restore();

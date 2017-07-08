@@ -30,6 +30,10 @@ export default ChartWithLoading( ({ data }) => (
         mode: "index",
         intersect: true
       },
+      tooltips: {
+        mode: "index",
+        intersect: true
+      },
       scale: {
         ticks: {
           min: 0,
@@ -44,6 +48,9 @@ export default ChartWithLoading( ({ data }) => (
           display: true,
           color: "#e5e6e8"
         }
+      },
+      plugins: {
+        interference: true
       }
     }}
   />
