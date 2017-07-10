@@ -25,6 +25,7 @@
   "dependencies": {
     "babel-polyfill": "^6.23.0",
     "chart.js": "^2.6.0",
+    "chartjs-plugin-annotation": "^0.5.5",
     "lodash": "^4.17.4",
     "material-ui": "^0.18.3",
     "normalize.css": "^7.0.0",
