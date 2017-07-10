@@ -3,6 +3,10 @@ import ChartWithLoading from "../helpers/ChartWithLoading";
 import { Radar } from "react-chartjs-2";
 import _ from "lodash";
 import "../helpers/chart-plugins";
+import interferenceTooltipPlugin from "../helpers/interferenceTooltipPlugin";
+import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
+import adjustRadarLabelPlugin from "../helpers/adjustRadarLabelPlugin";
+import noTooltipPlugin from "../helpers/noTooltipPlugin";
 
 export default ChartWithLoading( ({ data }) => (
   <Radar
@@ -67,8 +71,16 @@ export default ChartWithLoading( ({ data }) => (
         }
       },
       plugins: {
-        interference: true
+        background: {
+          fluid: true
+        }
       }
     }}
+    plugins={[
+      interferenceTooltipPlugin,
+      drawBackgroundPlugin,
+      adjustRadarLabelPlugin,
+      noTooltipPlugin
+    ]}
   />
 ) )
