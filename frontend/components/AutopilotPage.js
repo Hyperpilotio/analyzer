@@ -7,7 +7,7 @@ import kafkaLogo from "../assets/images/asset_kafka_logo.svg";
 export default () => (
   <div className="container autopilot">
     <div className="columns">
-      <article className="left column">
+      <article className="column">
         <h3>Current app placement</h3>
         <div className="app-placement">
           <header>
@@ -46,9 +46,38 @@ export default () => (
           </footer>
         </div>
       </article>
-      <div className="right column">
-        After
-      </div>
+      <article className="column">
+        <h3>Recommended app placement</h3>
+        <div className="app-placement">
+          <header>
+            <section>
+              <h4>Node 1</h4>
+              <div className="containers-on-node">
+                <div className="running-container">
+                  <img src={redisLogo} />
+                  <span>Redis</span>
+                </div>
+              </div>
+            </section>
+            <section>
+              <h4>Node 2</h4>
+              <div className="containers-on-node">
+                <div className="running-container">
+                  <img src={mongoLogo} />
+                  <span>MongoDB</span>
+                </div>
+                <div className="running-container">
+                  <img src={kafkaLogo} />
+                  <span>Kafka</span>
+                </div>
+              </div>
+            </section>
+          </header>
+          <footer className="only-button">
+            <a className="primary-button" href="#">Run Optimizer</a>
+          </footer>
+        </div>
+      </article>
     </div>
   </div>
 )
