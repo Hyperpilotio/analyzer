@@ -1,4 +1,5 @@
 import React from "react";
+import MetricScoreChart from "./MetricScoreChart";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 import mongoLogo from "../assets/images/asset_mongoDB_logo.svg";
 import kafkaLogo from "../assets/images/asset_kafka_logo.svg";
@@ -77,6 +78,35 @@ export default () => (
             <a className="primary-button" href="#">Run Optimizer</a>
           </footer>
         </div>
+      </article>
+    </div>
+    <div className="columns autopilot">
+      <article className="column">
+        <h3>Current QoS Score</h3>
+        <section>
+          <span className="app-title">
+            <img src={redisLogo} />
+            <h4>Redis</h4>
+          </span>
+          <div className="score-chart-box">
+            <header>
+              <span className="left">Latency</span>
+              <div className="right columns">
+                <div className="column status-indicator">
+                  <div className="key-stat">245</div>
+                  <div className="key-stat-label">Current</div>
+                </div>
+                <div className="column status-indicator">
+                  <div className="key-stat danger">500</div>
+                  <div className="key-stat-label">Target</div>
+                </div>
+              </div>
+            </header>
+            <main>
+              <MetricScoreChart name="Latency" />
+            </main>
+          </div>
+        </section>
       </article>
     </div>
   </div>

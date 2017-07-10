@@ -7,8 +7,19 @@
     min-width: 500px
     display: flex
     flex-direction: column
+    margin-top: 1rem
+    margin-bottom: 2rem
     .app-placement
       flex-grow: 1
+
+  .app-title
+    display: flex
+    img
+      height: 20px
+      margin: 0.5rem
+    h4
+      color: $color-dark-grey
+      margin: 0.5rem
 
 .app-placement
   border-radius: 4px
@@ -75,3 +86,39 @@
       .info-value.stat
         color: $color-primary
         font-size: 30px
+
+.score-chart-box
+  border: 1px solid $color-divider
+  border-radius: 4px
+
+  header
+    display: flex
+    align-items: center
+    padding: 0.5rem 1rem
+    span
+      color: $color-primary
+
+    .status-indicator
+      border: none
+      flex-direction: column
+      min-width: 0
+      padding: 0
+      &:not(:last-child)
+        margin-right: 1rem
+      &:not(:first-child)
+        margin-left: 1rem
+
+      > *
+        margin: 0
+
+      .key-stat.danger
+        color: $color-danger
+
+      .key-stat-label
+        color: $color-light-grey
+
+  main
+    height: 100px
+    border: 1px solid $color-divider
+    border-radius: 4px
+    margin: -1px
