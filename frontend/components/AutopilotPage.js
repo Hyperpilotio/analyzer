@@ -8,6 +8,7 @@ import kafkaLogo from "../assets/images/asset_kafka_logo.svg";
 export default () => (
   <div className="container autopilot">
     <div className="columns">
+
       <article className="column">
         <h3>Current app placement</h3>
         <div className="app-placement">
@@ -47,6 +48,7 @@ export default () => (
           </footer>
         </div>
       </article>
+
       <article className="column">
         <h3>Recommended app placement</h3>
         <div className="app-placement">
@@ -80,9 +82,11 @@ export default () => (
         </div>
       </article>
     </div>
+
     <div className="columns autopilot">
       <article className="column">
         <h3>Current QoS Score</h3>
+
         <section>
           <span className="app-title">
             <img src={redisLogo} />
@@ -107,6 +111,7 @@ export default () => (
             </main>
           </div>
         </section>
+
         <section>
           <span className="app-title">
             <img src={mongoLogo} />
@@ -131,6 +136,7 @@ export default () => (
             </main>
           </div>
         </section>
+
         <section>
           <span className="app-title">
             <img src={kafkaLogo} />
@@ -155,6 +161,15 @@ export default () => (
             </main>
           </div>
         </section>
+
+      </article>
+
+      <article className="column">
+        <h3>Optimized QoS Score</h3>
+        <div className="run-optimizer-mask">
+          <p>Run optimizer to see enhanced QoS metric</p>
+          <a className="primary-button" href="#">Run Optimizer</a>
+        </div>
       </article>
     </div>
   </div>
