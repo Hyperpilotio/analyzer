@@ -4,6 +4,12 @@ import _ from "lodash";
 import ChartWithLoading from "../helpers/ChartWithLoading";
 import { colors } from "../helpers/util";
 import "../helpers/chart-plugins";
+import profilingTooltipPlugin from "../helpers/profilingTooltipPlugin";
+import yAxisGridLinesPlugin from "../helpers/yAxisGridLinesPlugin";
+import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
+import tooltipBarPlugin from "../helpers/tooltipBarPlugin";
+import drawLabelsPlugin from "../helpers/drawLabelsPlugin";
+import noTooltipPlugin from "../helpers/noTooltipPlugin";
 
 
 export default ChartWithLoading( ({ data }) => (
@@ -44,10 +50,15 @@ export default ChartWithLoading( ({ data }) => (
             labelString: "QoS Value"
           }
         }]
-      },
-      plugins: {
-        profiling: true
       }
     }}
+    plugins={[
+      drawBackgroundPlugin,
+      tooltipBarPlugin,
+      profilingTooltipPlugin,
+      yAxisGridLinesPlugin,
+      drawLabelsPlugin,
+      noTooltipPlugin
+    ]}
   />
 ) )

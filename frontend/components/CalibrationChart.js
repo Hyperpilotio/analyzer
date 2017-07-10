@@ -2,6 +2,13 @@ import React from "react";
 import ChartWithLoading from "../helpers/ChartWithLoading";
 import { Line } from "react-chartjs-2";
 import "../helpers/chart-plugins";
+import noTooltipPlugin from "../helpers/noTooltipPlugin";
+import finalIntensityPlugin from "../helpers/finalIntensityPlugin";
+import calibrationTooltipPlugin from "../helpers/calibrationTooltipPlugin";
+import yAxisGridLinesPlugin from "../helpers/yAxisGridLinesPlugin";
+import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
+import tooltipBarPlugin from "../helpers/tooltipBarPlugin";
+import drawLabelsPlugin from "../helpers/drawLabelsPlugin";
 
 export default ChartWithLoading( ({ data }) => (
   <Line
@@ -66,9 +73,17 @@ export default ChartWithLoading( ({ data }) => (
         finalIntensity: {
           value: data.finalResult.loadIntensity,
           fillStyle: "rgba(140, 177, 250, 0.2)"
-        },
-        calibration: true
+        }
       }
     }}
+    plugins={[
+      drawBackgroundPlugin,
+      tooltipBarPlugin,
+      finalIntensityPlugin,
+      calibrationTooltipPlugin,
+      yAxisGridLinesPlugin,
+      drawLabelsPlugin,
+      noTooltipPlugin
+    ]}
   />
 ) )
