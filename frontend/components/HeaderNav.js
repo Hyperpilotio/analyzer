@@ -5,6 +5,7 @@ import UserIcon from "../assets/images/icon_user.svg";
 import { NavLink } from "react-router-dom";
 
 
+
 export default ({ history }) => (
   <div>
     <nav className="navbar">

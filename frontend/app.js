@@ -10,10 +10,19 @@ import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
 import LoginPage from "./components/LoginPage";
 import AppPage from "./components/AppPage";
+
 // import CalibrationChart from "./containers/CalibrationChart";
 // import ProfilingChart from "./containers/ProfilingChart";
 // import RadarChart from "./containers/RadarChart";
 // import _ from "lodash";
+
+//import AppCalibration from "./components/AppCalibration";
+import UserAuth from "./components/UserAuth"
+//import CalibrationChart from "./containers/CalibrationChart";
+//import ProfilingChart from "./containers/ProfilingChart";
+//import RadarChart from "./containers/RadarChart";
+//import _ from "lodash";
+
 
 // import injectTapEventPlugin from "react-tap-event-plugin";
 // injectTapEventPlugin();
@@ -35,8 +44,9 @@ class App extends Component {
   render() {
     return (
       <Router>
+
         <Switch>
-          <Route path="/login" component={LoginPage} />
+          <Route path="/login" component={UserAuth} />
           <Route path="/" children={({ history }) => (
             <div>
               <HeaderNav history={history} />
@@ -49,6 +59,7 @@ class App extends Component {
             </div>
           )} />
         </Switch>
+
       </Router>
     );
   }

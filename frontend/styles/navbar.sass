@@ -1,7 +1,7 @@
 .navbar
   height: 60px
   background-color: $color-light
-  border-bottom: 3px solid $color-blue
+
 
   .container
     display: flex
@@ -48,6 +48,17 @@
 .header
   height: 60px
   background-color: $color-dark
+  position: sticky
+  border-top: 3px solid $color-blue
+
+  .sticky
+    position: -webkit-sticky
+    position: -moz-sticky
+    position: -ms-sticky
+    position: -o-sticky
+    top: 0
+    position: fixed
+
 
   .container
     display: flex
@@ -69,7 +80,7 @@
   border: 2px solid $color-blue
   padding: 0 8px
   margin-right: 10px
-  
+
 
 .subnav
   height: 45px
