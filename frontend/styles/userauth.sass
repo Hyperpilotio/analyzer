@@ -8,22 +8,47 @@
   height: 100%
 
 
-.authBox
+.auth-area
   width: 516px
   height: 309px
+
+  margin: auto
+
+.auth-box
   border-radius: 4px
   background-color: $background-info
   border: solid 2px #5677fa
-  margin: auto
 
   .userinput
     text-align: center
-    margin-top: 10rem
-    margin-left: 2rem
+    margin-top: 2rem
+    margin-left: 3rem
     width: 80%
-    height: 80%
+    height: 60%
+
+.login-info
+  margin-bottom: 1rem
+
+.demo-version
+  font-size: 18px
+  color: $color-white
+  text-align: left
+
+.login-button
+
+  display: flex
+  flex-direction: column
+
+  padding: 1rem 8rem
+  color: $color-white
+  background-color: $color-primary
+  font-size: 18px
+  border: none
+  text-align: center
 
 
+  &:hover
+    background-color: $color-blue
 
 
 input[type=text], select
