@@ -53,8 +53,8 @@ export default () => (
           </div>
         </div>
       </div>
-      <div className="right run-optimizer">
-        <a href="#">Run Optimizer</a>
+      <div className="right columns">
+        <a className="primary-button" href="#">See Recommendation</a>
       </div>
     </KeyInfo>
 
