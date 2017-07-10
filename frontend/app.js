@@ -7,6 +7,7 @@ import ReactDOM from "react-dom";
 // import Navbar from "./containers/Navbar";
 import HeaderNav from "./components/HeaderNav";
 import DashboardHome from "./components/DashboardHome";
+import LoginPage from "./components/LoginPage";
 import AppPage from "./components/AppPage";
 // import CalibrationChart from "./containers/CalibrationChart";
 // import ProfilingChart from "./containers/ProfilingChart";
@@ -33,16 +34,19 @@ class App extends Component {
   render() {
     return (
       <Router>
-        <Route children={({ history }) => (
-          <div>
-            <HeaderNav history={history} />
-            <Switch>
-              <Route path="/dashboard" component={DashboardHome} />
-              <Route path="/apps/:appId" component={AppPage} />
-              <Redirect from="/" to="/dashboard" />
-            </Switch>
-          </div>
-        )} />
+        <Switch>
+          <Route path="/login" component={LoginPage} />
+          <Route path="/" children={({ history }) => (
+            <div>
+              <HeaderNav history={history} />
+              <Switch>
+                <Route path="/dashboard" component={DashboardHome} />
+                <Route path="/apps/:appId" component={AppPage} />
+                <Redirect from="/" to="/dashboard" />
+              </Switch>
+            </div>
+          )} />
+        </Switch>
       </Router>
     );
   }
