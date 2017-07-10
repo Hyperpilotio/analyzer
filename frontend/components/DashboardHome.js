@@ -54,7 +54,7 @@ export default () => (
         </div>
       </div>
       <div className="right columns">
-        <a className="primary-button" href="#">See Recommendation</a>
+        <Link to="/autopilot" className="primary-button">See Recommendation</Link>
       </div>
     </KeyInfo>
 

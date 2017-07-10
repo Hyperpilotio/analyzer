@@ -7,6 +7,7 @@ import ReactDOM from "react-dom";
 // import Navbar from "./containers/Navbar";
 import HeaderNav from "./components/HeaderNav";
 import DashboardHome from "./components/DashboardHome";
+import AutopilotPage from "./components/AutopilotPage";
 import LoginPage from "./components/LoginPage";
 import AppPage from "./components/AppPage";
 // import CalibrationChart from "./containers/CalibrationChart";
@@ -41,6 +42,7 @@ class App extends Component {
               <HeaderNav history={history} />
               <Switch>
                 <Route path="/dashboard" component={DashboardHome} />
+                <Route path="/autopilot" component={AutopilotPage} />
                 <Route path="/apps/:appId" component={AppPage} />
                 <Redirect from="/" to="/dashboard" />
               </Switch>
