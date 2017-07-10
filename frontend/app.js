@@ -8,15 +8,8 @@ import ReactDOM from "react-dom";
 import HeaderNav from "./components/HeaderNav";
 import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
-import LoginPage from "./components/LoginPage";
 import AppPage from "./components/AppPage";
 
-// import CalibrationChart from "./containers/CalibrationChart";
-// import ProfilingChart from "./containers/ProfilingChart";
-// import RadarChart from "./containers/RadarChart";
-// import _ from "lodash";
-
-//import AppCalibration from "./components/AppCalibration";
 import UserAuth from "./components/UserAuth"
 //import CalibrationChart from "./containers/CalibrationChart";
 //import ProfilingChart from "./containers/ProfilingChart";
