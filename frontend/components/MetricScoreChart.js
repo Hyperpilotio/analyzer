@@ -5,7 +5,7 @@ import "chartjs-plugin-annotation";
 import "../helpers/chart-plugins";
 import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
 
-export default ({ name }) => (
+export default ({ name, thresholdColor }) => (
   <Line
     data={{
       datasets: [{
@@ -38,7 +38,7 @@ export default ({ name }) => (
           type: "line",
           mode: "horizontal",
           value: 500,
-          borderColor: "#ff8686"
+          borderColor: thresholdColor
         }]
       }
     }}

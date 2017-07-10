@@ -11,6 +11,8 @@
     margin-bottom: 2rem
     .app-placement
       flex-grow: 1
+    section
+      margin: 1rem 0
 
   .app-title
     display: flex
@@ -111,8 +113,11 @@
       > *
         margin: 0
 
-      .key-stat.danger
-        color: $color-danger
+      .key-stat
+        &.danger
+          color: $color-danger
+        &.success
+          color: $color-success
 
       .key-stat-label
         color: $color-light-grey

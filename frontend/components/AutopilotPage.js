@@ -103,7 +103,55 @@ export default () => (
               </div>
             </header>
             <main>
-              <MetricScoreChart name="Latency" />
+              <MetricScoreChart name="Latency" thresholdColor="#ff8686" />
+            </main>
+          </div>
+        </section>
+        <section>
+          <span className="app-title">
+            <img src={mongoLogo} />
+            <h4>MongoDB</h4>
+          </span>
+          <div className="score-chart-box">
+            <header>
+              <span className="left">Throughput</span>
+              <div className="right columns">
+                <div className="column status-indicator">
+                  <div className="key-stat">338</div>
+                  <div className="key-stat-label">Current</div>
+                </div>
+                <div className="column status-indicator">
+                  <div className="key-stat success">500</div>
+                  <div className="key-stat-label">Target</div>
+                </div>
+              </div>
+            </header>
+            <main>
+              <MetricScoreChart name="Throughput" thresholdColor="#7ed321" />
+            </main>
+          </div>
+        </section>
+        <section>
+          <span className="app-title">
+            <img src={kafkaLogo} />
+            <h4>Kafka</h4>
+          </span>
+          <div className="score-chart-box">
+            <header>
+              <span className="left">Throughput</span>
+              <div className="right columns">
+                <div className="column status-indicator">
+                  <div className="key-stat">254</div>
+                  <div className="key-stat-label">Current</div>
+                </div>
+                <div className="column status-indicator">
+                  <div className="key-stat success">500</div>
+                  <div className="key-stat-label">Target</div>
+                </div>
+              </div>
+            </header>
+            <main>
+              <MetricScoreChart name="Throughput" thresholdColor="#7ed321" />
             </main>
           </div>
         </section>
