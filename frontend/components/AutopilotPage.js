@@ -77,7 +77,7 @@ export default () => (
             </section>
           </header>
           <footer className="only-button">
-            <a className="primary-button" href="#">Run Optimizer</a>
+            <a className="primary-button" href="#">Apply Recommendation</a>
           </footer>
         </div>
       </article>
@@ -167,8 +167,8 @@ export default () => (
       <article className="column">
         <h3>Optimized QoS Score</h3>
         <div className="run-optimizer-mask">
-          <p>Run optimizer to see enhanced QoS metric</p>
-          <a className="primary-button" href="#">Run Optimizer</a>
+          <p>Apply recommendation to see enhanced QoS metric</p>
+          <a className="primary-button" href="#">Apply Recommendation</a>
         </div>
       </article>
     </div>
