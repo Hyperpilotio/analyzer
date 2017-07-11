@@ -1,5 +1,5 @@
 import React from "react";
-import ChartWithLoading from "../helpers/ChartWithLoading";
+import chartWithLoading from "../helpers/chartWithLoading";
 import { Line } from "react-chartjs-2";
 import noTooltipPlugin from "../helpers/noTooltipPlugin";
 import finalIntensityPlugin from "../helpers/finalIntensityPlugin";
@@ -9,7 +9,7 @@ import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
 import tooltipBarPlugin from "../helpers/tooltipBarPlugin";
 import drawLabelsPlugin from "../helpers/drawLabelsPlugin";
 
-export default ChartWithLoading( ({ data }) => (
+export default chartWithLoading( ({ data }) => (
   <Line
     data={{
       datasets: [

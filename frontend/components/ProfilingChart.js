@@ -1,7 +1,7 @@
 import React from "react";
 import { Line } from "react-chartjs-2";
 import _ from "lodash";
-import ChartWithLoading from "../helpers/ChartWithLoading";
+import chartWithLoading from "../helpers/chartWithLoading";
 import { colors } from "../helpers/util";
 import profilingTooltipPlugin from "../helpers/profilingTooltipPlugin";
 import yAxisGridLinesPlugin from "../helpers/yAxisGridLinesPlugin";
@@ -11,7 +11,7 @@ import drawLabelsPlugin from "../helpers/drawLabelsPlugin";
 import noTooltipPlugin from "../helpers/noTooltipPlugin";
 
 
-export default ChartWithLoading( ({ data }) => (
+export default chartWithLoading( ({ data }) => (
   <Line
     data={{
       datasets: _.entries(data.testResult).map(([benchmark, points], i) => ({

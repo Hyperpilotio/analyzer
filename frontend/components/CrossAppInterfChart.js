@@ -1,5 +1,5 @@
 import React from "react";
-import ChartWithLoading from "../helpers/ChartWithLoading";
+import chartWithLoading from "../helpers/chartWithLoading";
 import { Radar } from "react-chartjs-2";
 import _ from "lodash";
 import interferenceTooltipPlugin from "../helpers/interferenceTooltipPlugin";
@@ -7,7 +7,7 @@ import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
 import adjustRadarLabelPlugin from "../helpers/adjustRadarLabelPlugin";
 import noTooltipPlugin from "../helpers/noTooltipPlugin";
 
-export default ChartWithLoading( ({ data }) => (
+export default chartWithLoading( ({ data }) => (
   <Radar
     data={{
       labels: ["l2", "l3", "iperf", "memBw", "memCap", "cpu"],

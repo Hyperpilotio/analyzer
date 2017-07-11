@@ -2,7 +2,7 @@ import Spinner from "react-spinkit";
 import React from "react";
 import "./chartDefaults";
 
-// ChartWithLoading is a component composer
+// chartWithLoading is a component composer
 export default ChartComponent => (
   ({ data, loading }) => {
     return <div className="chart-container">
