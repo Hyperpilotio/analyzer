@@ -1,3 +1,4 @@
+const webpack = require("webpack");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
 
@@ -7,7 +8,7 @@ const extractSass = new ExtractTextPlugin({
 });
 
 
-module.exports = {  
+let config = module.exports = {
   entry: [
     "babel-polyfill",
     "./app.js",
@@ -15,7 +16,8 @@ module.exports = {
   ],
   output: {
     path: __dirname + "/dist",
-    filename: "[hash].bundle.js"
+    filename: "[hash].bundle.js",
+    publicPath: "/dist/"
   },
   devtool: "inline-source-map",
   module: {
@@ -32,13 +34,30 @@ module.exports = {
         test: /\.s[ca]ss$/,
         use: extractSass.extract({
           fallback: "style-loader",
-          use: ["css-loader", "sass-loader"]
+          use: [
+            "css-loader", "sass-loader",
+            {
+              loader: "resolve-url-loader",
+              query: {
+                silent: true
+              }
+            }
+          ]
         })
+      },
+      {
+        test: /\.(jpe?g|png|gif|svg)$/i,
+        loader: "file-loader"
       }
     ]
   },
   plugins: [
     new WebpackCleanupPlugin(),
+    new webpack.DefinePlugin({
+      "process.env": {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+      }
+    }),
     extractSass,
     function() {
       this.plugin("done", stats => {
@@ -60,3 +79,10 @@ module.exports = {
     }
   ]
 };
+
+
+if (process.env.NODE_ENV === "production") {
+  config.plugins.push(new webpack.optimize.UglifyJsPlugin({
+    comments: false
+  }));
+}
