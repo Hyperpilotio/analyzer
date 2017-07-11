@@ -16,7 +16,7 @@ export default {
       ctx.fillStyle = dataset.borderColor;
 
       // Fill multi-line text if it's cross-app interference chart
-      let text = `${point.yLabel}%`;
+      let text = `${Number(point.yLabel.toFixed(2))}%`;
       if (all.length > 1)
         text = `${dataset.label}: ${text}`;
 

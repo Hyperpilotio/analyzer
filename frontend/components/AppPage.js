@@ -79,7 +79,7 @@ export default ({ match }) => (
       <div className="radar-charts columns">
         <div className="column">
           <h3 className="title">Interference Score</h3>
-          <InterferenceChart />
+          <InterferenceChart profilingId="59640392e3fd9e5094df375a" />
         </div>
         <div className="column">
           <h3 className="title">Cross-app Interference</h3>
