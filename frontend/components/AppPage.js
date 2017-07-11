@@ -81,10 +81,6 @@ export default ({ match }) => (
           <h3 className="title">Interference Score</h3>
           <InterferenceChart profilingId="59640392e3fd9e5094df375a" />
         </div>
-        <div className="column">
-          <h3 className="title">Cross-app Interference</h3>
-          <CrossAppInterfChart loading={false} data={true} />
-        </div>
       </div>
 
     </div>
