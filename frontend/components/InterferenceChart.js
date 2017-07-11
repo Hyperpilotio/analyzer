@@ -1,7 +1,6 @@
 import React from "react";
 import ChartWithLoading from "../helpers/ChartWithLoading";
 import { Radar } from "react-chartjs-2";
-import "../helpers/chart-plugins";
 import interferenceTooltipPlugin from "../helpers/interferenceTooltipPlugin";
 import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
 import adjustRadarLabelPlugin from "../helpers/adjustRadarLabelPlugin";

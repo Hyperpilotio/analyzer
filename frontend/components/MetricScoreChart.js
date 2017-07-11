@@ -2,7 +2,6 @@ import React from "react";
 import { Line } from "react-chartjs-2";
 import _ from "lodash";
 import "chartjs-plugin-annotation";
-import "../helpers/chart-plugins";
 import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
 
 export default ({ name, thresholdColor }) => (

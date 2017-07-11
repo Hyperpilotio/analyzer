@@ -1,7 +1,6 @@
 import React from "react";
 import ChartWithLoading from "../helpers/ChartWithLoading";
 import { Line } from "react-chartjs-2";
-import "../helpers/chart-plugins";
 import noTooltipPlugin from "../helpers/noTooltipPlugin";
 import finalIntensityPlugin from "../helpers/finalIntensityPlugin";
 import calibrationTooltipPlugin from "../helpers/calibrationTooltipPlugin";

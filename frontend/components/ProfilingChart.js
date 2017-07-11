@@ -3,7 +3,6 @@ import { Line } from "react-chartjs-2";
 import _ from "lodash";
 import ChartWithLoading from "../helpers/ChartWithLoading";
 import { colors } from "../helpers/util";
-import "../helpers/chart-plugins";
 import profilingTooltipPlugin from "../helpers/profilingTooltipPlugin";
 import yAxisGridLinesPlugin from "../helpers/yAxisGridLinesPlugin";
 import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
