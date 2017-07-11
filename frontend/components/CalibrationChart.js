@@ -77,12 +77,12 @@ export default chartWithLoading( ({ data }) => (
     }}
     plugins={[
       drawBackgroundPlugin,
-      tooltipBarPlugin,
-      finalIntensityPlugin,
-      calibrationTooltipPlugin,
       yAxisGridLinesPlugin,
       drawLabelsPlugin,
-      noTooltipPlugin
+      noTooltipPlugin,
+      finalIntensityPlugin,
+      calibrationTooltipPlugin,
+      tooltipBarPlugin
     ]}
   />
 ) )

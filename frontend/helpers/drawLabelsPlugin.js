@@ -1,7 +1,7 @@
 import { numberWithCommas } from "./util";
 
 export default {
-  afterDraw: ({ ctx, scales }) => {
+  beforeDraw: ({ ctx, scales }) => {
     ctx.save();
 
     // Draw ticks

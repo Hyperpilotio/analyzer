@@ -53,11 +53,11 @@ export default chartWithLoading( ({ data }) => (
     }}
     plugins={[
       drawBackgroundPlugin,
-      tooltipBarPlugin,
-      profilingTooltipPlugin,
       yAxisGridLinesPlugin,
       drawLabelsPlugin,
-      noTooltipPlugin
+      noTooltipPlugin,
+      tooltipBarPlugin,
+      profilingTooltipPlugin
     ]}
   />
 ) )
