@@ -55,7 +55,8 @@ let config = module.exports = {
     new WebpackCleanupPlugin(),
     new webpack.DefinePlugin({
       "process.env": {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+        REACT_SPINKIT_NO_STYLES: "true"
       }
     }),
     extractSass,

@@ -1,6 +1,5 @@
 import Spinner from "react-spinkit";
-import React, { Component } from "react";
-
+import React from "react";
 
 // ChartWithLoading is a component composer
 export default ChartComponent => (
