@@ -27,14 +27,12 @@
     "chart.js": "^2.6.0",
     "chartjs-plugin-annotation": "^0.5.5",
     "lodash": "^4.17.4",
-    "material-ui": "^0.18.3",
     "normalize.css": "^7.0.0",
     "react": "^15.6.1",
     "react-chartjs-2": "^2.1.0",
     "react-dom": "^15.6.1",
     "react-router-dom": "^4.1.1",
     "react-spinkit": "^3.0.0",
-    "react-tap-event-plugin": "^2.0.1",
     "whatwg-fetch": "^2.0.3"
   }
 }
