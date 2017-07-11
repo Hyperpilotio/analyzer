@@ -2,7 +2,7 @@ import React from "react";
 import HyperPilotLogo from "../assets/images/asset_hyperpilot_nav_logo.svg";
 import MainMenuIcon from "../assets/images/icon_main_menu.svg";
 import UserIcon from "../assets/images/icon_user.svg";
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 
 
 
@@ -30,9 +30,9 @@ export default ({ history }) => (
           <div className="navbar-item">
             <img className="menu-icon" src={MainMenuIcon} />
           </div>
-          <div className="navbar-item">
+          <Link to="/login" className="navbar-item">
             <img className="user-icon" src={UserIcon} />
-          </div>
+          </Link>
         </div>
 
       </div>
