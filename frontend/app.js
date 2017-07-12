@@ -8,6 +8,8 @@ import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
 import AppPage from "./components/AppPage";
 import UserAuth from "./components/UserAuth";
+import AppProvider from "./containers/AppProvider";
+import PropTypes from "prop-types";
 
 
 class App extends Component {
@@ -36,4 +38,10 @@ class App extends Component {
   }
 }
 
-ReactDOM.render(<App />, document.getElementById("react-root"));
+
+ReactDOM.render(
+  <AppProvider>
+    <App />
+  </AppProvider>,
+  document.getElementById("react-root")
+);
