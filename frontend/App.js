@@ -5,9 +5,11 @@ import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
 import AppPage from "./components/AppPage";
 import UserAuth from "./components/UserAuth";
+import AppProvider from "./containers/AppProvider";
+import PropTypes from "prop-types";
 
 
-export default class App extends Component {
+class App extends Component {
 
   render() {
     return (
@@ -32,3 +34,10 @@ export default class App extends Component {
     );
   }
 }
+
+
+export default () => (
+  <AppProvider>
+    <App />
+  </AppProvider>
+)
