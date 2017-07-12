@@ -15,6 +15,10 @@ app.url_map.converters["objectid"] = ObjectIdConverter
 def index():
     return jsonify(status="ok")
 
+@app.route("/apps")
+def get_all_apps():
+    return jsonify({ "apps": configdb.applications.find({}, {"name": 1}) })
+
 @app.route("/available-apps")
 def get_available_apps():
     return jsonify({
