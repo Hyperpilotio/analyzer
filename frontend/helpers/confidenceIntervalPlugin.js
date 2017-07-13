@@ -1,12 +1,12 @@
 export default {
-  beforeDatasetsDraw: ({ ctx, chart, config, options, scales }) => {
+  afterDatasetDraw: ({ ctx, chart, config, options, scales }) => {
     ctx.save();
     const xScale = scales["x-axis-0"];
     const yScale = scales["y-axis-0"];
     for (let dataset of config.data.datasets) {
       if (dataset.onlyHighlighted) {
 
-        ctx.strokeStyle = "#5677fa";
+        ctx.strokeStyle = dataset.borderColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
         for (let point of dataset.data) {
