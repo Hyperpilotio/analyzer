@@ -7,6 +7,7 @@ import profilingTooltipPlugin from "../helpers/profilingTooltipPlugin";
 import yAxisGridLinesPlugin from "../helpers/yAxisGridLinesPlugin";
 import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
 import tooltipBarPlugin from "../helpers/tooltipBarPlugin";
+import confidenceIntervalPlugin from "../helpers/confidenceIntervalPlugin";
 import drawLabelsPlugin from "../helpers/drawLabelsPlugin";
 import noTooltipPlugin from "../helpers/noTooltipPlugin";
 
@@ -58,8 +59,14 @@ class ProfilingChart extends PureComponent {
     let datasets = _.entries(testResult).map(([benchmark, points], i) => ({
       label: benchmark,
       highlighted: _.includes([benchmark, null], highlightedBenchmark),
+      onlyHighlighted: highlightedBenchmark === benchmark,
       displayIndex: i, // Indicating position / ordering of legend
-      data: points.map(row => ({ x: row.intensity, y: row.mean })),
+      data: points.map(row => ({
+        x: row.intensity,
+        y: row.mean,
+        top: row.percentile_90,
+        bottom: row.percentile_10
+      })),
       fill: false,
       borderColor: this.colors[benchmark],
       pointRadius: 0,
@@ -68,7 +75,7 @@ class ProfilingChart extends PureComponent {
       pointHoverRadius: 5
     }));
 
-    return { datasets };
+    return { datasets, highlightedBenchmark };
   }
 
   getOptions() {
@@ -159,6 +166,7 @@ class ProfilingChart extends PureComponent {
         yAxisGridLinesPlugin,
         drawLabelsPlugin,
         noTooltipPlugin,
+        confidenceIntervalPlugin,
         tooltipBarPlugin,
         profilingTooltipPlugin
       ]} />;
