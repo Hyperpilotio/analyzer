@@ -1,4 +1,4 @@
-import React from "react";
+import React, { PureComponent } from "react";
 import { Line } from "react-chartjs-2";
 import _ from "lodash";
 import chartWithLoading from "../helpers/chartWithLoading";
@@ -11,24 +11,87 @@ import drawLabelsPlugin from "../helpers/drawLabelsPlugin";
 import noTooltipPlugin from "../helpers/noTooltipPlugin";
 
 
-export default chartWithLoading( ({ data }) => (
-  <Line
-    data={{
-      datasets: _.entries(data.testResult).map(([benchmark, points], i) => ({
-        label: benchmark,
-        data: points.map(row => ({ x: row.intensity, y: row.mean })),
-        fill: false,
-        borderColor: colors[i],
-        pointRadius: 0,
-        pointHoverBorderColor: "#5677fa",
-        pointHoverBackgroundColor:  "#fff",
-        pointHoverRadius: 5
-      }))
-    }}
-    options={{
-      layout: {
-        padding: {
-          top: 80
+class ProfilingChart extends PureComponent {
+
+  state = { highlightedBenchmark: null }
+
+  constructor(props) {
+    super(props);
+    this.benchmarks = _.sortBy(_.keys(props.data.testResult));
+    this.colors = _.zipObject(
+      this.benchmarks,
+      colors.slice(0, this.benchmarks.length)
+    );
+  }
+
+  componentDidUpdate() {
+    // HACK: Put the highlighted line in the front
+    const { highlightedBenchmark } = this.state;
+    const chart = this.refs.chart.chart_instance;
+
+    const datasets = _.sortBy(
+      chart.config.data.datasets,
+      dataset => (
+        // highlighted line should be placed at 0 in the datasets array
+        dataset.label === highlightedBenchmark
+          ? -Infinity
+          : _.indexOf(this.benchmarks, dataset.label)
+      )
+    );
+    chart.config.data.datasets = datasets;
+    chart.update();
+
+  }
+
+  getData() {
+    const { highlightedBenchmark } = this.state;
+    const { testResult } = this.props.data;
+
+    let datasets = _.entries(testResult).map(([benchmark, points], i) => ({
+      label: benchmark,
+      displayIndex: i, // custom attribute
+      data: points.map(row => ({ x: row.intensity, y: row.mean })),
+      fill: false,
+      borderColor: (
+        // If it's highlighted line, or there isn't a highlighted line, color it
+        _.includes([benchmark, null], highlightedBenchmark)
+          ? this.colors[benchmark]
+          : "#eef0fa"
+      ),
+      pointRadius: 0,
+      pointHoverBorderColor: "#5677fa",
+      pointHoverBackgroundColor:  "#fff",
+      pointHoverRadius: 5
+    }));
+
+    return { datasets };
+  }
+
+  getOptions() {
+    const component = this;
+    return {
+      layout: { padding: { top: 80 } },
+      hover: {
+        onHover(event) {
+          const yPos = event.layerY;
+          // Calculate x position from the right
+          const xPos = this.chartArea.right - event.layerX;
+
+          if (yPos > 0 && yPos < 60) {
+            // Break the loop and return whenever it finds the hovered area
+            for (let i = 0; i < this.data.datasets.length; i++) {
+              // See ../helpers/profilingTooltipPlugin.js for the calculation of legend positions
+              if (xPos > (15 + 120 * i) && xPos < (15 + 120 * (i + 1))) {
+                let benchmarkIndex = this.data.datasets.length - i - 1;
+                component.setState({
+                  highlightedBenchmark: component.benchmarks[benchmarkIndex]
+                });
+                return;
+              }
+            }
+          }
+          // Reset hover state if nothing matched
+          component.setState({ highlightedBenchmark: null });
         }
       },
       scales: {
@@ -50,14 +113,24 @@ export default chartWithLoading( ({ data }) => (
           }
         }]
       }
-    }}
-    plugins={[
-      drawBackgroundPlugin,
-      yAxisGridLinesPlugin,
-      drawLabelsPlugin,
-      noTooltipPlugin,
-      tooltipBarPlugin,
-      profilingTooltipPlugin
-    ]}
-  />
-) )
+    }
+  }
+
+  render() {
+    return <Line
+      ref="chart"
+      data={this.getData()}
+      options={this.getOptions()}
+      plugins={[
+        drawBackgroundPlugin,
+        yAxisGridLinesPlugin,
+        drawLabelsPlugin,
+        noTooltipPlugin,
+        tooltipBarPlugin,
+        profilingTooltipPlugin
+      ]} />;
+  }
+
+}
+
+export default chartWithLoading(ProfilingChart)

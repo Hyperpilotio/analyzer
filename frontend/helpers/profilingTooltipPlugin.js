@@ -9,12 +9,14 @@ export default {
     ctx.textBaseline = "top";
 
     const tooltipPoints = tooltip.currentPoints || [];
+    const { datasets } = chart.config.data;
+
     for (let point of tooltipPoints) {
-      let offset = 30;
-      offset += (tooltipPoints.length - point.datasetIndex - 1) * 120;
+      let displayIndex = datasets[point.datasetIndex].displayIndex;
+      let offset = 30 + (tooltipPoints.length - displayIndex - 1) * 120;
 
       // Write statistic
-      ctx.fillStyle = colors[point.datasetIndex];
+      ctx.fillStyle = datasets[point.datasetIndex].borderColor;
       ctx.font = "bold 20px WorkSans";
       ctx.fillText(
         numberWithCommas(point.yLabel.toFixed(2)),
@@ -26,7 +28,7 @@ export default {
       ctx.fillStyle = "#606175";
       ctx.font = "lighter 10px WorkSans";
       ctx.fillText(
-        chart.config.data.datasets[point.datasetIndex].label,
+        datasets[point.datasetIndex].label,
         chartArea.right - offset,
         50
       );
