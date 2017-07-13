@@ -1,11 +1,12 @@
 import React from "react";
 import { Switch, Route, Redirect } from "react-router";
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import KeyInfo from "./KeyInfo";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 import CalibrationChart from "../containers/CalibrationChart";
 import ProfilingChart from "../containers/ProfilingChart";
 import InterferenceChart from "../containers/InterferenceChart";
+import MetricScoreChart from "./MetricScoreChart";
 
 // For cross-app interference chart, use random dataset for now
 import CrossAppInterfChart from "./CrossAppInterfChart";
@@ -80,6 +81,31 @@ export default ({ match }) => (
         <div className="column">
           <h3 className="title">Interference Score</h3>
           <InterferenceChart profilingId="59640392e3fd9e5094df375a" />
+        </div>
+        <div className="qos-metrics column">
+          <h3 className="title">QoS Metrics</h3>
+          <div className="score-chart-box">
+            <header>
+              <span className="left">Latency</span>
+              <div className="right columns">
+                <div className="column status-indicator">
+                  <div className="key-stat">245</div>
+                  <div className="key-stat-label">Current</div>
+                </div>
+                <div className="column status-indicator">
+                  <div className="key-stat danger">500</div>
+                  <div className="key-stat-label">Target</div>
+                </div>
+              </div>
+            </header>
+            <main>
+              <MetricScoreChart name="Latency" thresholdColor="#ff8686" />
+            </main>
+          </div>
+          <div className="run-optimizer-mask">
+            <p>Apply recommendation to see enhanced QoS metric</p>
+            <Link to="/autopilot/after" className="primary-button">Apply Recommendation</Link>
+          </div>
         </div>
       </div>
 
