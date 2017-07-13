@@ -22,4 +22,4 @@ Chart.defaults.global.tooltips.custom = function(tooltip) {
   if (!_.isUndefined(tooltip.dataPoints)) {
     this.currentPoints = tooltip.dataPoints;
   }
-}
+};
