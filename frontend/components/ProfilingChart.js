@@ -77,7 +77,11 @@ class ProfilingChart extends PureComponent {
       layout: { padding: { top: 80 } },
       hover: {
         onHover(event) {
-          console.log(event.type);
+
+          // If a hover happens when a line is selected, don't do anything
+          if (event.type !== "click" && component.state.selected)
+            return;
+
           const yPos = event.layerY;
           // Calculate x position from the right
           const xPos = this.chartArea.right - event.layerX;
@@ -88,15 +92,39 @@ class ProfilingChart extends PureComponent {
               // See ../helpers/profilingTooltipPlugin.js for the calculation of legend positions
               if (xPos > (15 + 120 * i) && xPos < (15 + 120 * (i + 1))) {
                 let benchmarkIndex = this.data.datasets.length - i - 1;
-                component.setState({
-                  highlightedBenchmark: component.benchmarks[benchmarkIndex]
-                });
+                let newState = {};
+                let hoveredBenchmark = component.benchmarks[benchmarkIndex];
+
+                if (event.type !== "click") {
+                  // Normal hover handling
+                  newState.highlightedBenchmark = hoveredBenchmark;
+
+                } else {
+
+                  if (!component.state.selected) {
+                    // Freeze the highlight of one benchmark after clicking
+                    newState.selected = true;
+                    newState.highlightedBenchmark = hoveredBenchmark;
+                  } else {
+
+                    // Deselect if clicking on the selected benchmark
+                    if (hoveredBenchmark === component.state.highlightedBenchmark)
+                      newState.selected = false;
+                    else
+                      newState.highlightedBenchmark = hoveredBenchmark;
+                  }
+                }
+
+                component.setState(newState);
                 return;
               }
             }
           }
           // Reset hover state if nothing matched
-          component.setState({ highlightedBenchmark: null });
+          if (event.type === "click")
+            component.setState({ highlightedBenchmark: null, selected: false });
+          else if (!component.state.selected)
+            component.setState({ highlightedBenchmark: null });
         }
       },
       scales: {
