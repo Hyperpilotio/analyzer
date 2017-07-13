@@ -81,7 +81,7 @@ class ProfilingChart extends PureComponent {
   getOptions() {
     const component = this;
     return {
-      layout: { padding: { top: 80 } },
+      layout: { padding: { top: 140 } },
       hover: {
         onHover(event) {
 
