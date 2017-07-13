@@ -12,11 +12,12 @@ export default {
     const { datasets } = chart.config.data;
 
     for (let point of tooltipPoints) {
-      let displayIndex = datasets[point.datasetIndex].displayIndex;
+      let dataset = datasets[point.datasetIndex];
+      let displayIndex = dataset.displayIndex;
       let offset = 30 + (tooltipPoints.length - displayIndex - 1) * 120;
 
       // Write statistic
-      ctx.fillStyle = datasets[point.datasetIndex].borderColor;
+      ctx.fillStyle = dataset.borderColor;
       ctx.font = "bold 20px WorkSans";
       ctx.fillText(
         numberWithCommas(point.yLabel.toFixed(2)),
@@ -25,13 +26,9 @@ export default {
       );
 
       // Write benchmark name
-      ctx.fillStyle = "#606175";
+      ctx.fillStyle = dataset.highlighted ? "#606175" : "#b9bacb";
       ctx.font = "lighter 10px WorkSans";
-      ctx.fillText(
-        datasets[point.datasetIndex].label,
-        chartArea.right - offset,
-        50
-      );
+      ctx.fillText( dataset.label, chartArea.right - offset, 50 );
     }
 
     ctx.restore();

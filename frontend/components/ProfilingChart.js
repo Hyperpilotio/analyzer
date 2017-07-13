@@ -29,7 +29,14 @@ class ProfilingChart extends PureComponent {
     const { highlightedBenchmark } = this.state;
     const chart = this.refs.chart.chart_instance;
 
-    const datasets = _.sortBy(
+    let datasets = chart.config.data.datasets.map(dataset => {
+      if (dataset.highlighted === false) {
+        dataset.borderColor = "rgba(238, 240, 250, 0.7)";
+        dataset.pointHoverRadius = 0;
+      }
+    })
+
+    datasets = _.sortBy(
       chart.config.data.datasets,
       dataset => (
         // highlighted line should be placed at 0 in the datasets array
@@ -38,6 +45,7 @@ class ProfilingChart extends PureComponent {
           : _.indexOf(this.benchmarks, dataset.label)
       )
     );
+
     chart.config.data.datasets = datasets;
     chart.update();
 
@@ -49,15 +57,11 @@ class ProfilingChart extends PureComponent {
 
     let datasets = _.entries(testResult).map(([benchmark, points], i) => ({
       label: benchmark,
-      displayIndex: i, // custom attribute
+      highlighted: _.includes([benchmark, null], highlightedBenchmark),
+      displayIndex: i, // Indicating position / ordering of legend
       data: points.map(row => ({ x: row.intensity, y: row.mean })),
       fill: false,
-      borderColor: (
-        // If it's highlighted line, or there isn't a highlighted line, color it
-        _.includes([benchmark, null], highlightedBenchmark)
-          ? this.colors[benchmark]
-          : "#eef0fa"
-      ),
+      borderColor: this.colors[benchmark],
       pointRadius: 0,
       pointHoverBorderColor: "#5677fa",
       pointHoverBackgroundColor:  "#fff",
@@ -73,6 +77,7 @@ class ProfilingChart extends PureComponent {
       layout: { padding: { top: 80 } },
       hover: {
         onHover(event) {
+          console.log(event.type);
           const yPos = event.layerY;
           // Calculate x position from the right
           const xPos = this.chartArea.right - event.layerX;
