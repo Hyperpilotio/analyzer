@@ -66,6 +66,24 @@ def app_profiling(app_id):
         return ensure_document_found(None)
 
 
+@app.route("/apps/<objectid:app_id>/interference")
+def interference_scores(app_id):
+    app = configdb.applications.find_one(app_id)
+    if app is None:
+        return ensure_document_found(None)
+
+    cursor = metricdb.profiling.find(
+        {"appName": app["name"]}
+    ).sort("_id", DESCENDING).limit(1)
+    try:
+        profiling = next(cursor)
+        data = get_radar_dataframe(profiling)
+        del profiling["testResult"]
+        return jsonify(data)
+    except StopIteration:
+        return ensure_document_found(None)
+
+
 @app.route("/available-apps")
 def get_available_apps():
     return jsonify({
