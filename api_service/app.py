@@ -29,6 +29,7 @@ def get_all_apps():
         apps[str(app_id)] = app
     return jsonify(apps)
 
+
 @app.route("/apps/<objectid:app_id>")
 def get_app_info(app_id):
     app = configdb.applications.find_one(app_id, {"_id": 0})
@@ -91,56 +92,6 @@ def interference_scores(app_id):
         return jsonify(data)
     except StopIteration:
         return ensure_document_found(None)
-
-
-@app.route("/available-apps")
-def get_available_apps():
-    return jsonify({
-        collection: metricdb[collection].find(
-            filter={"appName": {"$exists": 1}},
-            projection={"appName": 1},
-        )
-        for collection in ("calibration", "profiling", "validation")
-    })
-
-
-@app.route("/single-app/services/<app_name>")
-def services_json(app_name):
-    app_config = configdb.applications.find_one(
-        filter={"name": app_name},
-        projection={"_id": 0, "name": 1, "serviceNames": 1},
-    )
-    return ensure_document_found(app_config, app="name", services="serviceNames")
-
-
-@app.route("/single-app/profiling/<objectid:app_id>")
-def profiling_json(app_id):
-    profiling = metricdb.profiling.find_one(app_id)
-    return ensure_document_found(profiling)
-
-
-@app.route("/single-app/profiling-data/<objectid:app_id>")
-def profiling_data(app_id):
-    profiling = metricdb.profiling.find_one(app_id)
-    data = get_profiling_dataframe(profiling)
-    if data is not None:
-        profiling["testResult"] = data
-    return ensure_document_found(profiling)
-
-
-@app.route("/single-app/calibration/<objectid:app_id>")
-def calibration_json(app_id):
-    calibration = metricdb.calibration.find_one(app_id)
-    return ensure_document_found(calibration)
-
-
-@app.route("/single-app/calibration-data/<objectid:app_id>")
-def calibration_data(app_id):
-    calibration = metricdb.calibration.find_one(app_id)
-    data = get_calibration_dataframe(calibration)
-    if data is not None:
-        calibration["testResult"] = data
-    return ensure_document_found(calibration)
 
 
 @app.route("/cross-app/predict", methods=["POST"])
