@@ -23,7 +23,16 @@ def index():
 
 @app.route("/apps")
 def get_all_apps():
-    return jsonify({ "apps": configdb.applications.find({}, {"name": 1}) })
+    apps = {}
+    for app in configdb.applications.find({}, {"name": 1}):
+        app_id = app.pop("_id")
+        apps[str(app_id)] = app
+    return jsonify(apps)
+
+@app.route("/apps/<objectid:app_id>")
+def get_app_info(app_id):
+    app = configdb.applications.find_one(app_id, {"_id": 0})
+    return ensure_document_found(app)
 
 
 @app.route("/apps/<objectid:app_id>/calibration")
