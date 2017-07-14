@@ -11,6 +11,16 @@ import PropTypes from "prop-types";
 
 class App extends Component {
 
+  static contextTypes = {
+    actions: PropTypes.object,
+    store: PropTypes.object
+  }
+
+  componentDidMount() {
+    if (this.context.store.apps.length === 0)
+      this.context.actions.getApps();
+  }
+
   render() {
     return (
       <Router>

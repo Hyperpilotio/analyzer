@@ -32,11 +32,6 @@ export default class DashboardHome extends Component {
     actions: PropTypes.object
   };
 
-  componentDidMount() {
-    if (this.context.store.apps.length === 0)
-      this.context.actions.getApps();
-  }
-
   render() {
     const { apps } = this.context.store;
     return <div className="dashboard">
