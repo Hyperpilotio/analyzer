@@ -46,6 +46,26 @@ def app_calibration(app_id):
         return ensure_document_found(None)
 
 
+@app.route("/apps/<objectid:app_id>/profiling")
+def app_profiling(app_id):
+    app = configdb.applications.find_one(app_id)
+    if app is None:
+        return ensure_document_found(None)
+
+    cursor = metricdb.profiling.find(
+        {"appName": app["name"]},
+        {"appName": 0, "_id": 0},
+    ).sort("_id", DESCENDING).limit(1)
+    try:
+        profiling = next(cursor)
+        data = get_profiling_dataframe(profiling)
+        del profiling["testResult"]
+        profiling["results"] = data
+        return jsonify(profiling)
+    except StopIteration:
+        return ensure_document_found(None)
+
+
 @app.route("/available-apps")
 def get_available_apps():
     return jsonify({
