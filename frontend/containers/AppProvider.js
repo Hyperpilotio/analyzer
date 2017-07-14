@@ -1,10 +1,12 @@
 import React, { Component, Children } from "react";
 import PropTypes from "prop-types";
+import update from "immutability-helper";
+import _ from "lodash";
 
 
 export default class AppProvider extends Component {
 
-  state = { apps: [] }
+  state = { apps: [], calibrations: {} }
 
   static childContextTypes = {
     store: PropTypes.object,
@@ -14,7 +16,10 @@ export default class AppProvider extends Component {
   getChildContext() {
     return {
       store: this.state,
-      actions: { getApps: ::this.getApps }
+      actions: {
+        getApps: ::this.getApps,
+        fetchCalibration: ::this.fetchCalibration
+      }
     };
   }
 
@@ -22,6 +27,21 @@ export default class AppProvider extends Component {
     let res = await fetch("/api/apps");
     let data = await res.json();
     this.setState(data);
+  }
+
+  async fetchCalibration(appId) {
+    let res = await fetch(`/api/apps/${appId}/calibration`);
+    if (!res.ok) {
+      console.error("Unexpected error for", res);
+      return;
+    }
+    let data = await res.json();
+    this.setState({
+      calibrations: update(
+        this.state.calibrations,
+        _.fromPairs([[appId, {$set: data}]])
+      )
+    });
   }
 
   render() {
