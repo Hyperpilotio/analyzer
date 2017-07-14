@@ -18,8 +18,16 @@ export default {
           text: numberWithCommas(Number(mean.yLabel.toFixed(2))),
           label: "Mean"
         },
-        { style: "secondary", text: min.yLabel, label: "Min" },
-        { style: "secondary", text: max.yLabel, label: "Max" }
+        {
+          style: "secondary",
+          text: numberWithCommas(Number(min.yLabel.toFixed(2))),
+          label: "Min"
+        },
+        {
+          style: "secondary",
+          text: numberWithCommas(Number(max.yLabel.toFixed(2))),
+          label: "Max"
+        }
       ];
 
       if (vm.xAlign === "left")
