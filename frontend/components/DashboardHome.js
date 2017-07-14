@@ -97,7 +97,9 @@ export default class DashboardHome extends Component {
           <h3>Apps</h3>
           <div className="apps-container">
 
-            { apps.map( doc => <ApplicationItem key={doc._id} {...doc} /> ) }
+            { _.map( apps, (doc, _id) => (
+              <ApplicationItem key={_id} _id={_id} {...doc} />
+            ) ) }
 
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Switch, Route, Redirect } from "react-router";
 import { NavLink, Link } from "react-router-dom";
 import KeyInfo from "./KeyInfo";
@@ -7,20 +8,21 @@ import CalibrationChart from "../containers/CalibrationChart";
 import ProfilingChart from "../containers/ProfilingChart";
 import InterferenceChart from "../containers/InterferenceChart";
 import MetricScoreChart from "./MetricScoreChart";
+import _ from "lodash";
 
 // For cross-app interference chart, use random dataset for now
 import CrossAppInterfChart from "./CrossAppInterfChart";
 
-export default ({ match }) => (
+const AppPage = ({ match }, { store }) => (
   <div className="app-page-body">
 
     <KeyInfo>
       <div className="left app-identity">
         <div className="name-and-icon">
           <img src={redisLogo} width="45" />
-          <h1>Redis</h1>
+          <h1>{ _.get(store.apps, [match.params.appId, "name"]) }</h1>
         </div>
-        <span className="app-id muted badge">59306145e3fd9e5094db04e6</span>
+        <span className="app-id muted badge">{ match.params.appId }</span>
       </div>
       <div className="right columns">
         <div className="column info-list">
@@ -113,3 +115,10 @@ export default ({ match }) => (
 
   </div>
 )
+
+AppPage.contextTypes = {
+  store: PropTypes.object,
+  actions: PropTypes.object
+};
+
+export default AppPage;
