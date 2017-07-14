@@ -72,8 +72,8 @@ export default ({ match }) => (
         <Route path="/apps/:appId/calibration" render={({ match }) => (
           <CalibrationChart appId={match.params.appId} />
         )} />
-        <Route path="/apps/:appId/profiling" render={() => (
-          <ProfilingChart profilingId="59606286e3fd9e5094deb389" />
+        <Route path="/apps/:appId/profiling" render={({ match }) => (
+          <ProfilingChart appId={match.params.appId} />
         )} />
         <Redirect to="calibration" />
       </Switch>
