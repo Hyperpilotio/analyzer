@@ -6,7 +6,7 @@ import _ from "lodash";
 
 export default class AppProvider extends Component {
 
-  state = { apps: [], calibrations: {} }
+  state = { apps: [], calibrations: {}, profilings: {} }
 
   static childContextTypes = {
     store: PropTypes.object,
@@ -18,7 +18,8 @@ export default class AppProvider extends Component {
       store: this.state,
       actions: {
         getApps: ::this.getApps,
-        fetchCalibration: ::this.fetchCalibration
+        fetchCalibration: ::this.fetchCalibration,
+        fetchProfiling: ::this.fetchProfiling
       }
     };
   }
@@ -39,6 +40,21 @@ export default class AppProvider extends Component {
     this.setState({
       calibrations: update(
         this.state.calibrations,
+        _.fromPairs([[appId, {$set: data}]])
+      )
+    });
+  }
+
+  async fetchProfiling(appId) {
+    let res = await fetch(`/api/apps/${appId}/profiling`);
+    if (!res.ok) {
+      console.error("Unexpected error for", res);
+      return;
+    }
+    let data = await res.json();
+    this.setState({
+      profilings: update(
+        this.state.profilings,
         _.fromPairs([[appId, {$set: data}]])
       )
     });
