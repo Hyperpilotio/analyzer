@@ -1,25 +1,35 @@
 import React, { Component } from "react";
+import PropTypes from "prop-types";
 import InterferenceChartComponent from "../components/InterferenceChart";
 
 
 export default class InterferenceChart extends Component {
 
+  static contextTypes = {
+    store: PropTypes.object,
+    actions: PropTypes.object
+  }
+
   state = { data: null, loading: true };
 
-  async fetchData(profilingId) {
-    const res = await fetch(`/api/radar-data/${profilingId}`);
-    const data = await res.json();
-    this.setState({ data, loading: false });
+  async fetchData(appId) {
+    if (_.isUndefined(_.get(this.context.store.interferences, appId))) {
+      await this.context.actions.fetchInterference(appId);
+    }
+    this.setState({
+      data: this.context.store.interferences[appId],
+      loading: false
+    });
   }
 
   componentDidMount() {
-    this.fetchData(this.props.profilingId);
+    this.fetchData(this.props.appId);
   }
 
   componentWillReceiveProps(props) {
-    if (props.profilingId !== this.props.profilingId) {
+    if (props.appId !== this.props.appId) {
       this.setState({loading: true});
-      this.fetchData(props.profilingId);
+      this.fetchData(props.appId);
     }
   }
 
