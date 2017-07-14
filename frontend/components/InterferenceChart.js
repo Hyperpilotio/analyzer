@@ -30,12 +30,12 @@ export default chartWithLoading( ({ data }) => (
         padding: { left: 20, top: 20, right: 20, bottom: 20 }
       },
       hover: {
-        mode: "index",
-        intersect: true
+        mode: "nearest",
+        intersect: false
       },
       tooltips: {
-        mode: "index",
-        intersect: true
+        mode: "nearest",
+        intersect: false
       },
       scale: {
         ticks: {
