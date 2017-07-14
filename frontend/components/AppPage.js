@@ -69,8 +69,8 @@ export default ({ match }) => (
 
     <div className="container">
       <Switch>
-        <Route path="/apps/:appId/calibration" render={() => (
-          <CalibrationChart calibrationId="595f6008e3fd9e5094deb2c0" />
+        <Route path="/apps/:appId/calibration" render={({ match }) => (
+          <CalibrationChart appId={match.params.appId} />
         )} />
         <Route path="/apps/:appId/profiling" render={() => (
           <ProfilingChart profilingId="59606286e3fd9e5094deb389" />
