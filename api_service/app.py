@@ -20,6 +20,25 @@ def index():
 def get_all_apps():
     return jsonify({ "apps": configdb.applications.find({}, {"name": 1}) })
 
+@app.route("/apps/<objectid:app_id>/calibration")
+def app_calibration(app_id):
+    app = configdb.applications.find_one(app_id)
+    if app is None:
+        return ensure_document_found(None)
+
+    cursor = metricdb.calibration.find(
+        {"appName": app["name"]},
+        {"appName": 0, "_id": 0},
+    ).sort("_id", DESCENDING).limit(1)
+    try:
+        calibration = next(cursor)
+        data = get_calibration_dataframe(calibration)
+        del calibration["testResult"]
+        calibration["results"] = data
+        return jsonify(calibration)
+    except StopIteration:
+        return ensure_document_found(None)
+
 @app.route("/available-apps")
 def get_available_apps():
     return jsonify({
@@ -63,29 +82,6 @@ def calibration_data(app_id):
     if data is not None:
         calibration["testResult"] = data
     return ensure_document_found(calibration)
-
-@app.route("/apps/<objectid:app_id>/calibration")
-def app_calibration(app_id):
-    app = configdb.applications.find_one(app_id)
-    if app is None:
-        return ensure_document_found(None)
-    cursor = metricdb.calibration.find(
-        {"appName": app["name"]},
-        {"appName": 0, "_id": 0},
-    ).sort("_id", DESCENDING).limit(1)
-    try:
-        calibration = next(cursor)
-        data = get_calibration_dataframe(calibration)
-        del calibration["testResult"]
-        calibration["data"] = data
-        return jsonify({
-            "apps": [{
-                "_id": app_id,
-                "calibration": calibration,
-            }]
-        })
-    except StopIteration:
-        return jsonify({"apps": []})
 
 @app.route("/cross-app/predict", methods=["POST"])
 def predict():
