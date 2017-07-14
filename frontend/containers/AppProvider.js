@@ -20,15 +20,37 @@ export default class AppProvider extends Component {
         getApps: ::this.getApps,
         fetchCalibration: ::this.fetchCalibration,
         fetchProfiling: ::this.fetchProfiling,
-        fetchInterference: ::this.fetchInterference
+        fetchInterference: ::this.fetchInterference,
+        fetchAppInfo: ::this.fetchAppInfo
       }
     };
   }
 
   async getApps() {
-    let res = await fetch("/api/apps");
+    let res = await fetch(`/api/apps`);
+    if (!res.ok) {
+      console.error("Unexpected error for", res);
+      return;
+    }
     let data = await res.json();
-    this.setState(data);
+    this.setState({
+      apps: _.mapValues(data, (app, _id) => _.assign({}, this.state.apps[_id], app))
+    });
+  }
+
+  async fetchAppInfo(appId) {
+    let res = await fetch(`/api/apps/${appId}`);
+    if (!res.ok) {
+      console.error("Unexpected error for", res);
+      return;
+    }
+    let data = await res.json();
+    this.setState({
+      apps: update(
+        this.state.apps,
+        _.fromPairs([[ appId, { $set: data } ]])
+      )
+    });
   }
 
   async fetchCalibration(appId) {
