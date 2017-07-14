@@ -31,6 +31,7 @@
     "babel-polyfill": "^6.23.0",
     "chart.js": "^2.6.0",
     "chartjs-plugin-annotation": "^0.5.5",
+    "immutability-helper": "^2.3.0",
     "lodash": "^4.17.4",
     "normalize.css": "^7.0.0",
     "react": "^15.6.1",
