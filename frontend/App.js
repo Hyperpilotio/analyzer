@@ -17,7 +17,7 @@ class App extends Component {
   }
 
   componentDidMount() {
-    if (this.context.store.apps.length === 0)
+    if (_.keys(this.context.store.apps).length === 0)
       this.context.actions.getApps();
   }
 
