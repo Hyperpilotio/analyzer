@@ -13,16 +13,16 @@ import _ from "lodash";
 // For cross-app interference chart, use random dataset for now
 import CrossAppInterfChart from "./CrossAppInterfChart";
 
-const AppPage = ({ match }, { store }) => (
+export default ({ appId, data, loading }) => (
   <div className="app-page-body">
 
     <KeyInfo>
       <div className="left app-identity">
         <div className="name-and-icon">
           <img src={redisLogo} width="45" />
-          <h1>{ _.get(store.apps, [match.params.appId, "name"]) }</h1>
+          <h1>{ loading ? "Loading..." : data.name }</h1>
         </div>
-        <span className="app-id muted badge">{ match.params.appId }</span>
+        <span className="app-id muted badge">{ appId }</span>
       </div>
       <div className="right columns">
         <div className="column info-list">
@@ -42,7 +42,7 @@ const AppPage = ({ match }, { store }) => (
           </div>
           <div className="info-section">
             <span className="info-key">App type</span>
-            <span className="info-value">Workload</span>
+            <span className="info-value">{ loading ? "Loading..." : data.type }</span>
           </div>
         </div>
         <div className="column info-list">
@@ -60,10 +60,10 @@ const AppPage = ({ match }, { store }) => (
 
     <nav className="subnav">
       <div className="container">
-        <NavLink to={`/apps/${match.params.appId}/calibration`} className="nav-item" activeClassName="selected">
+        <NavLink to={`/apps/${appId}/calibration`} className="nav-item" activeClassName="selected">
           Calibration
         </NavLink>
-        <NavLink to={`/apps/${match.params.appId}/profiling`} className="nav-item" activeClassName="selected">
+        <NavLink to={`/apps/${appId}/profiling`} className="nav-item" activeClassName="selected">
           Profiling
         </NavLink>
       </div>
@@ -82,7 +82,7 @@ const AppPage = ({ match }, { store }) => (
       <div className="radar-charts columns">
         <div className="column">
           <h3 className="title">Interference Score</h3>
-          <InterferenceChart appId={match.params.appId} />
+          <InterferenceChart appId={appId} />
         </div>
         <div className="qos-metrics column">
           <h3 className="title">QoS Metrics</h3>
@@ -115,10 +115,3 @@ const AppPage = ({ match }, { store }) => (
 
   </div>
 )
-
-AppPage.contextTypes = {
-  store: PropTypes.object,
-  actions: PropTypes.object
-};
-
-export default AppPage;
