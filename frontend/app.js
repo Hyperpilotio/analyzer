@@ -6,7 +6,7 @@ import ReactDOM from "react-dom";
 import HeaderNav from "./components/HeaderNav";
 import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
-import AppPage from "./components/AppPage";
+import AppPage from "./containers/AppPage";
 import UserAuth from "./components/UserAuth";
 import AppProvider from "./containers/AppProvider";
 import PropTypes from "prop-types";

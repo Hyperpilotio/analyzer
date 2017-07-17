@@ -6,7 +6,7 @@ import _ from "lodash";
 
 export default class AppProvider extends Component {
 
-  state = { apps: [], calibrations: {}, profilings: {}, interferences: {} }
+  state = { apps: {}, calibrations: {}, profilings: {}, interferences: {} }
 
   static childContextTypes = {
     store: PropTypes.object,
