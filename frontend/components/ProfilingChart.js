@@ -27,6 +27,11 @@ class ProfilingChart extends PureComponent {
 
   componentDidUpdate() {
     // HACK: Put the highlighted line in the front
+    // react-chartjs-2 does a shallow diff & update to the chart when there's
+    // an update to the datasets, but if there's a change in the order of
+    // datasets (through modifying component's data prop), react-chartjs-2
+    // wouldn't catch that. However, directly calling Chart.js' update method
+    // would catch that change.
     const { highlightedBenchmark } = this.state;
     const chart = this.refs.chart.chart_instance;
 
