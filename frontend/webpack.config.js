@@ -1,11 +1,14 @@
 const webpack = require("webpack");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
+const GitRevisionPlugin = require('git-revision-webpack-plugin')
 
 const extractSass = new ExtractTextPlugin({
   filename: "[hash].bundle.css",
   disable: process.env.NODE_ENV !== "production"
 });
+
+const gitRevisionPlugin = new GitRevisionPlugin()
 
 
 let config = module.exports = {
@@ -31,7 +34,7 @@ let config = module.exports = {
         exclude: /node_modules/
       },
       {
-        test: /\.s[ca]ss$/,
+        test: /\.s[ca]ss|css$/,
         use: extractSass.extract({
           fallback: "style-loader",
           use: [
@@ -46,7 +49,7 @@ let config = module.exports = {
         })
       },
       {
-        test: /\.(jpe?g|png|gif|svg)$/i,
+        test: /\.(jpe?g|png|gif|svg|ttf|woff|woff2)$/i,
         loader: "file-loader"
       }
     ]
@@ -55,7 +58,9 @@ let config = module.exports = {
     new WebpackCleanupPlugin(),
     new webpack.DefinePlugin({
       "process.env": {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+        REACT_SPINKIT_NO_STYLES: "true",
+        GIT_COMMIT: JSON.stringify(gitRevisionPlugin.commithash())
       }
     }),
     extractSass,

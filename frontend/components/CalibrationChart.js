@@ -1,63 +1,88 @@
 import React from "react";
+import chartWithLoading from "../helpers/chartWithLoading";
 import { Line } from "react-chartjs-2";
-import "./chart-plugins";
-import CircularProgress from "material-ui/CircularProgress";
-import _ from "lodash";
+import noTooltipPlugin from "../helpers/noTooltipPlugin";
+import finalIntensityPlugin from "../helpers/finalIntensityPlugin";
+import calibrationTooltipPlugin from "../helpers/calibrationTooltipPlugin";
+import yAxisGridLinesPlugin from "../helpers/yAxisGridLinesPlugin";
+import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
+import tooltipBarPlugin from "../helpers/tooltipBarPlugin";
+import drawLabelsPlugin from "../helpers/drawLabelsPlugin";
 
-
-export default ({ data, loading }) => {
-  let lineChartElement;
-  if (data !== null) {
-    lineChartElement = <Line
-      data={{
-        datasets: [{
-          label: "Calibration",
+export default chartWithLoading( ({ data }) => (
+  <Line
+    data={{
+      datasets: [
+        {
+          label: "mean",
           data: data.testResult.map(
             point => ({ x: point.loadIntensity, y: point.mean })
           ),
-          xAxisID: "x-axis",
-          lineTension: 0
-        }]
-      }}
-      options={{
-        scales: {
-          xAxes: [{
-            id: "x-axis",
-            type: "linear"
-          }],
-          yAxes: [{
-            type: "linear",
-            ticks: {
-              suggestedMin: _.min(_.map(data.testResult, "min")),
-              suggestedMax: _.max(_.map(data.testResult, "max"))
-            }
-          }]
+          borderColor: "#5677fa",
+          borderWidth: 2,
+          backgroundColor: "rgba(86, 119, 250, 0.08)",
+          pointBackgroundColor: "#5677fa",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 1,
+          pointRadius: 4,
+          pointHoverBackgroundColor: "#fff",
+          pointHoverBorderColor: "#5677fa",
+          pointHoverRadius: 5
         },
-        tooltips: {
-          intersect: false
-        },
-        plugins: {
-          errorBars: {
-            top: data.testResult.map(
-              point => ({ x: point.loadIntensity, y: point.max })
-            ),
-            bottom: data.testResult.map(
-              point => ({ x: point.loadIntensity, y: point.min })
-            ),
-            strokeStyle: "rgba(0,0,255,0.4)"
-          },
-          finalIntensity: {
-            value: data.finalIntensity,
-            fillStyle: "rgba(255,0,0,0.3)"
-          }
+        // Add hidden min and max datasets to make getting data for tooltips easier
+        ...["min", "max"].map(metric => ({
+          data: data.testResult.map(
+            point => ({ x: point.loadIntensity, y: point[metric] })
+          ),
+          label: metric,
+          showLine: false,
+          pointRadius: 0,
+          pointHoverRadius: 0
+        }))
+      ]
+    }}
+    options={{
+      layout: {
+        padding: {
+          top: 100
         }
-      }}
-    />;
-  }
-
-  let divForLoading;
-  if (loading)
-    divForLoading = <div className="loading-container"><CircularProgress /></div>;
-
-  return <div className="main-container">{lineChartElement}{divForLoading}</div>;
-}
+      },
+      legend: {
+        display: false
+      },
+      scales: {
+        xAxes: [{
+          type: "linear",
+          ticks: {
+            fontColor: "#e5e6e8",
+            display: true
+          },
+          scaleLabel: {
+            labelString: "Load Intensity"
+          }
+        }],
+        yAxes: [{
+          color: "#eef0fa",
+          scaleLabel: {
+            labelString: "Throughput"
+          }
+        }]
+      },
+      plugins: {
+        finalIntensity: {
+          value: data.finalResult.loadIntensity,
+          fillStyle: "rgba(140, 177, 250, 0.2)"
+        }
+      }
+    }}
+    plugins={[
+      drawBackgroundPlugin,
+      yAxisGridLinesPlugin,
+      drawLabelsPlugin,
+      noTooltipPlugin,
+      finalIntensityPlugin,
+      calibrationTooltipPlugin,
+      tooltipBarPlugin
+    ]}
+  />
+) )

@@ -1,0 +1,71 @@
+@font-face
+  font-family: WorkSans
+  font-style: normal
+  font-weight: 400
+  src: url(../assets/fonts/WorkSans-Regular.woff2) format("woff2")
+
+*
+  font-family: WorkSans
+  letter-spacing: 0.5px
+
+.container
+  position: relative
+  margin: 0 auto
+  max-width: 1152px
+  width: 1152px
+
+a
+  text-decoration: none
+
+.left
+  margin-right: auto
+
+.right
+  margin-left: auto
+
+.center
+  margin-left: auto
+  margin-right: auto
+
+.columns
+  display: flex
+  flex-direction: row
+
+  .column:not(:first-child)
+    margin-left: 1rem
+  .column:not(:last-child)
+    margin-right: 1rem
+
+.badge
+  border-radius: 4px
+  padding: 0.25rem 0.75rem
+  font-size: 16px
+
+  &.small
+    padding: 0.1rem 0.5rem
+
+  @each $name, $pair in $colors
+    $color: nth($pair, 1)
+    $background: nth($pair, 2)
+    &.#{$name}
+      border: 1px solid $color
+      color: $color
+      background-color: $background
+
+h1
+  font-size: 22px
+  color: $color-dark-grey
+  letter-spacing: 0.7px
+
+
+.primary-button
+  margin: auto
+  border-radius: 4px
+  padding: 0.5rem 1rem
+  color: $color-white
+  background-color: $color-primary
+  font-size: 18px
+  border: none
+
+body
+  background-color: $color-white

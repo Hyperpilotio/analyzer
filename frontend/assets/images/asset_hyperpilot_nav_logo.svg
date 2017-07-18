@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="42px" height="42px" viewBox="0 0 42 42" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 43.2 (39069) - http://www.bohemiancoding.com/sketch -->
+    <title>Group 14</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="app-calibratioan" transform="translate(-49.000000, -10.000000)">
+            <g id="Group-14" transform="translate(49.000000, 10.000000)">
+                <rect id="Rectangle-10" fill="#5677FB" x="0" y="0" width="42" height="42" rx="4"></rect>
+                <g id="H-Symbol_blue_RGB" transform="translate(9.000000, 7.000000)" fill="#FFFFFF">
+                    <polygon id="Fill-1" points="0.0263544699 28.4404856 5.47294491 28.4404856 5.47294491 0.322038503 0.0263544699 0.322038503"></polygon>
+                    <polygon id="Fill-2" points="18.6296819 28.4404856 24.0765977 28.4404856 24.0765977 0.322038503 18.6296819 0.322038503"></polygon>
+                    <path d="M15.3015353,14.381262 C15.3015353,12.5343947 13.846183,11.0373508 12.0514761,11.0373508 C10.2561185,11.0373508 8.80076611,12.5343947 8.80076611,14.381262 C8.80076611,16.2281294 10.2561185,17.725508 12.0514761,17.725508 C13.846183,17.725508 15.3015353,16.2281294 15.3015353,14.381262" id="Fill-3"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
