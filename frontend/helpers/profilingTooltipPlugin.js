@@ -1,4 +1,4 @@
-import { numberWithCommas, colors } from "./util";
+import { numberWithCommas } from "./util";
 
 export default {
   afterDraw: ({ ctx, chart, chartArea, tooltip }) => {

@@ -2,7 +2,7 @@ import React, { PureComponent } from "react";
 import { Line } from "react-chartjs-2";
 import _ from "lodash";
 import chartWithLoading from "../helpers/chartWithLoading";
-import { colors } from "../helpers/util";
+import { benchmarkColors } from "../helpers/util";
 import profilingTooltipPlugin from "../helpers/profilingTooltipPlugin";
 import yAxisGridLinesPlugin from "../helpers/yAxisGridLinesPlugin";
 import drawBackgroundPlugin from "../helpers/drawBackgroundPlugin";
@@ -19,10 +19,6 @@ class ProfilingChart extends PureComponent {
   constructor(props) {
     super(props);
     this.benchmarks = _.sortBy(_.keys(props.data.testResult));
-    this.colors = _.zipObject(
-      this.benchmarks,
-      colors.slice(0, this.benchmarks.length)
-    );
   }
 
   componentDidUpdate() {
@@ -73,7 +69,7 @@ class ProfilingChart extends PureComponent {
         bottom: row.percentile_10
       })),
       fill: false,
-      borderColor: this.colors[benchmark],
+      borderColor: benchmarkColors[benchmark],
       pointRadius: 0,
       pointHoverBorderColor: "#5677fa",
       pointHoverBackgroundColor:  "#fff",
