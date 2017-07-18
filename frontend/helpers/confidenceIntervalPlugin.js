@@ -5,7 +5,6 @@ export default {
     const yScale = scales["y-axis-0"];
     for (let dataset of config.data.datasets) {
       if (dataset.onlyHighlighted) {
-
         ctx.strokeStyle = dataset.borderColor;
         ctx.lineWidth = 2;
         ctx.beginPath();

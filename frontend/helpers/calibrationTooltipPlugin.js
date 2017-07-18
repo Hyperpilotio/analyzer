@@ -7,8 +7,8 @@ export default {
     // Draw tooltip
     const vm = tooltip._view;
     if (!_.isUndefined(tooltip.currentPoints)) {
-      let xPos;
       let [mean, min, max] = tooltip.currentPoints;
+
       ctx.textAlign = vm.xAlign;
 
       let texts = [
@@ -30,10 +30,7 @@ export default {
         }
       ];
 
-      if (vm.xAlign === "left")
-        xPos = mean.x + 15;
-      else
-        xPos = mean.x - 15;
+      let xPos = mean.x + (vm.xAlign === "left" ? 15 : -15)
 
       texts.forEach(({ style, text, label }, i) => {
         if (style === "important") {

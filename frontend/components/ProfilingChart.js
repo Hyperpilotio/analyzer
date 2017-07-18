@@ -116,10 +116,11 @@ class ProfilingChart extends PureComponent {
                   } else {
 
                     // Deselect if clicking on the selected benchmark
-                    if (hoveredBenchmark === component.state.highlightedBenchmark)
+                    if (hoveredBenchmark === component.state.highlightedBenchmark) {
                       newState.selected = false;
-                    else
+                    } else {
                       newState.highlightedBenchmark = hoveredBenchmark;
+                    }
                   }
                 }
 
@@ -129,10 +130,11 @@ class ProfilingChart extends PureComponent {
             }
           }
           // Reset hover state if nothing matched
-          if (event.type === "click")
+          if (event.type === "click") {
             component.setState({ highlightedBenchmark: null, selected: false });
-          else if (!component.state.selected)
+          } else if (!component.state.selected) {
             component.setState({ highlightedBenchmark: null });
+          }
         }
       },
       scales: {
