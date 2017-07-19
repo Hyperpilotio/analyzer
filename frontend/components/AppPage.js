@@ -20,7 +20,7 @@ export default ({ appId, data, loading }) => (
       <div className="left app-identity">
         <div className="name-and-icon">
           <img src={redisLogo} width="45" />
-          <h1>{ loading ? "Loading..." : data.name }</h1>
+          <h1>{ _.get(data, "name", "Loading...") }</h1>
         </div>
         <span className="app-id muted badge">{ appId }</span>
       </div>

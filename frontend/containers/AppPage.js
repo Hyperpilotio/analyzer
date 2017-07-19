@@ -11,6 +11,11 @@ export default class AppPage extends Component {
     actions: PropTypes.object
   }
 
+  constructor(props) {
+    super(props);
+    this.appId = props.match.params.appId;
+  }
+
   state = { data: null, loading: true }
 
   async fetchData(appId) {
@@ -24,10 +29,12 @@ export default class AppPage extends Component {
   }
 
   componentDidMount() {
-    this.fetchData(this.props.match.params.appId);
+    this.setState({ data: this.context.store.apps[this.appId] });
+    this.fetchData(this.appId);
   }
 
   componentWillReceiveProps(props) {
+    this.appId = props.match.params.appId;
     if (props.match.params.appId !== this.props.match.params.appId) {
       this.setState({loading: true});
       this.fetchData(props.match.params.appId);
@@ -35,7 +42,7 @@ export default class AppPage extends Component {
   }
 
   render() {
-    return <AppPageComponent appId={this.props.match.params.appId} {...this.state} />;
+    return <AppPageComponent appId={this.appId} {...this.state} />;
   }
 
 }
