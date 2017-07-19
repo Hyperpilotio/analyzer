@@ -3,6 +3,7 @@ from .config import get_config
 from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
+from analyzer import BayesianOptimizerPool
 from analyzer.util import get_calibration_dataframe, get_profiling_dataframe, get_radar_dataframe
 
 app = Flask(__name__)
@@ -11,9 +12,13 @@ app.config.update(get_config())
 app.json_encoder = JSONEncoderWithMongo
 app.url_map.converters["objectid"] = ObjectIdConverter
 
+BO = BayesianOptimizerPool.instance()
+
+
 @app.route("/")
 def index():
     return jsonify(status="ok")
+
 
 @app.route("/available-apps")
 def get_available_apps():
@@ -25,6 +30,7 @@ def get_available_apps():
         for collection in ("calibration", "profiling", "validation")
     })
 
+
 @app.route("/single-app/services/<app_name>")
 def services_json(app_name):
     app_config = configdb.applications.find_one(
@@ -33,10 +39,12 @@ def services_json(app_name):
     )
     return ensure_document_found(app_config, app="name", services="serviceNames")
 
+
 @app.route("/single-app/profiling/<objectid:app_id>")
 def profiling_json(app_id):
     profiling = metricdb.profiling.find_one(app_id)
     return ensure_document_found(profiling)
+
 
 @app.route("/single-app/profiling-data/<objectid:app_id>")
 def profiling_data(app_id):
@@ -46,10 +54,12 @@ def profiling_data(app_id):
         profiling["testResult"] = data
     return ensure_document_found(profiling)
 
+
 @app.route("/single-app/calibration/<objectid:app_id>")
 def calibration_json(app_id):
     calibration = metricdb.calibration.find_one(app_id)
     return ensure_document_found(calibration)
+
 
 @app.route("/single-app/calibration-data/<objectid:app_id>")
 def calibration_data(app_id):
@@ -58,6 +68,7 @@ def calibration_data(app_id):
     if data is not None:
         calibration["testResult"] = data
     return ensure_document_found(calibration)
+
 
 @app.route("/cross-app/predict", methods=["POST"])
 def predict():
@@ -75,6 +86,7 @@ def predict():
         response.status_code = 404
         return response
 
+
 @app.route("/radar-data/<objectid:app_id>")
 def radar_data(app_id):
     profiling = metricdb.profiling.find_one(app_id)
@@ -82,5 +94,16 @@ def radar_data(app_id):
     if data is not None:
         profiling['radarChartData'] = data
         del profiling['testResult']
+    return ensure_document_fund(profiling)
 
-    return ensure_document_found(profiling)
+
+@app.route("/get-next-instance-type/<uuid:app_id>", methods=["POST"])
+def get_next_instance_type(app_id):
+    body = request.get_json()
+    BO.guess_best_trials(app_id, body)
+
+
+@app.route("/get-optimizer-status/<uuid:app_id>")
+def get_task_status(app_id):
+    response = jsonify(BO.get_status(app_id))
+    return response
