@@ -11,17 +11,17 @@ export default () => (
     <div className="columns">
 
       <article className="column">
-        <h3>Current app placement</h3>
-        <div className="app-placement">
+        <h3>Current service placement</h3>
+        <div className="service-placement">
           <header>
             <section>
               <h4>Node 1</h4>
-              <div className="containers-on-node">
-                <div className="running-container danger">
+              <div className="services-on-node">
+                <div className="running-service danger">
                   <img src={redisLogo} />
                   <span>Redis</span>
                 </div>
-                <div className="running-container danger">
+                <div className="running-service danger">
                   <img src={mongoLogo} />
                   <span>MongoDB</span>
                 </div>
@@ -29,8 +29,8 @@ export default () => (
             </section>
             <section>
               <h4>Node 2</h4>
-              <div className="containers-on-node">
-                <div className="running-container">
+              <div className="services-on-node">
+                <div className="running-service">
                   <img src={kafkaLogo} />
                   <span>Kafka</span>
                 </div>
@@ -51,13 +51,13 @@ export default () => (
       </article>
 
       <article className="column">
-        <h3>Recommended app placement</h3>
-        <div className="app-placement">
+        <h3>Recommended service placement</h3>
+        <div className="service-placement">
           <header>
             <section>
               <h4>Node 1</h4>
-              <div className="containers-on-node">
-                <div className="running-container">
+              <div className="services-on-node">
+                <div className="running-service">
                   <img src={redisLogo} />
                   <span>Redis</span>
                 </div>
@@ -65,12 +65,12 @@ export default () => (
             </section>
             <section>
               <h4>Node 2</h4>
-              <div className="containers-on-node">
-                <div className="running-container">
+              <div className="services-on-node">
+                <div className="running-service">
                   <img src={mongoLogo} />
                   <span>MongoDB</span>
                 </div>
-                <div className="running-container">
+                <div className="running-service">
                   <img src={kafkaLogo} />
                   <span>Kafka</span>
                 </div>
@@ -98,7 +98,7 @@ export default () => (
         <h3>Current QoS Score</h3>
 
         <section>
-          <span className="app-title">
+          <span className="service-name">
             <img src={redisLogo} />
             <h4>Redis</h4>
           </span>
@@ -123,7 +123,7 @@ export default () => (
         </section>
 
         <section>
-          <span className="app-title">
+          <span className="service-name">
             <img src={mongoLogo} />
             <h4>MongoDB</h4>
           </span>
@@ -148,7 +148,7 @@ export default () => (
         </section>
 
         <section>
-          <span className="app-title">
+          <span className="service-name">
             <img src={kafkaLogo} />
             <h4>Kafka</h4>
           </span>
@@ -179,7 +179,7 @@ export default () => (
             <article className="column">
               <h3>QoS Score After Autopilot</h3>
               <section>
-                <span className="app-title">
+                <span className="service-name">
                   <img src={redisLogo} />
                   <h4>Redis</h4>
                 </span>
@@ -204,7 +204,7 @@ export default () => (
               </section>
 
               <section>
-                <span className="app-title">
+                <span className="service-name">
                   <img src={mongoLogo} />
                   <h4>MongoDB</h4>
                 </span>
@@ -229,7 +229,7 @@ export default () => (
               </section>
 
               <section>
-                <span className="app-title">
+                <span className="service-name">
                   <img src={kafkaLogo} />
                   <h4>Kafka</h4>
                 </span>
