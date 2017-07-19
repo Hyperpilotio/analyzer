@@ -6,6 +6,7 @@ from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
 from analyzer.util import get_calibration_dataframe, get_profiling_dataframe, get_radar_dataframe
+import json
 
 app = Flask(__name__)
 
@@ -19,6 +20,29 @@ BO = BayesianOptimizerPool.instance()
 @app.route("/")
 def index():
     return jsonify(status="ok")
+
+
+@app.route("/cluster")
+def deploy_json():
+    result = {}
+    with open(app.config["ANALYZER"]["DEPLOY_JSON"]) as f:
+        deploy_json = json.load(f)
+
+    result["name"] = deploy_json["name"]
+    result["nodeMapping"] = []
+    for task in deploy_json["kubernetes"]["taskDefinitions"]:
+        if task["deployment"]["metadata"].get("namespace", "default") == "default":
+            task["deployment"]["metadata"]["namespace"] = "default"
+            for mapping in deploy_json["nodeMapping"]:
+                if mapping["task"] == task["family"]:
+                    result["nodeMapping"].append(mapping)
+
+    nodes_in_default = set(map(lambda m: m["id"], result["nodeMapping"]))
+    result["clusterDefinition"] = {
+        "nodes": [node for node in deploy_json["clusterDefinition"]["nodes"]
+                  if node["id"] in nodes_in_default]
+    }
+    return jsonify(result)
 
 
 @app.route("/apps")
