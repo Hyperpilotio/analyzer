@@ -11,7 +11,11 @@ from .util import (
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
-from analyzer.util import get_calibration_dataframe, get_profiling_dataframe, get_radar_dataframe
+from analyzer.util import (
+    get_calibration_dataframe,
+    get_profiling_dataframe,
+    get_radar_dataframe,
+)
 import json
 
 app = Flask(__name__)
@@ -46,10 +50,20 @@ def recommended_service_placement():
 
 @app.route("/apps")
 def get_all_apps():
+    with open(app.config["ANALYZER"]["DEPLOY_JSON"]) as f:
+        deploy_json = json.load(f)
     apps = {}
-    for app in configdb.applications.find({}, {"name": 1}):
-        app_id = app.pop("_id")
-        apps[str(app_id)] = app
+    service_names = [
+        task["deployment"]["metadata"]["name"]
+        for task in deploy_json["kubernetes"]["taskDefinitions"]
+        if task["deployment"]["metadata"].get("namespace") != "hyperpilot"
+    ]
+    for application in configdb.applications.find(
+        {"serviceNames": {"$in": service_names}},
+        {"name": 1, "serviceNames": 1}
+    ):
+        app_id = application.pop("_id")
+        apps[str(app_id)] = application
     return jsonify(apps)
 
 
