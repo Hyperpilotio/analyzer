@@ -25,21 +25,21 @@ class BayesianOptimizerPool(object):
             past_samples = self.sample_map.get(app_id)
         else:
             self.sample_map[app_id] = {}
-            self.sample_map[app_id]['X'] = []
+            self.sample_map[app_id]['x'] = []
             self.sample_map[app_id]['y'] = []
 
         for raw_data in raw_data_list:
             X, y = encode_data(raw_data)
-            self.sample_map[app_id]['X'].append(X)
+            self.sample_map[app_id]['x'].append(X)
             self.sample_map[app_id]['y'].append(y)
 
         future = self.worker_pool.submit(
             guess_best_trials,
-            self.sample_map[app_id]['X'],
+            self.sample_map[app_id]['x'],
             self.sample_map[app_id]['y'],
             [(None, None)])  # TODO: compute bonuds of X
 
-        self.future_map['app_id'] = future
+        self.future_map[app_id] = future
 
     def get_status(self, app_id):
         if self.future_map.get(app_id):
@@ -50,6 +50,8 @@ class BayesianOptimizerPool(object):
                 return {"Status": "Cancelled"}
             elif future.done():
                 return {"Status": "Done", "Data": decode_result(future.result())}
+            else:
+                return {"Status": "Unexpected future state"}
         else:
             return {"Status": "Not running"}
 

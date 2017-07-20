@@ -99,6 +99,10 @@ def radar_data(app_id):
 
 @app.route("/get-next-instance-type/<uuid:app_id>", methods=["POST"])
 def get_next_instance_type(app_id):
+    if BO.get_status(app_id)['Status'] == "Running":
+        response = jsonify(error="Optimization process still running")
+        response.status_code = 400
+        return response
     body = request.get_json()
     BO.guess_best_trials(app_id, body)
 
