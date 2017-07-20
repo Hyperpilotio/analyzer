@@ -16,12 +16,12 @@ const Node = ({ id, instanceType, services }) => (
   </section>
 )
 
-export default ({ className, title, footer, placement }) => (
+export default ({ className, title, footer, placement, loading }) => (
   <article className={className}>
     <h3>{ title }</h3>
     <div className="service-placement">
       <header>
-        { placement.clusterDefinition.nodes.map(node => (
+        { loading ? "Loading..." : placement.clusterDefinition.nodes.map(node => (
           <Node {...node} services={ _.filter(placement.nodeMapping, ["id", node.id]) } />
         )) }
       </header>

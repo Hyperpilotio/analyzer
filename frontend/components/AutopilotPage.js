@@ -1,42 +1,20 @@
 import React from "react";
 import { Link, Route, Switch } from "react-router-dom";
 import MetricScoreChart from "./MetricScoreChart";
+import ServicePlacement from "../containers/ServicePlacement";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 import mongoLogo from "../assets/images/asset_mongoDB_logo.svg";
 import kafkaLogo from "../assets/images/asset_kafka_logo.svg";
 
 
-export default () => (
+export default ({ placement }) => (
   <div className="container autopilot">
     <div className="columns">
 
-      <article className="column">
-        <h3>Current service placement</h3>
-        <div className="service-placement">
-          <header>
-            <section>
-              <h4>Node 1</h4>
-              <div className="services-on-node">
-                <div className="running-service danger">
-                  <img src={redisLogo} />
-                  <span>Redis</span>
-                </div>
-                <div className="running-service danger">
-                  <img src={mongoLogo} />
-                  <span>MongoDB</span>
-                </div>
-              </div>
-            </section>
-            <section>
-              <h4>Node 2</h4>
-              <div className="services-on-node">
-                <div className="running-service">
-                  <img src={kafkaLogo} />
-                  <span>Kafka</span>
-                </div>
-              </div>
-            </section>
-          </header>
+      <ServicePlacement
+        className="column"
+        title="Current service placement"
+        footer={
           <footer>
             <section>
               <span className="info-key">Interfering: </span>
@@ -47,36 +25,12 @@ export default () => (
               <span className="info-value danger badge">High</span>
             </section>
           </footer>
-        </div>
-      </article>
+        } />
 
-      <article className="column">
-        <h3>Recommended service placement</h3>
-        <div className="service-placement">
-          <header>
-            <section>
-              <h4>Node 1</h4>
-              <div className="services-on-node">
-                <div className="running-service">
-                  <img src={redisLogo} />
-                  <span>Redis</span>
-                </div>
-              </div>
-            </section>
-            <section>
-              <h4>Node 2</h4>
-              <div className="services-on-node">
-                <div className="running-service">
-                  <img src={mongoLogo} />
-                  <span>MongoDB</span>
-                </div>
-                <div className="running-service">
-                  <img src={kafkaLogo} />
-                  <span>Kafka</span>
-                </div>
-              </div>
-            </section>
-          </header>
+      <ServicePlacement
+        className="column"
+        title="Recommended service placement"
+        footer={
           <footer>
             <Switch>
               <Route path="/autopilot/after">
@@ -89,8 +43,7 @@ export default () => (
               </Route>
             </Switch>
           </footer>
-        </div>
-      </article>
+        } />
     </div>
 
     <div className="columns autopilot">
