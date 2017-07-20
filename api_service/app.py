@@ -65,18 +65,18 @@ def get_all_apps():
 
 @app.route("/apps/<objectid:app_id>")
 def get_app_info(app_id):
-    app = configdb.applications.find_one(app_id, {"_id": 0})
-    return ensure_document_found(app)
+    application = configdb.applications.find_one(app_id, {"_id": 0})
+    return ensure_document_found(application)
 
 
 @app.route("/apps/<objectid:app_id>/calibration")
 def app_calibration(app_id):
-    app = configdb.applications.find_one(app_id)
+    application = configdb.applications.find_one(app_id)
     if app is None:
         return ensure_document_found(None)
 
     cursor = metricdb.calibration.find(
-        {"appName": app["name"]},
+        {"appName": application["name"]},
         {"appName": 0, "_id": 0},
     ).sort("_id", DESCENDING).limit(1)
     try:
@@ -91,12 +91,12 @@ def app_calibration(app_id):
 
 @app.route("/apps/<objectid:app_id>/profiling")
 def app_profiling(app_id):
-    app = configdb.applications.find_one(app_id)
+    application = configdb.applications.find_one(app_id)
     if app is None:
         return ensure_document_found(None)
 
     cursor = metricdb.profiling.find(
-        {"appName": app["name"]},
+        {"appName": application["name"]},
         {"appName": 0, "_id": 0},
     ).sort("_id", DESCENDING).limit(1)
     try:
@@ -111,12 +111,12 @@ def app_profiling(app_id):
 
 @app.route("/apps/<objectid:app_id>/interference")
 def interference_scores(app_id):
-    app = configdb.applications.find_one(app_id)
-    if app is None:
+    application = configdb.applications.find_one(app_id)
+    if application is None:
         return ensure_document_found(None)
 
     cursor = metricdb.profiling.find(
-        {"appName": app["name"]}
+        {"appName": application["name"]}
     ).sort("_id", DESCENDING).limit(1)
     try:
         profiling = next(cursor)
