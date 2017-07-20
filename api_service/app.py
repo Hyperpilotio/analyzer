@@ -113,14 +113,14 @@ def service_profiling(app_id, service_name):
         return ensure_document_found(None)
 
 
-@app.route("/apps/<objectid:app_id>/interference")
-def interference_scores(app_id):
+@app.route("/apps/<objectid:app_id>/services/<service_name>/interference")
+def interference_scores(app_id, service_name):
     application = configdb.applications.find_one(app_id)
     if application is None:
         return ensure_document_found(None)
 
     cursor = metricdb.profiling.find(
-        {"appName": application["name"]}
+        {"appName": application["name"], "serviceInTest": service_name}
     ).sort("_id", DESCENDING).limit(1)
     try:
         profiling = next(cursor)
