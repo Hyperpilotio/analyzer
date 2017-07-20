@@ -107,8 +107,8 @@ export default class AppProvider extends Component {
     });
   }
 
-  async fetchInterference(appId) {
-    let res = await fetch(`/api/apps/${appId}/interference`);
+  async fetchInterference(appId, serviceName) {
+    let res = await fetch(`/api/apps/${appId}/services/${serviceName}/interference`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
@@ -117,7 +117,7 @@ export default class AppProvider extends Component {
     this.setState({
       interferences: update(
         this.state.interferences,
-        _.fromPairs([[appId, {$set: data}]])
+        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
       )
     });
   }
