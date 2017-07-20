@@ -6,7 +6,13 @@ import _ from "lodash";
 
 export default class AppProvider extends Component {
 
-  state = { apps: {}, calibrations: {}, profilings: {}, interferences: {} }
+  state = {
+    cluster: {},
+    apps: {},
+    calibrations: {},
+    profilings: {},
+    interferences: {}
+  }
 
   static childContextTypes = {
     store: PropTypes.object,
@@ -18,6 +24,7 @@ export default class AppProvider extends Component {
       store: this.state,
       actions: {
         getApps: ::this.getApps,
+        fetchClusterServices: ::this.fetchClusterServices,
         fetchCalibration: ::this.fetchCalibration,
         fetchProfiling: ::this.fetchProfiling,
         fetchInterference: ::this.fetchInterference,
@@ -35,6 +42,18 @@ export default class AppProvider extends Component {
     let data = await res.json();
     this.setState({
       apps: _.mapValues(data, (app, _id) => _.assign({}, this.state.apps[_id], app))
+    });
+  }
+
+  async fetchClusterServices() {
+    let res = await fetch(`/api/cluster`);
+    if (!res.ok) {
+      console.error("Unexpected error for", res);
+      return;
+    }
+    let data = await res.json();
+    this.setState({
+      cluster: data
     });
   }
 
