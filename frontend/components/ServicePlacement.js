@@ -7,7 +7,7 @@ const Node = ({ id, instanceType, services }) => (
     <h4>Node { id }</h4>
     <div className="services-on-node">
       { services.map( service => (
-        <div key={service} className="running-service">
+        <div key={service.task} className="running-service">
           <img src={redisLogo} />
           <span>{ service.task }</span>
         </div>
@@ -21,9 +21,14 @@ export default ({ className, title, footer, placement, loading }) => (
     <h3>{ title }</h3>
     <div className="service-placement">
       <header>
-        { loading ? "Loading..." : placement.clusterDefinition.nodes.map(node => (
-          <Node {...node} services={ _.filter(placement.nodeMapping, ["id", node.id]) } />
-        )) }
+        { loading
+          ? "Loading..."
+          : placement.clusterDefinition.nodes.map(node => (
+              <Node
+                key={node.id}
+                services={ _.filter(placement.nodeMapping, ["id", node.id]) }
+                {...node} />
+            )) }
       </header>
       { footer }
     </div>
