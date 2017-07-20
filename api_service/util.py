@@ -39,3 +39,22 @@ def ensure_document_found(document, **kwargs):
                 for new_key, original_key in kwargs.items()
             }
         return jsonify(document)
+
+
+def shape_service_placement(deploy_json):
+    result = {}
+    result["name"] = deploy_json["name"]
+    result["nodeMapping"] = []
+    for task in deploy_json["kubernetes"]["taskDefinitions"]:
+        if task["deployment"]["metadata"].get("namespace", "default") == "default":
+            task["deployment"]["metadata"]["namespace"] = "default"
+            for mapping in deploy_json["nodeMapping"]:
+                if mapping["task"] == task["family"]:
+                    result["nodeMapping"].append(mapping)
+
+    nodes_in_default = set(map(lambda m: m["id"], result["nodeMapping"]))
+    result["clusterDefinition"] = {
+        "nodes": [node for node in deploy_json["clusterDefinition"]["nodes"]
+                  if node["id"] in nodes_in_default]
+    }
+    return result

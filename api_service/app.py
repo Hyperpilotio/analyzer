@@ -1,7 +1,12 @@
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
 from .config import get_config
-from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
+from .util import (
+    JSONEncoderWithMongo,
+    ObjectIdConverter,
+    ensure_document_found,
+    shape_service_placement,
+)
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
 from analyzer.util import get_calibration_dataframe, get_profiling_dataframe, get_radar_dataframe
@@ -20,25 +25,18 @@ def index():
 
 
 @app.route("/cluster")
-def deploy_json():
-    result = {}
+def cluster_service_placement():
     with open(app.config["ANALYZER"]["DEPLOY_JSON"]) as f:
         deploy_json = json.load(f)
+    result = shape_service_placement(deploy_json)
+    return jsonify(result)
 
-    result["name"] = deploy_json["name"]
-    result["nodeMapping"] = []
-    for task in deploy_json["kubernetes"]["taskDefinitions"]:
-        if task["deployment"]["metadata"].get("namespace", "default") == "default":
-            task["deployment"]["metadata"]["namespace"] = "default"
-            for mapping in deploy_json["nodeMapping"]:
-                if mapping["task"] == task["family"]:
-                    result["nodeMapping"].append(mapping)
 
-    nodes_in_default = set(map(lambda m: m["id"], result["nodeMapping"]))
-    result["clusterDefinition"] = {
-        "nodes": [node for node in deploy_json["clusterDefinition"]["nodes"]
-                  if node["id"] in nodes_in_default]
-    }
+@app.route("/cluster/recommended")
+def recommended_service_placement():
+    with open(app.config["ANALYZER"]["RECOMMENDED_DEPLOY_JSON"]) as f:
+        deploy_json = json.load(f)
+    result = shape_service_placement(deploy_json)
     return jsonify(result)
 
 
