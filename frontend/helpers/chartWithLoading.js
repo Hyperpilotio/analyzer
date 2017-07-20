@@ -6,8 +6,9 @@ import "./chartDefaults";
 export default ChartComponent => (
   ({ data, loading }) => {
     return <div className="chart-container">
-      { data && <ChartComponent data={data} /> }
-      { loading && <Spinner fadeIn="quarter" name="ball-grid-pulse" /> }
+      { loading
+        ? <Spinner fadeIn="quarter" name="ball-grid-pulse" />
+        : <ChartComponent data={data} /> }
     </div>
   }
 )
