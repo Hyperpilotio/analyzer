@@ -92,8 +92,8 @@ export default class AppProvider extends Component {
     });
   }
 
-  async fetchProfiling(appId) {
-    let res = await fetch(`/api/apps/${appId}/profiling`);
+  async fetchProfiling(appId, serviceName) {
+    let res = await fetch(`/api/apps/${appId}/services/${serviceName}/profiling`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
@@ -102,7 +102,7 @@ export default class AppProvider extends Component {
     this.setState({
       profilings: update(
         this.state.profilings,
-        _.fromPairs([[appId, {$set: data}]])
+        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
       )
     });
   }
