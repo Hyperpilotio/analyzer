@@ -89,14 +89,14 @@ def app_calibration(app_id):
         return ensure_document_found(None)
 
 
-@app.route("/apps/<objectid:app_id>/profiling")
-def app_profiling(app_id):
+@app.route("/apps/<objectid:app_id>/services/<service_name>/profiling")
+def service_profiling(app_id, service_name):
     application = configdb.applications.find_one(app_id)
     if app is None:
         return ensure_document_found(None)
 
     cursor = metricdb.profiling.find(
-        {"appName": application["name"]},
+        {"appName": application["name"], "serviceInTest": service_name},
         {"appName": 0, "_id": 0},
     ).sort("_id", DESCENDING).limit(1)
     try:
