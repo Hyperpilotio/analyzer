@@ -13,19 +13,27 @@ export default class ServicePlacement extends Component {
 
   state = { placement: null, loading: true }
 
+  constructor(props) {
+    super(props);
+    if (props.recommended) {
+      this.placementObject = "context.store.recommendations.placement";
+    } else {
+      this.placementObject = "context.store.cluster";
+    }
+  }
+
   async fetchData() {
-    console.log(this.context.store.cluster);
-    if (_.isEmpty(this.context.store.cluster)) {
-      await this.context.actions.fetchClusterServices();
+    if (_.isEmpty(_.get(this, this.placementObject))) {
+      await this.context.actions.fetchServicePlacement(this.props.recommended);
     }
     this.setState({
-      placement: this.context.store.cluster,
+      placement: _.get(this, this.placementObject),
       loading: false
-    })
+    });
   }
 
   componentDidMount() {
-    this.setState({ placement: this.context.store.cluster });
+    this.setState({ placement: _.get(this, this.placementObject) });
     this.fetchData();
   }
 

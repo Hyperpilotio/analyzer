@@ -11,7 +11,8 @@ export default class AppProvider extends Component {
     apps: {},
     calibrations: {},
     profilings: {},
-    interferences: {}
+    interferences: {},
+    recommendations: {}
   }
 
   static childContextTypes = {
@@ -24,7 +25,7 @@ export default class AppProvider extends Component {
       store: this.state,
       actions: {
         getApps: ::this.getApps,
-        fetchClusterServices: ::this.fetchClusterServices,
+        fetchServicePlacement: ::this.fetchServicePlacement,
         fetchCalibration: ::this.fetchCalibration,
         fetchProfiling: ::this.fetchProfiling,
         fetchInterference: ::this.fetchInterference,
@@ -45,16 +46,20 @@ export default class AppProvider extends Component {
     });
   }
 
-  async fetchClusterServices() {
-    let res = await fetch(`/api/cluster`);
+  async fetchServicePlacement(recommended = false) {
+    let res = await fetch(`/api/cluster${ recommended ? "/recommended" : "" }`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
     }
     let data = await res.json();
-    this.setState({
-      cluster: data
-    });
+    if (recommended) {
+      this.setState({
+        recommendations: update(this.state.recommendations, { placement: { $set: data } })
+      });
+    } else {
+      this.setState({ cluster: data });
+    }
   }
 
   async fetchAppInfo(appId) {
