@@ -19,7 +19,7 @@ export default class AppPage extends Component {
   state = { data: null, loading: true }
 
   async fetchData(appId) {
-    if (_.keys(this.context.store.apps[appId]).length <= 1) {
+    if (!_.has(this.context.store.apps[appId], "type")) {
       await this.context.actions.fetchAppInfo(appId)
     }
     this.setState({
