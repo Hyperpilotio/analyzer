@@ -7,7 +7,7 @@ const Node = ({ id, instanceType, services }) => (
     <h4>Node { id }</h4>
     <div className="services-on-node">
       { services.map( service => (
-        <div className="running-service">
+        <div key={service} className="running-service">
           <img src={redisLogo} />
           <span>{ service.task }</span>
         </div>
