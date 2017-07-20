@@ -27,7 +27,7 @@ export default ({ placement }) => (
           </footer>
         } />
 
-      <ServicePlacement
+      <ServicePlacement recommended
         className="column"
         title="Recommended service placement"
         footer={
