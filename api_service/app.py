@@ -3,7 +3,7 @@ from .config import get_config
 from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
-from analyzer import BayesianOptimizerPool
+from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
 from analyzer.util import get_calibration_dataframe, get_profiling_dataframe, get_radar_dataframe
 
 app = Flask(__name__)
@@ -97,7 +97,8 @@ def radar_data(app_id):
     return ensure_document_fund(profiling)
 
 
-@app.route("/get-next-instance-type/<uuid:app_id>", methods=["POST"])
+# TODO: change back to uuid
+@app.route("/get-next-instance-type/<string:app_id>", methods=["POST"])
 def get_next_instance_type(app_id):
     if BO.get_status(app_id)['Status'] == "Running":
         response = jsonify(error="Optimization process still running")
@@ -105,9 +106,10 @@ def get_next_instance_type(app_id):
         return response
     body = request.get_json()
     BO.guess_best_trials(app_id, body)
+    return jsonify({"Status": "Submited"})
 
-
-@app.route("/get-optimizer-status/<uuid:app_id>")
+# TODO: change back to uuid
+@app.route("/get-optimizer-status/<string:app_id>")
 def get_task_status(app_id):
     response = jsonify(BO.get_status(app_id))
     return response

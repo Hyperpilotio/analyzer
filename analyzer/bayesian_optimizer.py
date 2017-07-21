@@ -2,10 +2,14 @@ from __future__ import print_function
 from __future__ import division
 
 import numpy as np
+import logging
+log = logging.getLogger(__name__)
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern
 from scipy.stats import norm
 from scipy.optimize import minimize
+
+log.setLevel(logging.DEBUG)
 
 
 class UtilityFunction(object):
@@ -160,14 +164,18 @@ def guess_best_trials(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
 
     # Find unique rows of X to avoid GP from breaking
     ur = unique_rows(X)
+    log.debug(ur)
+    log.debug("Fitting Gaussian Processor Regressor")
     gp.fit(X[ur], y[ur])
+
 
     # Finding argmax of the acquisition function.
     # TODO: Support multiple candidates of x_max
+    log.debug("Computing argmax_x of acquisition function")
     y_max = y.max()
     x_max = acq_max(ac=util.utility,
                     gp=gp,
                     y_max=y_max,
                     bounds=bounds)
 
-    return x_max
+    return [x_max]
