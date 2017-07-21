@@ -82,7 +82,7 @@ class PredictionTest(TestCase):
             db = metricdb._get_database()  # This triggers lazy-loading
             log.debug('Setting up test documents')
             testFiles = (Path(__file__).parent /
-                         'testProfiles').rglob('*.json')
+                         'test_profiling_result').rglob('*.json')
             for path in testFiles:
                 log.debug("Adding: {}".format(path))
                 with path.open('r') as f:
