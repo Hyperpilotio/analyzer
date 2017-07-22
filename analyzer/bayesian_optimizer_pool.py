@@ -1,23 +1,17 @@
 import threading
-import numpy as np
 import logging
+import numpy as np
+import pandas as pd
 log = logging.getLogger(__name__)
 from sklearn.feature_extraction import DictVectorizer
-from .bayesian_optimizer import guess_best_trials
+from .bayesian_optimizer import get_candidates
 from concurrent.futures import ProcessPoolExecutor
 from api_service.db import configdb
-
-
-
 log.setLevel(logging.DEBUG)
 
 
-def hash_list(l):
-    assert type(l) is list, f"input type of {l}: {type(l)} is not list"
-    return hash(tuple(l))
-
-
 class BayesianOptimizerPool(object):
+    # TODO: Thread safe?
     __singleton_lock = threading.Lock()
     __singleton_instance = None
 
@@ -30,51 +24,41 @@ class BayesianOptimizerPool(object):
         return cls.__singleton_instance
 
     def __init__(self):
+        # Place for storing samples of each app_id.
         self.sample_map = {}
+        # Place for storing python concurrent object.
         self.future_map = {}
+        # Pool of worker processes
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
-        v = DictVectorizer(sparse=False)
-        # TODO: Currently only choose cpuconfig
-        configs = [i['cpuConfig']
-                   for i in configdb.nodetypes.find({}, {'_id': 0})]
-        names = [i['name'] for i in configdb.nodetypes.find({}, {'_id': 0})]
 
-        self.feature_encoder, self.feature_decoder = {}, {}
-        X = v.fit_transform(configs)
-        for i, j in zip(names, X):
-            self.feature_encoder[i] = j
-            self.feature_decoder[hash_list(list(j))] = i
-
-        log.debug("feature_encoder")
-        log.debug(self.feature_encoder)
-        log.debug("feature_decoder")
-        log.debug(self.feature_decoder)
-
-    def guess_best_trials(self, app_id, raw_data):
+    def update_sample_map(self, app_id, raw_data):
+        # TODO: thread safe?
+        # Init empty
         if not self.sample_map.get(app_id):
-            self.sample_map[app_id] = ([], [])
+            self.sample_map[app_id] = pd.DataFrame(
+                columns=['feature', 'qos_value ', 'price', 'slo_type', 'duration'])
 
-        for data in raw_data['data']:
-            input_vector, target_value = self.encode(data)
-            self.sample_map[app_id][0].append(input_vector)
-            self.sample_map[app_id][1].append(target_value)
+        dfs = self.encode(raw_data)
+        self.sample_map[app_id].append(dfs)
 
-        # self.sample_map[app_id][0] = np.array(self.sample_map[app_id][0])
+    def get_candidates(self, app_id, raw_data):
+        # update the shared sample place holder
+        self.update_sample_map(app_id, raw_data)
 
-        X, y = np.array(self.sample_map[app_id][0]), np.array(
-            self.sample_map[app_id][1])
-        bounds = [(0, 1)] * X.shape[1]
-        log.debug(f"X: {X}")
-        log.debug(f'y: {y}')
-        # TODO: compute bonuds of input_vector
-        log.debug(f"Bounds: {bounds}")
-        log.debug(bounds)
+        X, y = np.array(self.sample_map[app_id]['feature']), np.array(
+            self.sample_map[app_id]['qos_value'])
+        bounds = get_bounds()
+
         future = self.worker_pool.submit(
-            guess_best_trials,
+            get_candidates,
             X,
-            y, bounds
+            y,
+            bounds
         )
         self.future_map[app_id] = future
+
+    def get_bounds(self):
+        pass
 
     def get_status(self, app_id):
         if self.future_map.get(app_id):
@@ -95,28 +79,50 @@ class BayesianOptimizerPool(object):
         else:
             return {"Status": "Not running"}
 
-    # TODO: get the price(dollar per unit time) of an instance_type
+    # TODO: get the price(dollar per unit time) of an instance_type from database
     def get_price(self, instance_type):
         return 6.
 
-    def encode(self, data):
-        """ Extract input feature vector and objective value.
+    # TODO: implement objective functions
+    @staticmethod
+    def _objective_perf_over_cost(data):
+        return np.random.rand(1)[0]
+
+    @staticmethod
+    def _objective_cost_satisfies_slo(data):
+        return np.random.rand(1)[0]
+
+    @staticmethod
+    def _objective_perf_satisfies_slo(data):
+        return np.random.rand(1)[0]
+
+    # TODO: implement this
+    def encode(self, raw_data, objective='perf_over_cost'):
+        """ Convert raw_data to dataframe.
         Args:
                 raw_data(dict): raw data sent from workload profiler.
         Returns:
-                x (np.array): feature
-                y (float): objective_value
+                df(dataframe): pandas dataframe in the format
+                i.e. pd.DataFrame({'feature': [x], 'qos_value': [j], 'price': [get_price(raw_data), ...]})
 
         """
-        # TODO: design the feature encoding and objective function
-        # Is the objective funrtion varies from app to app, client to client?
+        dfs = []
+        for data in raw_data['data']:
+            if objective == 'perf_over_cost':
+                j = self._objective_perf_over_cost(data)
+            elif objective == 'cost_satisfies_slo':
+                j = self._objective_cost_satisfies_slo(data)
+            elif objective == 'perf_satisfies_slo':
+                j = self._objective_perf_satisfies_slo(data)
 
-        node_instance = configdb.nodetypes.find_one(
-            {'name': data['instanceType']})['name']
-        x = self.feature_encoder[node_instance]
-        y = np.random.rand(1)[0]
+            node_instance = configdb.nodetypes.find_one({'name': data['instanceType']})['name']
+            x = np.random.rand(8)
+            df = pd.DataFrame({'feature': [x], 'qos_value': [j], 'price': [
+                self.get_price(data)], 'slo_type': ['latency'], 'duration': [253]})
+            dfs.append(df)
 
-        return x, y
+        return pd.concat(dfs)
 
-    def decode(self, input_vector):
-        return self.feature_decoder[hash_list(list(input_vector))]
+    # TODO: implement this
+    def decode(self, feature):
+        return 'x2.large'

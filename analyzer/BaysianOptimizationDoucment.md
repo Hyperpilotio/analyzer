@@ -11,7 +11,9 @@ $$J_{1}(\mathbf{x})=\arg\max_\mathbf{x}\frac{Performance(\mathbf{x})}{Cost(\math
 3. **Maxizing performance:** $$J_{3}(\mathbf{x})=\arg\max_{\mathbf{x}}Performance(\mathbf{x})$$ 
 $$s.t. Cost(\mathbf{x}) < something$$
 
-, where performance could be either $QosValue_{throughput}$ or $QosValue_{latency}$ <br>
+, where performance could be either $QosValue_{throughput}$ or $QosValue_{latency}$
+
+Note: For **batch job**: $cost=price\cdot duration$ For **long running job**: $cost=price$.
 
 TODO:
 

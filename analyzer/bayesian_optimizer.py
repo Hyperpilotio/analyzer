@@ -140,7 +140,7 @@ def unique_rows(a):
     return ui[reorder]
 
 
-def guess_best_trials(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
+def get_candidates(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
     """ Compute the next trials based on Bayesian Optimization.
     Args:
         X(numpy 2d array): rows of input feature vector

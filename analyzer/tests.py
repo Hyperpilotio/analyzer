@@ -12,7 +12,7 @@ from pathlib import Path
 from api_service.app import app as api_service_app
 from api_service.db import metricdb, configdb
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
-from analyzer.bayesian_optimizer import guess_best_trials
+from analyzer.bayesian_optimizer import get_candidates
 
 log.setLevel(logging.DEBUG)
 
@@ -35,32 +35,36 @@ class BayesianOptimizationTest(TestCase):
                      }
                 ]}
 
-    def testFlowSingleCient(self):
-        fake_uuid = "8whe-weui-qjhf-38os"
-        response = json.loads(self.client.post('/get-next-instance-type/' + fake_uuid,
-                                               data=json.dumps(self.getTestRequest()),
-                                               content_type="application/json").data)
-        log.debug(f"Response from posting request: {self.getTestRequest()}")
-        log.debug(response)
+    # def testFlowSingleCient(self):
+    #     fake_uuid = "8whe-weui-qjhf-38os"
+    #     response = json.loads(self.client.post('/get-next-instance-types/' + fake_uuid,
+    #                                            data=json.dumps(self.getTestRequest()),
+    #                                            content_type="application/json").data)
+    #     log.debug(f"Response from posting request: {self.getTestRequest()}")
+    #     log.debug(response)
 
-        while True:
-            response = json.loads(self.client.get(
-                "/get-optimizer-status/" + fake_uuid).data)
-            log.debug("Response after sending GET /get-optimizer-status")
-            log.debug(response)
+    #     while True:
+    #         response = json.loads(self.client.get(
+    #             "/get-optimizer-status/" + fake_uuid).data)
+    #         log.debug("Response after sending GET /get-optimizer-status")
+    #         log.debug(response)
 
-            if response['Status'] == 'Running':
-                log.debug("Waiting for 5 sec")
-                sleep(5)
-            else:
-                break
+    #         if response['Status'] == 'Running':
+    #             log.debug("Waiting for 5 sec")
+    #             sleep(5)
+    #         else:
+    #             break
 
     def testGuessBestTrialsDirect(self):
         import numpy as np
         # dimension=7, nsamples=2
-        result = guess_best_trials(np.array([[6, 9, 9, 0, 8, 0, 9], [
+        result = get_candidates(np.array([[6, 9, 9, 0, 8, 0, 9], [
             9, 8, 8, 0, 8, 5, 8]]), np.array([0.8, 0.7]), [(0, 1)] * 7)
         log.debug(result)
+
+    def testSingleton(self):
+        # TODO: Test if the singleton works in multiprocess
+        pass
 
 
 class PredictionTest(TestCase):
