@@ -140,7 +140,7 @@ def unique_rows(a):
     return ui[reorder]
 
 
-def get_candidates(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
+def get_candidate(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
     """ Compute the next trials based on Bayesian Optimization.
     Args:
         X(numpy 2d array): rows of input feature vector
@@ -168,7 +168,6 @@ def get_candidates(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
     log.debug("Fitting Gaussian Processor Regressor")
     gp.fit(X[ur], y[ur])
 
-
     # Finding argmax of the acquisition function.
     # TODO: Support multiple candidates of x_max
     log.debug("Computing argmax_x of acquisition function")
@@ -178,4 +177,4 @@ def get_candidates(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
                     y_max=y_max,
                     bounds=bounds)
 
-    return [x_max]
+    return x_max

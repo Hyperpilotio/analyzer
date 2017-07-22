@@ -12,7 +12,7 @@ from pathlib import Path
 from api_service.app import app as api_service_app
 from api_service.db import metricdb, configdb
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
-from analyzer.bayesian_optimizer import get_candidates
+from analyzer.bayesian_optimizer import get_candidate
 
 log.setLevel(logging.DEBUG)
 
@@ -58,7 +58,7 @@ class BayesianOptimizationTest(TestCase):
     def testGuessBestTrialsDirect(self):
         import numpy as np
         # dimension=7, nsamples=2
-        result = get_candidates(np.array([[6, 9, 9, 0, 8, 0, 9], [
+        result = get_candidate(np.array([[6, 9, 9, 0, 8, 0, 9], [
             9, 8, 8, 0, 8, 5, 8]]), np.array([0.8, 0.7]), [(0, 1)] * 7)
         log.debug(result)
 
