@@ -113,5 +113,6 @@ def get_next_instance_types(app_id):
 
 @app.route("/apps/<string:app_id>/get-optimizer-status/")
 def get_task_status(app_id):
-    response = jsonify(BO.get_status(app_id))
-    return response
+    #response = jsonify(BO.get_status(app_id))
+    #return response
+    return {'instanceTypes': []}
