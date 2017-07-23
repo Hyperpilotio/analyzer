@@ -82,6 +82,8 @@ let config = module.exports = {
     }),
     extractSass,
     IS_PROD ? null : new webpack.HotModuleReplacementPlugin(),
+    IS_PROD ? null : new webpack.NamedModulesPlugin(),
+    IS_PROD ? null : new webpack.NoEmitOnErrorsPlugin(),
     !IS_PROD ? null : new webpack.optimize.UglifyJsPlugin({ comments: false }),
     function() {
       this.plugin("done", stats => {
