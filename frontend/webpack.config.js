@@ -2,30 +2,35 @@ const webpack = require("webpack");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
 const GitRevisionPlugin = require('git-revision-webpack-plugin')
+const fs = require("fs");
+const _ = require("lodash");
+
+const IS_PROD = process.env.NODE_ENV === "production";
 
 const extractSass = new ExtractTextPlugin({
   filename: "[hash].bundle.css",
-  disable: process.env.NODE_ENV !== "production"
+  disable: !IS_PROD
 });
 
 const gitRevisionPlugin = new GitRevisionPlugin()
 
 
 let config = module.exports = {
-  entry: [
+  entry: _.filter([
+    "whatwg-fetch",
     "babel-polyfill",
-    "webpack-dev-server/client?http://localhost:3000",
-    "webpack/hot/only-dev-server",
-    "react-hot-loader/patch",
+    IS_PROD ? null : "webpack-dev-server/client?http://localhost:3000",
+    IS_PROD ? null : "webpack/hot/only-dev-server",
+    IS_PROD ? null : "react-hot-loader/patch",
     "./index.js",
     "./styles/index.sass"
-  ],
+  ]),
   output: {
     path: __dirname + "/dist",
     filename: "[hash].bundle.js",
     publicPath: "/dist/"
   },
-  devtool: "inline-source-map",
+  devtool: IS_PROD ? "source-map" : "eval",
   module: {
     rules: [
       {
@@ -33,7 +38,9 @@ let config = module.exports = {
         loader: "babel-loader",
         query: {
           presets: ["es2015", "react", "stage-0"],
-          plugins: ["react-hot-loader/babel"]
+          plugins: _.filter([
+            IS_PROD ? null : "react-hot-loader/babel"
+          ])
         },
         exclude: /node_modules/
       },
@@ -42,7 +49,13 @@ let config = module.exports = {
         use: extractSass.extract({
           fallback: "style-loader",
           use: [
-            "css-loader", "sass-loader",
+            {
+              loader: "css-loader",
+              query: {
+                minimize: IS_PROD
+              }
+            },
+            "sass-loader",
             {
               loader: "resolve-url-loader",
               query: {
@@ -58,9 +71,8 @@ let config = module.exports = {
       }
     ]
   },
-  plugins: [
+  plugins: _.filter([
     new WebpackCleanupPlugin(),
-    new webpack.HotModuleReplacementPlugin(),
     new webpack.DefinePlugin({
       "process.env": {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
@@ -69,11 +81,13 @@ let config = module.exports = {
       }
     }),
     extractSass,
+    IS_PROD ? null : new webpack.HotModuleReplacementPlugin(),
+    !IS_PROD ? null : new webpack.optimize.UglifyJsPlugin({ comments: false }),
     function() {
       this.plugin("done", stats => {
         const data = stats.toJson();
         let outputStats;
-        if (process.env.NODE_ENV === "production") {
+        if (IS_PROD) {
           outputStats = {
             main: data.assetsByChunkName.main[0],
             css: data.assetsByChunkName.main[1]
@@ -85,13 +99,16 @@ let config = module.exports = {
             outputStats = { main: data.assetsByChunkName.main[0] };
           }
         }
-        require("fs").writeFileSync(
+        if (!fs.existsSync(__dirname + "/dist")) {
+          fs.mkdirSync(__dirname + "/dist");
+        }
+        fs.writeFileSync(
           __dirname + "/dist/stats.json",
           JSON.stringify(outputStats)
         );
       });
     }
-  ],
+  ]),
   devServer: {
     hot: true,
     historyApiFallback: true,
@@ -103,10 +120,3 @@ let config = module.exports = {
     }
   }
 };
-
-
-if (process.env.NODE_ENV === "production") {
-  config.plugins.push(new webpack.optimize.UglifyJsPlugin({
-    comments: false
-  }));
-}
