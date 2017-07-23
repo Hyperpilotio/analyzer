@@ -25,7 +25,7 @@ index_html = """
 """
 
 @main_app.before_request
-def log_request():
+def before_request_hook():
     if request.path == "/dist/stats.json":
         abort(404)
 
