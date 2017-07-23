@@ -14,7 +14,10 @@ const gitRevisionPlugin = new GitRevisionPlugin()
 let config = module.exports = {
   entry: [
     "babel-polyfill",
-    "./app.js",
+    "webpack-dev-server/client?http://localhost:3000",
+    "webpack/hot/only-dev-server",
+    "react-hot-loader/patch",
+    "./index.js",
     "./styles/index.sass"
   ],
   output: {
@@ -24,12 +27,13 @@ let config = module.exports = {
   },
   devtool: "inline-source-map",
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.js?$/,
         loader: "babel-loader",
         query: {
           presets: ["es2015", "react", "stage-0"],
+          plugins: ["react-hot-loader/babel"]
         },
         exclude: /node_modules/
       },
@@ -56,6 +60,7 @@ let config = module.exports = {
   },
   plugins: [
     new WebpackCleanupPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
     new webpack.DefinePlugin({
       "process.env": {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
@@ -68,13 +73,17 @@ let config = module.exports = {
       this.plugin("done", stats => {
         const data = stats.toJson();
         let outputStats;
-        if (typeof data.assetsByChunkName.main === "string") {
-          outputStats = { main: data.assetsByChunkName.main };
-        } else {
+        if (process.env.NODE_ENV === "production") {
           outputStats = {
             main: data.assetsByChunkName.main[0],
             css: data.assetsByChunkName.main[1]
           };
+        } else {
+          if (typeof data.assetsByChunkName.main === "string") {
+            outputStats = { main: data.assetsByChunkName.main };
+          } else {
+            outputStats = { main: data.assetsByChunkName.main[0] };
+          }
         }
         require("fs").writeFileSync(
           __dirname + "/dist/stats.json",
@@ -82,7 +91,17 @@ let config = module.exports = {
         );
       });
     }
-  ]
+  ],
+  devServer: {
+    hot: true,
+    historyApiFallback: true,
+    contentBase: "./dist/",
+    host: "localhost",
+    port: 3000,
+    proxy: {
+      "*": "http://localhost:5000"
+    }
+  }
 };
 
 
