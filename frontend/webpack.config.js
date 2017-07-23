@@ -39,7 +39,8 @@ let config = module.exports = {
         query: {
           presets: ["es2015", "react", "stage-0"],
           plugins: _.filter([
-            IS_PROD ? null : "react-hot-loader/babel"
+            IS_PROD ? null : "react-hot-loader/babel",
+            "lodash"
           ])
         },
         exclude: /node_modules/
