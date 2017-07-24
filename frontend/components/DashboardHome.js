@@ -9,14 +9,14 @@ import listIcon from "../assets/images/icon_list_view.svg";
 import PropTypes from "prop-types";
 
 
-const ApplicationItem = ({ _id, name }) => (
+const ApplicationItem = ({ _id, name, serviceNames }) => (
   <article>
     <aside><img src={redisLogo} /></aside>
     <section>
       <header>
         <h1>{ name }</h1>
         <p>ID: { _id }</p>
-        <p>More summary info</p>
+        <p>Services: { _.join(serviceNames, ", ") }</p>
       </header>
       <footer><Link to={`/apps/${_id}/`}>Analysis Workflow</Link></footer>
     </section>

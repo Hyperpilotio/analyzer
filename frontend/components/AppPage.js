@@ -63,9 +63,18 @@ export default ({ appId, data, loading }) => (
         <NavLink to={`/apps/${appId}/calibration`} className="nav-item" activeClassName="selected">
           Calibration
         </NavLink>
-        <NavLink to={`/apps/${appId}/profiling`} className="nav-item" activeClassName="selected">
-          Profiling
-        </NavLink>
+        { loading
+          ? <a className="nav-item">Loading...</a>
+          : data.serviceNames.map(serviceName => (
+            <NavLink
+              key={serviceName}
+              to={`/apps/${appId}/services/${serviceName}/profiling`}
+              className="nav-item"
+              activeClassName="selected">
+              Profiling of { serviceName }
+            </NavLink>
+            ))
+        }
       </div>
     </nav>
 
@@ -74,15 +83,25 @@ export default ({ appId, data, loading }) => (
         <Route path="/apps/:appId/calibration" render={({ match }) => (
           <CalibrationChart appId={match.params.appId} />
         )} />
-        <Route path="/apps/:appId/profiling" render={({ match }) => (
-          <ProfilingChart appId={match.params.appId} />
-        )} />
+        <Route
+          path="/apps/:appId/services/:serviceName/profiling"
+          render={({ match }) => (
+            <ProfilingChart
+              appId={match.params.appId}
+              serviceName={match.params.serviceName} />
+          )} />
         <Redirect to="calibration" />
       </Switch>
       <div className="radar-charts columns">
         <div className="column">
           <h3 className="title">Interference Score</h3>
-          <InterferenceChart appId={appId} />
+          <Route
+            path="/apps/:appId/services/:serviceName/profiling"
+            render={({ match }) => (
+              <InterferenceChart
+                appId={match.params.appId}
+                serviceName={match.params.serviceName} />
+            )} />
         </div>
         <div className="qos-metrics column">
           <h3 className="title">QoS Metrics</h3>

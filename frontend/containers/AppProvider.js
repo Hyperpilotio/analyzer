@@ -6,7 +6,14 @@ import _ from "lodash";
 
 export default class AppProvider extends Component {
 
-  state = { apps: {}, calibrations: {}, profilings: {}, interferences: {} }
+  state = {
+    cluster: {},
+    apps: {},
+    calibrations: {},
+    profilings: {},
+    interferences: {},
+    recommendations: {}
+  }
 
   static childContextTypes = {
     store: PropTypes.object,
@@ -18,6 +25,7 @@ export default class AppProvider extends Component {
       store: this.state,
       actions: {
         getApps: ::this.getApps,
+        fetchServicePlacement: ::this.fetchServicePlacement,
         fetchCalibration: ::this.fetchCalibration,
         fetchProfiling: ::this.fetchProfiling,
         fetchInterference: ::this.fetchInterference,
@@ -36,6 +44,22 @@ export default class AppProvider extends Component {
     this.setState({
       apps: _.mapValues(data, (app, _id) => _.assign({}, this.state.apps[_id], app))
     });
+  }
+
+  async fetchServicePlacement(recommended = false) {
+    let res = await fetch(`/api/cluster${ recommended ? "/recommended" : "" }`);
+    if (!res.ok) {
+      console.error("Unexpected error for", res);
+      return;
+    }
+    let data = await res.json();
+    if (recommended) {
+      this.setState({
+        recommendations: update(this.state.recommendations, { placement: { $set: data } })
+      });
+    } else {
+      this.setState({ cluster: data });
+    }
   }
 
   async fetchAppInfo(appId) {
@@ -68,8 +92,8 @@ export default class AppProvider extends Component {
     });
   }
 
-  async fetchProfiling(appId) {
-    let res = await fetch(`/api/apps/${appId}/profiling`);
+  async fetchProfiling(appId, serviceName) {
+    let res = await fetch(`/api/apps/${appId}/services/${serviceName}/profiling`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
@@ -78,13 +102,13 @@ export default class AppProvider extends Component {
     this.setState({
       profilings: update(
         this.state.profilings,
-        _.fromPairs([[appId, {$set: data}]])
+        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
       )
     });
   }
 
-  async fetchInterference(appId) {
-    let res = await fetch(`/api/apps/${appId}/interference`);
+  async fetchInterference(appId, serviceName) {
+    let res = await fetch(`/api/apps/${appId}/services/${serviceName}/interference`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
@@ -93,7 +117,7 @@ export default class AppProvider extends Component {
     this.setState({
       interferences: update(
         this.state.interferences,
-        _.fromPairs([[appId, {$set: data}]])
+        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
       )
     });
   }
