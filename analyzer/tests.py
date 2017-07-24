@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import logging
-log = logging.getLogger(__name__)
 import json
 import os
 import pandas as pd
@@ -13,14 +12,15 @@ from api_service.app import app as api_service_app
 from api_service.db import metricdb, configdb
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
 from analyzer.bayesian_optimizer import get_candidate
+from logger import get_logger
 
-log.setLevel(logging.DEBUG)
+logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
 
 class BayesianOptimizationTest(TestCase):
 
     def setUp(self):
-        log.debug('Creating flask clients')
+        logger.debug('Creating flask clients')
         self.client = api_service_app.test_client()
         self.client2 = api_service_app.test_client()
 
@@ -40,17 +40,17 @@ class BayesianOptimizationTest(TestCase):
     #     response = json.loads(self.client.post('/get-next-instance-types/' + fake_uuid,
     #                                            data=json.dumps(self.getTestRequest()),
     #                                            content_type="application/json").data)
-    #     log.debug(f"Response from posting request: {self.getTestRequest()}")
-    #     log.debug(response)
+    #     logger.debug(f"Response from posting request: {self.getTestRequest()}")
+    #     logger.debug(response)
 
     #     while True:
     #         response = json.loads(self.client.get(
     #             "/get-optimizer-status/" + fake_uuid).data)
-    #         log.debug("Response after sending GET /get-optimizer-status")
-    #         log.debug(response)
+    #         logger.debug("Response after sending GET /get-optimizer-status")
+    #         logger.debug(response)
 
     #         if response['Status'] == 'Running':
-    #             log.debug("Waiting for 5 sec")
+    #             logger.debug("Waiting for 5 sec")
     #             sleep(5)
     #         else:
     #             break
@@ -60,7 +60,7 @@ class BayesianOptimizationTest(TestCase):
         # dimension=7, nsamples=2
         result = get_candidate(np.array([[6, 9, 9, 0, 8, 0, 9], [
             9, 8, 8, 0, 8, 5, 8]]), np.array([0.8, 0.7]), [(0, 1)] * 7)
-        log.debug(result)
+        logger.debug(result)
 
     def testSingleton(self):
         # TODO: Test if the singleton works in multiprocess
@@ -70,7 +70,7 @@ class BayesianOptimizationTest(TestCase):
 class PredictionTest(TestCase):
 
     def setUp(self):
-        log.debug('Creating flask client')
+        logger.debug('Creating flask client')
         self.client = api_service_app.test_client()
         self.test_collection = 'test-collection'
 
@@ -82,13 +82,13 @@ class PredictionTest(TestCase):
 
     def testFlow(self):
         try:
-            log.debug(f'Getting database {metricdb.name}')
+            logger.debug(f'Getting database {metricdb.name}')
             db = metricdb._get_database()  # This triggers lazy-loading
-            log.debug('Setting up test documents')
+            logger.debug('Setting up test documents')
             testFiles = (Path(__file__).parent /
                          'test_profiling_result').rglob('*.json')
             for path in testFiles:
-                log.debug("Adding: {}".format(path))
+                logger.debug("Adding: {}".format(path))
                 with path.open('r') as f:
                     doc = json.load(f)
                     db[self.test_collection].insert_one(doc)
@@ -99,14 +99,14 @@ class PredictionTest(TestCase):
             self.assertEqual(response.status_code, 200, response)
             data = json.loads(response.data)
 
-            log.debug('====Request====\n')
-            log.debug(self.getTestRequest())
-            log.debug('\n====Cross-App Interference Score Prediction====')
-            log.debug('\n' + str(pd.read_json(response.data)))
+            logger.debug('====Request====\n')
+            logger.debug(self.getTestRequest())
+            logger.debug('\n====Cross-App Interference Score Prediction====')
+            logger.debug('\n' + str(pd.read_json(response.data)))
         except Exception as e:
             raise e
         finally:
-            log.debug(f'Clean up test collection: {self.test_collection}')
+            logger.debug(f'Clean up test collection: {self.test_collection}')
             db[self.test_collection].drop()
             db.client.close()
-            log.debug('Client connection closed')
+            logger.debug('Client connection closed')

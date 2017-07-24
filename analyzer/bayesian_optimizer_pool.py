@@ -2,12 +2,11 @@ import threading
 import logging
 import numpy as np
 import pandas as pd
-log = logging.getLogger(__name__)
 from sklearn.feature_extraction import DictVectorizer
 from .bayesian_optimizer import get_candidate
 from concurrent.futures import ProcessPoolExecutor
 from api_service.db import configdb
-log.setLevel(logging.DEBUG)
+
 
 
 class BayesianOptimizerPool(object):
@@ -118,7 +117,7 @@ class BayesianOptimizerPool(object):
             node_instance = configdb.nodetypes.find_one({'name': data['instanceType']})['name']
             x = np.random.rand(8)
             df = pd.DataFrame({'feature': [x], 'qos_value': [data['qosValue']],
-                               'price': [self.get_price(data)], 'slo_type': ['latency'], 'duration': [253],
+                               'price': [self.get_price(data)], 'slo_type': ['latency'], 'complet': [253],
                                'objective_perf_over_cost': [j1], 'objective_cost_satisfies_slo': [j2], 'objective_perf_satisfies_slo': [j3]})
             dfs.append(df)
 

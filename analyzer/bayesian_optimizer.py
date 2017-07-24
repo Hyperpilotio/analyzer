@@ -2,15 +2,13 @@ from __future__ import print_function
 from __future__ import division
 
 import numpy as np
-import logging
-log = logging.getLogger(__name__)
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern
 from scipy.stats import norm
 from scipy.optimize import minimize
+from logger import get_logger
 
-log.setLevel(logging.DEBUG)
-
+logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
 class UtilityFunction(object):
     """
@@ -164,13 +162,13 @@ def get_candidate(X, y, bounds, acq='ucb', kappa=5, xi=0.0, **gp_params):
 
     # Find unique rows of X to avoid GP from breaking
     ur = unique_rows(X)
-    log.debug(ur)
-    log.debug("Fitting Gaussian Processor Regressor")
+    logger.debug(ur)
+    logger.debug("Fitting Gaussian Processor Regressor")
     gp.fit(X[ur], y[ur])
 
     # Finding argmax of the acquisition function.
     # TODO: Support multiple candidates of x_max
-    log.debug("Computing argmax_x of acquisition function")
+    logger.debug("Computing argmax_x of acquisition function")
     y_max = y.max()
     x_max = acq_max(ac=util.utility,
                     gp=gp,

@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from .config import get_config
+from config import get_config
 from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
@@ -109,6 +109,8 @@ def get_next_instance_types(app_id):
     return jsonify({"Status": "Submited"})
 
 # TODO: change back to uuid
+
+
 @app.route("/apps/<string:app_id>/get-optimizer-status/")
 def get_task_status(app_id):
     response = jsonify(BO.get_status(app_id))
