@@ -35,11 +35,11 @@ class UtilityFunction(object):
 
     def utility(self, x, gp, y_max):
         if self.kind == 'ucb':
-            return UtilitiyFunction._ucb(x, gp, self.kappa)
+            return UtilityFunction._ucb(x, gp, self.kappa)
         if self.kind == 'ei':
-            return UtilitiyFunction._ei(x, gp, y_max, self.xi)
+            return UtilityFunction._ei(x, gp, y_max, self.xi)
         if self.kind == 'poi':
-            return UtilitiyFunction._poi(x, gp, y_max, self.xi)
+            return UtilityFunction._poi(x, gp, y_max, self.xi)
 
     @staticmethod
     def _ucb(x, gp, kappa):
