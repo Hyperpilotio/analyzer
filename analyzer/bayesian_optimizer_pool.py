@@ -111,9 +111,9 @@ class BayesianOptimizerPool(object):
         """
         dfs = []
         for data in raw_data['data']:
-            j1 = self._objective_perf_over_cost(data)
-            j2 = self._objective_cost_satisfies_slo(data)
-            j3 = self._objective_perf_satisfies_slo(data)
+            j1 = BayesianOptimizerPool._objective_perf_over_cost(data)
+            j2 = BayesianOptimizerPool._objective_cost_satisfies_slo(data)
+            j3 = BayesianOptimizerPool._objective_perf_satisfies_slo(data)
 
             node_instance = configdb.nodetypes.find_one({'name': data['instanceType']})['name']
             x = np.random.rand(8)
