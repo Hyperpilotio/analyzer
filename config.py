@@ -6,5 +6,5 @@ from pathlib import Path
 @lru_cache(maxsize=1)
 def get_config():
     config = ConfigParser()
-    config.read(Path(__file__).absolute().parent.parent / "config.ini")
+    config.read(Path(__file__).absolute().parent / "config.ini")
     return config

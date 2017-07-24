@@ -3,20 +3,11 @@ from pprint import pformat
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure
 from pymongo import monitoring
-from .config import get_config
-
-
+from logger import get_logger
+from config import get_config
 config = get_config()
+logger = get_logger(__name__, log_level=("MONGODB", "LOGLEVEL"))
 
-logger = logging.getLogger(__name__)
-log_format = "[%(asctime)s] [%(name)s:%(lineno)s] [%(levelname)s] %(message)s"
-logging.basicConfig(format=log_format)
-handler = logging.StreamHandler()
-logger.addHandler(handler)
-
-log_level = getattr(logging, config.get("MONGODB", "LOGLEVEL"))
-logger.setLevel(log_level)
-handler.setLevel(log_level)
 
 class CommandLogger(monitoring.CommandListener):
 
@@ -51,7 +42,9 @@ client = MongoClient(
     port=config.getint("MONGODB", "PORT"),
 )
 
+
 class Database(object):
+
     def __init__(self, name):
         self.name = name
         self.auth = (config.get("MONGODB", "USERNAME"),

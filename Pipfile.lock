@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "e76095a7a7072c8a596cdf04205c7f701f1896d6bb0231d7bbc39d689edc9e81"
+            "sha256": "35e99d5dc34ce3aa20033186346bd2a81bcaaaa5442a5b116eb3625ffa065a4f"
         },
         "requires": {
             "python_full_version": "3.6.1",
@@ -40,22 +40,31 @@
             "version": "==1.0"
         },
         "numpy": {
-            "version": "==1.13.0"
+            "version": "==1.13.1"
         },
         "pandas": {
-            "version": "==0.20.2"
+            "version": "==0.20.3"
         },
         "pymongo": {
             "version": "==3.4.0"
         },
         "python-dateutil": {
-            "version": "==2.6.0"
+            "version": "==2.6.1"
         },
         "pytz": {
             "version": "==2017.2"
         },
+        "scikit-learn": {
+            "version": "==0.18.2"
+        },
+        "scipy": {
+            "version": "==0.19.1"
+        },
         "six": {
             "version": "==1.10.0"
+        },
+        "sklearn": {
+            "version": "==0.0"
         },
         "werkzeug": {
             "version": "==0.12.2"
