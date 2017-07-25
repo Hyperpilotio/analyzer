@@ -55,7 +55,31 @@ class BayesianOptimizationTest(TestCase):
     #         else:
     #             break
 
-    def testGuessBestTrialsDirect(self):
+    def testCherryPickWorkFlow(self):
+        """ Test Cherry pick workflow without testing BayesianOptimizationPool 
+        """
+        rawdata = self.getTestRequest()
+        df = encode(rawdata) # convert request to rawdata
+        
+        # Feature
+        feature = np.array(df['feature'])
+        # Objective values
+        objective_perf_over_cost = np.array(df['objective_perf_over_cost'])
+        objective_cost_satisfies_slo = np.array(df['objective_cost_satisfies_slo'])
+        objective_perf_satisfies_slo = np.array(df['objective_perf_satisfies_slo'])
+        # Set the boundary of encoded feature space. (to be implemented)
+        bounds = get_bounds() 
+
+        outputs = []
+        for j in [objective_perf_over_cost, objective_cost_satisfies_slo, objective_perf_satisfies_slo]:
+            output = get_candidate(features, j, bounds)
+            outputs.append(output)
+        # The final result of instance_type (i.e. [x2.large, x2.xlarge, t2.xlarge])
+        candidates = [decode(output) for output in outputs]
+
+
+
+    def testBayesianOptimizer(self):
         import numpy as np
         # dimension=7, nsamples=2
         result = get_candidate(np.array([[6, 9, 9, 0, 8, 0, 9], [
