@@ -94,7 +94,7 @@ def radar_data(app_id):
     if data is not None:
         profiling['radarChartData'] = data
         del profiling['testResult']
-    return ensure_document_fund(profiling)
+    return ensure_document_found(profiling)
 
 
 # TODO: change back to uuid
