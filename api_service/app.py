@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, request
 from config import get_config
 from pymongo import DESCENDING
-from .config import get_config
 from .util import (
     JSONEncoderWithMongo,
     ObjectIdConverter,
@@ -146,16 +145,6 @@ def predict():
         response = jsonify(error="Model not found")
         response.status_code = 404
         return response
-
-
-@app.route("/radar-data/<objectid:app_id>")
-def radar_data(app_id):
-    profiling = metricdb.profiling.find_one(app_id)
-    data = get_radar_dataframe(profiling)
-    if data is not None:
-        profiling['radarChartData'] = data
-        del profiling['testResult']
-    return ensure_document_found(profiling)
 
 
 # TODO: change back to uuid
