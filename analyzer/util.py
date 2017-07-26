@@ -11,12 +11,13 @@ COST_TYPE = "LinuxReserved"
 NETWORK_DICT = {'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000, 
               "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
 
+# TODO: improve query efficiency
 # convert each instance type to a vector of feature values
 def encode_instance_type(instance_type):
     # TODO: Add region to the input
     region_filter = {'region': MY_REGION}
     all_nodetypes = configdb[NODETYPE_COLLECTION].find_one(region_filter)
-    if all_nodetypes == None:
+    if all_nodetypes is None:
         raise KeyError(
             'Cannot find nodetype document: filter={}'.format(region_filter))
 
@@ -29,26 +30,27 @@ def encode_instance_type(instance_type):
             network_bw = NETWORK_DICT[network_type]
             storage_throughput = nodetype['storageConfig']['expectedThroughput']
 
-            features = np.array([vcpu, clock_speed, mem_size, network_bw, storage_type])
+            features = np.array([vcpu, clock_speed, mem_size, network_bw, storage_throughput])
             break
 
-    if features == None:
+    if features is None:
         raise KeyError(
-            'Cannot find instance type : filter={}'.format{'name': instance_type})
+            'Cannot find instance type: filter={}'.format{'name': instance_type})
 
     return features
 
 
 # TODO: Xiaoyun
-def deencode_instance_type(feature_vector):
+def decode_instance_type(feature_vector):
     return 'm4.large'
 
 
+# TODO: improve query efficiency
 # get from configdb the price (hourly cost) of an instance_type
 def get_price(instance_type):
     region_filter = {'region': MY_REGION}
     all_nodetypes = configdb[NODETYPE_COLLECTION].find_one(region_filter)
-    if all_nodetypes == None:
+    if all_nodetypes is None:
         raise KeyError(
             'Cannot find nodetype document: filter={}'.format(region_filter))
 
@@ -57,23 +59,32 @@ def get_price(instance_type):
             price = nodetype['hourlyCost'][COST_TYPE]['value']
             break
 
-    if features == None:
+    if price is None:
         raise KeyError(
-            'Cannot find instance type : filter={}'.format{'name': instance_type})
+            'Cannot find instance type: filter={}'.format{'name': instance_type})
 
     return price
 
 
 # cost function based on sloMetric type and value, and hourly price 
 def compute_cost(price, slo_type, qos_value)
-    if slo_type == 'long_running':
+    if slo_type in ['latency', 'throughput']:
         # for long-running services, calculate the montly cost based on hourly price
         cost = price * 24 * 30
     else:
-        # for batch jobs, cost is based on job completion time
-        cost = price * qos_value 
+        # for batch jobs, qos_value = job_completion_time in minutes
+        cost = price * qos_value / 60
 
     return cost
+
+
+# get from configdb the type of an application ("long-running" or "batch")
+def get_app_type(appName):
+    app_filter = {'appName': appName}
+    app = configdb[APP_COLLECTION].find_one(app_filter)
+    app_type = app['type']
+
+    return app_type
 
 
 # get from configdb the slo metric type of an application

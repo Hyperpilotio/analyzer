@@ -6,7 +6,7 @@ from sklearn.feature_extraction import DictVectorizer
 from .bayesian_optimizer import get_candidate
 from concurrent.futures import ProcessPoolExecutor
 from api_service.db import configdb
-from util import *
+from util import encode_instance_type, get_slo_type, get_price, compute_cost
 
 
 class BayesianOptimizerPool(object):
@@ -52,11 +52,11 @@ class BayesianOptimizerPool(object):
         objective_perf_satisfies_slo = np.array(df['objective_perf_satisfies_slo'])
         bounds = get_bounds()
 
-        for j in [objective_perf_over_cost, objective_cost_satisfies_slo, objective_perf_satisfies_slo]:
+        for obj in [objective_perf_over_cost, objective_cost_satisfies_slo, objective_perf_satisfies_slo]:
             future = self.worker_pool.submit(
                 get_candidate,
                 features,
-                j,
+                obj,
                 bounds
             )
             self.future_map[app_id].append(future)
@@ -120,10 +120,10 @@ class BayesianOptimizerPool(object):
             j3 = BayesianOptimizerPool._objective_perf_satisfies_slo(data)
 
             instance_type = data['instanceType']
-            x = encode_instance_type(instance_type)
+            features = encode_instance_type(instance_type)
             qos_value = data['qosValue']
             cost = compute_cost(get_price(instance_type), slo_type, qos_value)
-            df = pd.DataFrame({'feature': [x], 'qos_value': [data['qosValue']],
+            df = pd.DataFrame({'feature': [features], 'qos_value': [qos_value],
                                'cost': [cost], 'slo_type': [slo_type],
                                'objective_perf_over_cost': [j1], 'objective_cost_satisfies_slo': [j2], 
                                'objective_perf_satisfies_slo': [j3]})
