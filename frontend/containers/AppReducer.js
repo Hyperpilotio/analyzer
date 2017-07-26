@@ -11,26 +11,21 @@ var initialState = {
     interferences: {},
     recommendations: {}
 };
-let appReducer;
 function reducer(state, action){
-  if(!appReducer)
-      appReducer = new AppReducer();
   switch(action.type){
     case 'GET_APPS':
-      return Object.assign({}, state, appReducer.getApps);
+      return Object.assign({}, state, getApps);
 
     case 'FETCH_SERVICE_PLACEMENT':
-      return Object.assign({}, state, appReducer.fetchServicePlacement);
+      return Object.assign({}, state, fetchServicePlacement);
 
     default:
-      return appReducer.getApps
+      return getApps;
   }
 }
 
 let store = createStore(reducer, initialState);
 export {store};
-
-class AppReducer extends Component {
 
   
 //  getStore() {
@@ -47,19 +42,19 @@ class AppReducer extends Component {
 //    };
 //  }
 
-  async getApps() {
+  async function getApps() {
     let res = await fetch(`/api/apps`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
     }
     let data = await res.json();
-    this.setState({
-      apps: _.mapValues(data, (app, _id) => _.assign({}, this.state.apps[_id], app))
-    });
+//    this.setState({
+//      apps: _.mapValues(data, (app, _id) => _.assign({}, this.state.apps[_id], app))
+//    });
   }
 
-  async fetchServicePlacement(recommended = false) {
+  async function fetchServicePlacement(recommended = false) {
     let res = await fetch(`/api/cluster${ recommended ? "/recommended" : "" }`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
@@ -67,45 +62,45 @@ class AppReducer extends Component {
     }
     let data = await res.json();
     if (recommended) {
-      this.setState({
-        recommendations: update(this.state.recommendations, { placement: { $set: data } })
-      });
+//      this.setState({
+//        recommendations: update(this.state.recommendations, { placement: { $set: data } })
+//      });
     } else {
-      this.setState({ cluster: data });
+//      this.setState({ cluster: data });
     }
   }
 
-  async fetchAppInfo(appId) {
+  async function fetchAppInfo(appId) {
     let res = await fetch(`/api/apps/${appId}`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
     }
     let data = await res.json();
-    this.setState({
-      apps: update(
-        this.state.apps,
-        _.fromPairs([[ appId, { $set: data } ]])
-      )
-    });
+//    this.setState({
+//      apps: update(
+//        this.state.apps,
+//        _.fromPairs([[ appId, { $set: data } ]])
+//      )
+//    });
   }
 
-  async fetchCalibration(appId) {
+  async function fetchCalibration(appId) {
     let res = await fetch(`/api/apps/${appId}/calibration`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
     }
     let data = await res.json();
-    this.setState({
-      calibrations: update(
-        this.state.calibrations,
-        _.fromPairs([[appId, {$set: data}]])
-      )
-    });
+//    this.setState({
+//      calibrations: update(
+//        this.state.calibrations,
+//        _.fromPairs([[appId, {$set: data}]])
+//      )
+//    });
   }
 
-  async fetchProfiling(appId, serviceName) {
+  async function fetchProfiling(appId, serviceName) {
     let res = await fetch(`/api/apps/${appId}/services/${serviceName}/profiling`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
@@ -120,23 +115,18 @@ class AppReducer extends Component {
     });
   }
 
-  async fetchInterference(appId, serviceName) {
+  async function fetchInterference(appId, serviceName) {
     let res = await fetch(`/api/apps/${appId}/services/${serviceName}/interference`);
     if (!res.ok) {
       console.error("Unexpected error for", res);
       return;
     }
     let data = await res.json();
-    this.setState({
-      interferences: update(
-        this.state.interferences,
-        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
-      )
-    });
+//    this.setState({
+//      interferences: update(
+//        this.state.interferences,
+//        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
+//      )
+//    });
   } 
 
-  render() {
-    return Children.only(this.props.children);
-  }
-
-}
