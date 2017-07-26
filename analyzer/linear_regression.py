@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import numpy as np
 import pandas as pd
 from functools import reduce
-from .util import createProfilingDataframe
+from .util import create_profiling_dataframe
 
 
 class LinearRegression1():
@@ -47,8 +47,8 @@ class LinearRegression1():
         """
         collection = 'profiling' if not collection else collection
 
-        df1, df2 = createProfilingDataframe(
-            app1Name, collection), createProfilingDataframe(app2Name, collection)
+        df1, df2 = create_profiling_dataframe(
+            app1Name, collection), create_profiling_dataframe(app2Name, collection)
         df1.name, df2.name = app1Name, app2Name
 
         caisMatrix = np.zeros((len(df1.index), len(df2.index)))

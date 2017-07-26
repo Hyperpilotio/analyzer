@@ -2,10 +2,91 @@ import pandas as pd
 import numpy as np
 from api_service.db import metricdb, configdb
 
+# TODO: Move these into a config or constants file
+NODETYPE_COLLECTION = 'nodetypes'
+APP_COLLECTION = 'applications'
+MY_REGION = "us-east-1"
+COST_TYPE = "LinuxReserved"
+
+NETWORK_DICT = {'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000, 
+              "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
+
+# convert each instance type to a vector of feature values
+def encode_instance_type(instance_type):
+    # TODO: Add region to the input
+    region_filter = {'region': MY_REGION}
+    all_nodetypes = configdb[NODETYPE_COLLECTION].find_one(region_filter)
+    if all_nodetypes == None:
+        raise KeyError(
+            'Cannot find nodetype document: filter={}'.format(region_filter))
+
+    for nodetype in all_nodetypes:
+        if nodetype['name'] == instance_type:
+            vcpu = nodetype['cpuConfig']['vCPU']
+            clock_speed = nodetype['cpuConfig']['clockSpeed']
+            mem_size = nodetype['memConfig']['size']
+            network_type = nodetype['networkConfig']['networkPerformance']
+            network_bw = NETWORK_DICT[network_type]
+            storage_throughput = nodetype['storageConfig']['expectedThroughput']
+
+            features = np.array([vcpu, clock_speed, mem_size, network_bw, storage_type])
+            break
+
+    if features == None:
+        raise KeyError(
+            'Cannot find instance type : filter={}'.format{'name': instance_type})
+
+    return features
+
+
+# TODO: Xiaoyun
+def deencode_instance_type(feature_vector):
+    return 'm4.large'
+
+
+# get from configdb the price (hourly cost) of an instance_type
+def get_price(instance_type):
+    region_filter = {'region': MY_REGION}
+    all_nodetypes = configdb[NODETYPE_COLLECTION].find_one(region_filter)
+    if all_nodetypes == None:
+        raise KeyError(
+            'Cannot find nodetype document: filter={}'.format(region_filter))
+
+    for nodetype in all_nodetypes:
+        if nodetype['name'] == instance_type:
+            price = nodetype['hourlyCost'][COST_TYPE]['value']
+            break
+
+    if features == None:
+        raise KeyError(
+            'Cannot find instance type : filter={}'.format{'name': instance_type})
+
+    return price
+
+
+# cost function based on sloMetric type and value, and hourly price 
+def compute_cost(price, slo_type, qos_value)
+    if slo_type == 'long_running':
+        # for long-running services, calculate the montly cost based on hourly price
+        cost = price * 24 * 30
+    else:
+        # for batch jobs, cost is based on job completion time
+        cost = price * qos_value 
+
+    return cost
+
+
+# get from configdb the slo metric type of an application
+def get_slo_type(appName):
+    app_filter = {'appName': appName}
+    app = configdb[APP_COLLECTION].find_one(app_filter)
+    slo_type = app['slo']['type']
+
+    return slo_type
+
+
 # TODO: probably need to change to appId.
-
-
-def createProfilingDataframe(appName, collection='profiling'):
+def create_profiling_dataframe(appName, collection='profiling'):
     """ Create a dataframe of features.
     Args:
         appName(str): Map to the 'appName' in Mongo database.
