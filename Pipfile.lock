@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "35e99d5dc34ce3aa20033186346bd2a81bcaaaa5442a5b116eb3625ffa065a4f"
+            "sha256": "f5b5b45e79daa24f9b955a8b4e570ebc70812ae639cab460cb077447da1cd1b8"
         },
         "requires": {
             "python_full_version": "3.6.1",
@@ -17,6 +17,9 @@
     "default": {
         "click": {
             "version": "==6.7"
+        },
+        "configparser": {
+            "version": "==3.5.0"
         },
         "flask": {
             "version": "==0.12.2"
@@ -35,6 +38,9 @@
         },
         "jinja2": {
             "version": "==2.9.6"
+        },
+        "lru-cache": {
+            "version": "==0.2.3"
         },
         "markupsafe": {
             "version": "==1.0"
