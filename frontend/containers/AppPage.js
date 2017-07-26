@@ -7,7 +7,7 @@ import AppPageComponent from "../components/AppPage";
 export default class AppPage extends Component {
 
   static contextTypes = {
-    store: PropTypes.object,
+    myStore: PropTypes.object,
     actions: PropTypes.object
   }
 
@@ -19,17 +19,17 @@ export default class AppPage extends Component {
   state = { data: null, loading: true }
 
   async fetchData(appId) {
-    if (!_.has(this.context.store.apps[appId], "type")) {
+    if (!_.has(this.context.myStore.apps[appId], "type")) {
       await this.context.actions.fetchAppInfo(appId)
     }
     this.setState({
-      data: this.context.store.apps[appId],
+      data: this.context.myStore.apps[appId],
       loading: false
     });
   }
 
   componentDidMount() {
-    this.setState({ data: this.context.store.apps[this.appId] });
+    this.setState({ data: this.context.myStore.apps[this.appId] });
     this.fetchData(this.appId);
   }
 

@@ -7,18 +7,18 @@ import ProfilingChartComponent from "../components/ProfilingChart";
 export default class ProfilingChart extends Component {
 
   static contextTypes = {
-    store: PropTypes.object,
+    myStore: PropTypes.object,
     actions: PropTypes.object
   }
 
   state = { data: null, loading: true };
 
   async fetchData(appId, serviceName) {
-    if (!_.has(this.context.store.profilings, `${appId}-${serviceName}`)) {
+    if (!_.has(this.context.myStore.profilings, `${appId}-${serviceName}`)) {
       await this.context.actions.fetchProfiling(appId, serviceName)
     }
     this.setState({
-      data: this.context.store.profilings[`${appId}-${serviceName}`],
+      data: this.context.myStore.profilings[`${appId}-${serviceName}`],
       loading: false
     });
   }

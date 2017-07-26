@@ -8,14 +8,13 @@ import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
 import AppPage from "./containers/AppPage";
 import UserAuth from "./components/UserAuth";
-import AppProvider from "./containers/AppProvider";
+//import AppProvider from "./containers/AppProvider";
 import PropTypes from "prop-types";
 import { render } from 'react-dom';
 import { Provider, connect } from 'react-redux';
-import { store } from './containers/AppReducer'
+import { appStore } from './containers/AppReducer'
 
-console.log(store);
-
+let AppProvider = require("./containers/AppProvider");
 class App extends Component {
   constructor(props) {
      super(props);
@@ -23,11 +22,11 @@ class App extends Component {
     
   static contextTypes = {
     actions: PropTypes.object,
-    store: PropTypes.object
+    myStore: PropTypes.object
   }
 
   componentDidMount() {
-    if (_.keys(this.context.store.apps).length === 0)
+    if (_.keys(this.context.myStore.apps).length === 0)
       this.context.actions.getApps();
   }
 
@@ -55,19 +54,6 @@ class App extends Component {
   }
 }
 
-//action
-function changeText(){
-    return {
-        type:'CHANGE_TEXT'
-    }
-}
-
-function buttonClick(){
-    return {
-        type:'BUTTON_CLICK'
-    }
-}
-
 function mapStateToProps(state) {
     return {
         cluster: state.cluster,
@@ -76,19 +62,17 @@ function mapStateToProps(state) {
         profilings: state.profilings,
         interferences: state.interferences,
         recommendations: state.recommendations
-    }
-
+    };
 }
-
-
+AppProvider = connect(mapStateToProps)(AppProvider);
+//console.log(App);
 ReactDOM.render(
-  <Provider store={store}>
+  <Provider store={appStore}>
       <AppProvider>
           <App />
       </AppProvider>
   </Provider>,
   document.getElementById("react-root")
 );
-//console.log(App);
-App = connect(mapStateToProps)(App)
+//App = connect()(App);
 

@@ -4,7 +4,10 @@ import update from "immutability-helper";
 import _ from "lodash";
 
 
-export default class AppProvider extends Component {
+class AppProvider extends Component {
+  constructor(props) {
+        super(props);
+  }
 
   state = {
     cluster: {},
@@ -16,13 +19,13 @@ export default class AppProvider extends Component {
   }
 
   static childContextTypes = {
-    store: PropTypes.object,
+    myStore: PropTypes.object,
     actions: PropTypes.object
   }
 
   getChildContext() {
     return {
-      store: this.state,
+      myStore: this.state,
       actions: {
         getApps: ::this.getApps,
         fetchServicePlacement: ::this.fetchServicePlacement,
@@ -123,7 +126,9 @@ export default class AppProvider extends Component {
   }
 
   render() {
+    console.log("test2:" + this.props.cluster);
     return Children.only(this.props.children);
   }
 
 }
+module.exports = AppProvider;

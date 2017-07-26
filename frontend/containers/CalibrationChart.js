@@ -7,18 +7,18 @@ import CalibrationChartComponent from "../components/CalibrationChart";
 export default class CalibrationChart extends Component {
 
   static contextTypes = {
-    store: PropTypes.object,
+    myStore: PropTypes.object,
     actions: PropTypes.object
   }
 
   state = { data: null, loading: true }
 
   async fetchData(appId) {
-    if (_.isUndefined(_.get(this.context.store.calibrations, appId))) {
+    if (_.isUndefined(_.get(this.context.myStore.calibrations, appId))) {
       await this.context.actions.fetchCalibration(appId)
     }
     this.setState({
-      data: this.context.store.calibrations[appId],
+      data: this.context.myStore.calibrations[appId],
       loading: false
     });
   }

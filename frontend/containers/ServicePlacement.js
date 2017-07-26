@@ -7,7 +7,7 @@ import ServicePlacementComponent from "../components/ServicePlacement";
 export default class ServicePlacement extends Component {
 
   static contextTypes = {
-    store: PropTypes.object,
+    myStore: PropTypes.object,
     actions: PropTypes.object
   }
 
@@ -16,9 +16,9 @@ export default class ServicePlacement extends Component {
   constructor(props) {
     super(props);
     if (props.recommended) {
-      this.placementObject = "context.store.recommendations.placement";
+      this.placementObject = "context.myStore.recommendations.placement";
     } else {
-      this.placementObject = "context.store.cluster";
+      this.placementObject = "context.myStore.cluster";
     }
   }
 

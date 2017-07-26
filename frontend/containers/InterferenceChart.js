@@ -6,18 +6,18 @@ import InterferenceChartComponent from "../components/InterferenceChart";
 export default class InterferenceChart extends Component {
 
   static contextTypes = {
-    store: PropTypes.object,
+    myStore: PropTypes.object,
     actions: PropTypes.object
   }
 
   state = { data: null, loading: true };
 
   async fetchData(appId, serviceName) {
-    if (!_.has(this.context.store.interferences, `${appId}-${serviceName}`)) {
+    if (!_.has(this.context.myStore.interferences, `${appId}-${serviceName}`)) {
       await this.context.actions.fetchInterference(appId, serviceName);
     }
     this.setState({
-      data: this.context.store.interferences[`${appId}-${serviceName}`],
+      data: this.context.myStore.interferences[`${appId}-${serviceName}`],
       loading: false
     });
   }
