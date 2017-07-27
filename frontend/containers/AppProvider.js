@@ -4,7 +4,7 @@ import update from "immutability-helper";
 import _ from "lodash";
 
 
-class AppProvider extends Component {
+export default class AppProvider extends Component {
   constructor(props) {
         super(props);
   }
@@ -36,7 +36,7 @@ class AppProvider extends Component {
       }
     };
   }
-
+    
   async getApps() {
     let res = await fetch(`/api/apps`);
     if (!res.ok) {
@@ -126,7 +126,7 @@ class AppProvider extends Component {
   }
 
   render() {
-    console.log("test2:" + this.props.cluster);
+    this.props.setAllActions(this.getChildContext().actions);
     return Children.only(this.props.children);
   }
 

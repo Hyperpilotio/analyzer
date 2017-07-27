@@ -4,7 +4,7 @@ import _ from "lodash";
 import CalibrationChartComponent from "../components/CalibrationChart";
 
 
-export default class CalibrationChart extends Component {
+class CalibrationChart extends Component {
 
   static contextTypes = {
     myStore: PropTypes.object,

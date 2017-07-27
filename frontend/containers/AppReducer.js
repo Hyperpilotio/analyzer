@@ -2,6 +2,7 @@ import React, { Component, Children } from "react";
 import update from "immutability-helper";
 import { createStore} from 'redux';
 import _ from "lodash";
+import AppProvider from './AppProvider';
 
 var initialState = {
     cluster: {},
@@ -23,20 +24,38 @@ var initialState = {
 function reducer(state, action){
   switch(action.type){
     case 'GET_APPS':
-      return Object.assign({}, state, {
-          action:getApps
-      });
+      return Object.assign({}, state, {});
 
     case 'FETCH_SERVICE_PLACEMENT':
       return Object.assign({}, state, {});
 
     case 'FETCH_CALIBRATION':
       return Object.assign({}, state, {});
+          
+    case 'SET_ACTIONS':
+      return Object.assign({}, state, {actions: action.actions});
 
     default:
       return Object.assign({}, state, {});
   }
 }
+
+
+function mapStateToProps(state) {
+    return {
+        cluster: state.cluster,
+        apps: state.apps,
+        calibrations: state.calibrations,
+        profilings: state.profilings,
+        interferences: state.interferences,
+        recommendations: state.recommendations,
+        action: state.recommendations,
+        actions: state.actions
+
+    };
+}
+
+
 let appStore = createStore(reducer, initialState);
 export {appStore};
 

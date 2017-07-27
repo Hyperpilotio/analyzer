@@ -64,7 +64,15 @@ function mapStateToProps(state) {
         recommendations: state.recommendations
     };
 }
-AppProvider = connect(mapStateToProps)(AppProvider);
+function mapDispatchToProps(dispatch){
+  return {
+    setAllActions: function(actions){
+      dispatch({type: 'SET_ACTIONS', actions: actions});
+    }
+  }
+}
+
+AppProvider = connect(mapStateToProps, mapDispatchToProps)(AppProvider);
 //console.log(App);
 ReactDOM.render(
   <Provider store={appStore}>
@@ -74,5 +82,7 @@ ReactDOM.render(
   </Provider>,
   document.getElementById("react-root")
 );
+
+
 //App = connect()(App);
 
