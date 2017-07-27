@@ -8,11 +8,13 @@ APP_COLLECTION = 'applications'
 MY_REGION = "us-east-1"
 COST_TYPE = "LinuxReserved"
 
-NETWORK_DICT = {'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000, 
-              "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
+NETWORK_DICT = {'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
+                "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
 
 # TODO: improve query efficiency
 # convert each instance type to a vector of feature values
+
+
 def encode_instance_type(instance_type):
     # TODO: Add region to the input
     region_filter = {'region': MY_REGION}
@@ -30,12 +32,12 @@ def encode_instance_type(instance_type):
             network_bw = NETWORK_DICT[network_type]
             storage_throughput = nodetype['storageConfig']['expectedThroughput']
 
-            features = np.array([vcpu, clock_speed, mem_size, network_bw, storage_throughput])
+            features = np.array(
+                [vcpu, clock_speed, mem_size, network_bw, storage_throughput])
             break
 
     if features is None:
-        raise KeyError(
-            'Cannot find instance type: filter={}'.format{'name': instance_type})
+        raise KeyError(f'Cannot find instance type: filter={instance_type}')
 
     return features
 
@@ -60,14 +62,13 @@ def get_price(instance_type):
             break
 
     if price is None:
-        raise KeyError(
-            'Cannot find instance type: filter={}'.format{'name': instance_type})
+        raise KeyError(f'Cannot find instance type: filter={instance_type}')
 
     return price
 
 
-# cost function based on sloMetric type and value, and hourly price 
-def compute_cost(price, slo_type, qos_value)
+# cost function based on sloMetric type and value, and hourly price
+def compute_cost(price, slo_type, qos_value):
     if slo_type in ['latency', 'throughput']:
         # for long-running services, calculate the montly cost based on hourly price
         cost = price * 24 * 30
@@ -140,7 +141,7 @@ def get_calibration_dataframe(calibration_document):
 
 
 def percentile(n):
-    f = lambda series: series.quantile(n / 100)
+    def f(series): return series.quantile(n / 100)
     f.__name__ = f"percentile_{n}"
     return f
 
