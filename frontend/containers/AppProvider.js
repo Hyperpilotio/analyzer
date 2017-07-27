@@ -47,6 +47,7 @@ export default class AppProvider extends Component {
     this.setState({
       apps: _.mapValues(data, (app, _id) => _.assign({}, this.state.apps[_id], app))
     });
+    //this.props.setApps(_.mapValues(data, (app, _id) => _.assign({}, this.state.apps[_id], app)));
   }
 
   async fetchServicePlacement(recommended = false) {
@@ -60,8 +61,10 @@ export default class AppProvider extends Component {
       this.setState({
         recommendations: update(this.state.recommendations, { placement: { $set: data } })
       });
+      //this.props.setRecommendations(update(this.state.recommendations, { placement: { $set: data } }));
     } else {
       this.setState({ cluster: data });
+      //this.props.setCluster(data);        
     }
   }
 
@@ -78,6 +81,9 @@ export default class AppProvider extends Component {
         _.fromPairs([[ appId, { $set: data } ]])
       )
     });
+//    this.props.setApps(update(
+//        this.state.apps, _.fromPairs([[ appId, { $set: data } ]])
+//      ));
   }
 
   async fetchCalibration(appId) {
@@ -126,8 +132,12 @@ export default class AppProvider extends Component {
   }
 
   render() {
-    this.props.setAllActions(this.getChildContext().actions);
     return Children.only(this.props.children);
+  }
+    
+  componentDidMount() {
+//     this.props.setAllActions(this.getChildContext().actions);
+//     this.props.setState(this.getChildContext().myStore);
   }
 
 }

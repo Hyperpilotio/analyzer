@@ -23,20 +23,29 @@ var initialState = {
 };
 function reducer(state, action){
   switch(action.type){
-    case 'GET_APPS':
-      return Object.assign({}, state, {});
+    case 'SET_STATE':
+      return Object.assign({}, state, action.state);
+    
+    case 'SET_ACTIONS':
+      return Object.assign({}, state, {actions: action.actions});
+
+    case 'SET_APPS':
+      return Object.assign({}, state, {apps: action.apps});
 
     case 'FETCH_SERVICE_PLACEMENT':
       return Object.assign({}, state, {});
 
     case 'FETCH_CALIBRATION':
       return Object.assign({}, state, {});
-          
-    case 'SET_ACTIONS':
-      return Object.assign({}, state, {actions: action.actions});
+            
+    case 'SET_RECOMMENDATIONS':
+      return Object.assign({}, state, {recommendations: action.recommendations});
+    
+    case 'SET_CLUSTER':
+      return Object.assign({}, state, {cluster: action.cluster});    
 
     default:
-      return Object.assign({}, state, {});
+      return Object.assign({}, state);
   }
 }
 

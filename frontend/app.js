@@ -67,12 +67,24 @@ function mapStateToProps(state) {
 function mapDispatchToProps(dispatch){
   return {
     setAllActions: function(actions){
-      dispatch({type: 'SET_ACTIONS', actions: actions});
+        dispatch({type: 'SET_ACTIONS', actions: actions});
+    },
+    setState: function(state){
+        dispatch({type: 'SET_STATE', state: state});
+    },
+    setApps: function(apps){
+        dispatch({type: 'SET_APPS', apps: apps});
+    },
+    setRecommendations: function(recommendations){
+        dispatch({type: 'SET_RECOMMENDATIONS', recommendations: recommendations});
+    }, 
+    setCluster: function(cluster){
+        dispatch({type: 'SET_CLUSTER', cluster: cluster});
     }
-  }
+  };
 }
 
-AppProvider = connect(mapStateToProps, mapDispatchToProps)(AppProvider);
+//AppProvider = connect(mapStateToProps, mapDispatchToProps)(AppProvider);
 //console.log(App);
 ReactDOM.render(
   <Provider store={appStore}>

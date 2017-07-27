@@ -8,7 +8,6 @@ import gridIcon from "../assets/images/icon_grid_view.svg";
 import listIcon from "../assets/images/icon_list_view.svg";
 import PropTypes from "prop-types";
 import { Provider, connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
 
 function textClick(){
     return {
@@ -37,26 +36,13 @@ class ApplicationItem extends Component{
                         <p>ID: { this.props._id }</p>
                         <p>Services: { _.join(this.props.serviceNames, ", ") }</p>
                      </header>
-                     <footer><Link to={`/apps/${this.props._id}/`} onClick={this.handleClick}>Analysis Workflow</Link></footer>
+                     <footer><Link to={`/apps/${this.props._id}/`}>Analysis Workflow</Link></footer>
                 </section>
                 <mark className="right"><div className="danger badge" /></mark>
             </article>
         );
     }
 }
-function mapStateToProps(state) {
-    return {
-        cluster: state.cluster,
-        apps: state.apps,
-        calibrations: state.calibrations,
-        profilings: state.profilings,
-        interferences: state.interferences,
-        recommendations: state.recommendations,
-        action: state.action,
-        actions: state.actions
-    };
-}
-ApplicationItem = connect(mapStateToProps)(ApplicationItem);
 
 
 //const ApplicationItem = ({ _id, name, serviceNames }) => (
