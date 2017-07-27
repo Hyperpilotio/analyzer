@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 export default {
   afterDraw: ({ ctx, chart, chartArea, scale, tooltip }) => {
     ctx.save();

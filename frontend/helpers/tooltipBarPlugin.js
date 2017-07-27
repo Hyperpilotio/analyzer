@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 export default {
   beforeDraw: ({ ctx, chartArea, tooltip }) => {
     // Draw vertical tooltip bar
