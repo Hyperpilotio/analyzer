@@ -6,10 +6,23 @@ from functools import lru_cache
 # TODO: Move these into a config or constants file
 NODETYPE_COLLECTION = 'nodetypes'
 APP_COLLECTION = 'applications'
-MY_REGION = "us-east-1"
-COST_TYPE = "LinuxReserved"
+MY_REGION = 'us-east-1'
+COST_TYPE = 'LinuxReserved'
 
-NETWORK_DICT = {'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
+DEFAULT_CLOCK_SPEED = 2.3
+DEFAULT_NET_PERF = 'Low'
+DEFAULT_IO_THPT = 125
+
+MAX_VCPU = 128
+MAX_CLOCK_SPEED = 3.5
+MAX_MEM_SIZE = 1952
+MAX_NET_BW = 20000
+MAX_IO_THPT = MAX_NET_BW / 8.0
+
+MAX_FEATURE_DISTANCE = np.linalg.norm(np.array(
+    [MAX_VCPU, MAX_CLOCK_SPEED, MAX_MEM_SIZE, MAX_NET_BW, MAX_IO_THP]))
+
+NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
                 "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
 
 
@@ -23,54 +36,86 @@ def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
 
 
 @lru_cache(maxsize=1)
-def get_bounds(all_node_type):
+def get_bounds(all_node_types):
     """ Get the (min, max) boundary for each dimension
     """
-    features = [encode_instance_type(node_type) for node_type in all_node_type]
+    features = [encode_instance_type(node_type) for node_type in all_node_types]
     return list(zip(features.min(axis=0), features.max(axis=0)))
 
 
 def encode_instance_type(instance_type):
     """ convert each instance type to a vector of feature values 
-        TODO: improve query efficiency
+        TODO: improve query efficiency by precomputing & caching all feature vectors
     """
-    # TODO: Add region to the input
+
     all_nodetypes = get_all_nodetypes()
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
             vcpu = nodetype['cpuConfig']['vCPU']
-            clock_speed = nodetype['cpuConfig']['clockSpeed']
-            mem_size = nodetype['memConfig']['size']
-            network_type = nodetype['networkConfig']['networkPerformance']
-            network_bw = NETWORK_DICT[network_type]
-            storage_throughput = nodetype['storageConfig']['expectedThroughput']
+            clock_speed = nodetype['cpuConfig']['clockSpeed']['value']
+            mem_size = nodetype['memConfig']['size']['value']
+            net_perf = nodetype['networkConfig']['performance']
+            io_thpt = nodetype['storageConfig']['expectedThroughput']['value']
 
-            features = np.array(
-                [vcpu, clock_speed, mem_size, network_bw, storage_throughput])
+            if clock_speed == 0:
+                clock_speed = DEFAULT_CLOCK_SPEED
+
+            if net_perf == "":
+                net_perf = DEFAULT_NET_PERF
+            net_bw = NETWORK_DICT[net_perf]
+
+            if io_thpt is None:
+                io_thpt = DEFAULT_IO_THPT
+
+            feature_vector = np.array(
+                [vcpu, clock_speed, mem_size, net_bw, io_thpt])
             break
 
-    if features is None:
-        raise KeyError(f'Cannot find instance type: filter={instance_type}')
+    if feature_vector is None:
+        raise KeyError('Cannot find instance type: name={instance_type}')
 
-    return features
+    return feature_vector
 
 
-# TODO: Xiaoyun
 def decode_instance_type(feature_vector):
-    return 'm4.large'
+    """ convert a candidate solution recommended by the optimizer into an aws instance type
+        Args:
+            feature_vector: candidate solution in a vector space
+        Returns:
+            instance_type: node type closest to the feature vector based on a distance function
+    """
+
+    matched_type = ""
+    min_dist = MAX_FEATURE_DISTANCE
+    all_nodetypes = get_all_nodetypes()
+
+    for nodetype in all_nodetypes:
+        instance_type = nodetype['name']
+        current_vector = encode_instance_type(instance_type)
+        current_dist = feature_distance(feature_vector, current_vector)
+        if  current_dist < min_dist:
+            matched_type = instance_type
+            min_dist = current_dist
+
+    return matched_type
 
 
+def feature_distance(f1, f2):
+    return np.linalg.norm(f1 - f2)
+
+    
 # TODO: improve query efficiency
 # get from configdb the price (hourly cost) of an instance_type
 def get_price(instance_type):
-    get_all_nodetypes = get_all_nodetypes()
+    all_nodetypes = get_all_nodetypes()
+
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
             price = nodetype['hourlyCost'][COST_TYPE]['value']
             break
 
     if price is None:
-        raise KeyError(f'Cannot find instance type: filter={instance_type}')
+        raise KeyError('Cannot find instance type: name={instance_type}')
 
     return price
 
@@ -88,8 +133,8 @@ def compute_cost(price, slo_type, qos_value):
 
 
 # get from configdb the type of an application ("long-running" or "batch")
-def get_app_type(appName):
-    app_filter = {'appName': appName}
+def get_app_type(app_name):
+    app_filter = {'appName': app_name}
     app = configdb[APP_COLLECTION].find_one(app_filter)
     app_type = app['type']
 
@@ -97,8 +142,8 @@ def get_app_type(appName):
 
 
 # get from configdb the slo metric type of an application
-def get_slo_type(appName):
-    app_filter = {'appName': appName}
+def get_slo_type(app_name):
+    app_filter = {'appName': app_name}
     app = configdb[APP_COLLECTION].find_one(app_filter)
     slo_type = app['slo']['type']
 
@@ -106,15 +151,15 @@ def get_slo_type(appName):
 
 
 # TODO: probably need to change to appId.
-def create_profiling_dataframe(appName, collection='profiling'):
+def create_profiling_dataframe(app_name, collection='profiling'):
     """ Create a dataframe of features.
     Args:
-        appName(str): Map to the 'appName' in Mongo database.
+        app_name(str): Map to the 'appName' in Mongo database.
     Returns:
         df(pandas dataframe): Dataframe with rows of features, where each row is a service.
         (i.e. if an app has N services, where each service has K dimensions, the dataframe would be NxK)
     """
-    filt = {'appName': appName}
+    filt = {'appName': app_name}
     app = metricdb[collection].find_one(filt)
     if app == None:
         raise KeyError(
@@ -125,7 +170,7 @@ def create_profiling_dataframe(appName, collection='profiling'):
     # make dataframe
     ibenchScores = []
     for service in serviceNames:
-        filt = {'appName': appName, 'serviceInTest': service}
+        filt = {'appName': app_name, 'serviceInTest': service}
         app = metricdb[collection].find_one(filt)
         if app == None:
             raise KeyError(
