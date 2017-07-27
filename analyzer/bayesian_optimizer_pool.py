@@ -6,7 +6,7 @@ from sklearn.feature_extraction import DictVectorizer
 from .bayesian_optimizer import get_candidate
 from concurrent.futures import ProcessPoolExecutor
 from api_service.db import configdb
-from util import encode_instance_type, get_slo_type, get_price, compute_cost
+from .util import encode_instance_type, get_slo_type, get_price, compute_cost
 
 
 class BayesianOptimizerPool(object):
