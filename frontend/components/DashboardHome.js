@@ -19,13 +19,8 @@ function textClick(){
 class ApplicationItem extends Component{
     constructor(props) {
         super(props);
-        console.log(props);
-        this.handleClick = this.handleClick.bind(this);
     }
 
-    handleClick(){
-        this.props.actions.textClick();
-    }
     render() {
         return (
             <article>

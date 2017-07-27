@@ -84,7 +84,7 @@ function mapDispatchToProps(dispatch){
   };
 }
 
-//AppProvider = connect(mapStateToProps, mapDispatchToProps)(AppProvider);
+AppProvider = connect(mapStateToProps, mapDispatchToProps)(AppProvider);
 //console.log(App);
 ReactDOM.render(
   <Provider store={appStore}>
