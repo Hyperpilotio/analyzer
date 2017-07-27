@@ -13,14 +13,12 @@ DEFAULT_CLOCK_SPEED = 2.3
 DEFAULT_NET_PERF = 'Low'
 DEFAULT_IO_THPT = 125
 
+# TODO: Use the upper bounds to normalize the feature variables
 MAX_VCPU = 128
 MAX_CLOCK_SPEED = 3.5
 MAX_MEM_SIZE = 1952
 MAX_NET_BW = 20000
 MAX_IO_THPT = MAX_NET_BW / 8.0
-
-MAX_FEATURE_DISTANCE = np.linalg.norm(np.array(
-    [MAX_VCPU, MAX_CLOCK_SPEED, MAX_MEM_SIZE, MAX_NET_BW, MAX_IO_THP]))
 
 NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
                 "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
@@ -69,12 +67,10 @@ def encode_instance_type(instance_type):
 
             feature_vector = np.array(
                 [vcpu, clock_speed, mem_size, net_bw, io_thpt])
-            break
 
-    if feature_vector is None:
-        raise KeyError('Cannot find instance type: name={instance_type}')
-
-    return feature_vector
+            return feature_vector
+    else:
+        raise KeyError(f'Cannot find instance type: name={instance_type}')
 
 
 def decode_instance_type(feature_vector):
@@ -85,25 +81,18 @@ def decode_instance_type(feature_vector):
             instance_type: node type closest to the feature vector based on a distance function
     """
 
-    matched_type = ""
-    min_dist = MAX_FEATURE_DISTANCE
     all_nodetypes = get_all_nodetypes()
+    instane_types = [nodetype['name'] for nodetype in all_nodetypes]
+    distance = np.array(list(map(lambda x: feature_distance(encode_instance_type(x), feature_vector), 
+                                 instance_types)))
 
-    for nodetype in all_nodetypes:
-        instance_type = nodetype['name']
-        current_vector = encode_instance_type(instance_type)
-        current_dist = feature_distance(feature_vector, current_vector)
-        if  current_dist < min_dist:
-            matched_type = instance_type
-            min_dist = current_dist
-
-    return matched_type
+    return instance_types[np.argmin(distance)]
 
 
 def feature_distance(f1, f2):
     return np.linalg.norm(f1 - f2)
 
-    
+
 # TODO: improve query efficiency
 # get from configdb the price (hourly cost) of an instance_type
 def get_price(instance_type):
@@ -112,12 +101,9 @@ def get_price(instance_type):
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
             price = nodetype['hourlyCost'][COST_TYPE]['value']
-            break
-
-    if price is None:
-        raise KeyError('Cannot find instance type: name={instance_type}')
-
-    return price
+            return price
+    else:
+        raise KeyError(f'Cannot find instance type: name={instance_type}')
 
 
 # cost function based on sloMetric type and value, and hourly price
