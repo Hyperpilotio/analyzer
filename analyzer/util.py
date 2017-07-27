@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from api_service.db import metricdb, configdb
+from functools import lru_cache
 
 # TODO: Move these into a config or constants file
 NODETYPE_COLLECTION = 'nodetypes'
@@ -21,6 +22,7 @@ def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
     return all_nodetypes
 
 
+@lru_cache(maxsize=1)
 def get_bounds(all_node_type):
     """ Get the (min, max) boundary for each dimension
     """

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .bayesian_optimizer import get_candidate
-from .util import compute_cost, encode_instance_type, decode_instance_type, get_price, get_slo_type
+from .util import compute_cost, encode_instance_type, decode_instance_type, get_price, get_slo_type, get_bounds
 
 
 class BayesianOptimizerPool():
@@ -43,12 +43,11 @@ class BayesianOptimizerPool():
             self.sample_map[app_id] = df
 
     def get_candidates(self, app_id, request_body):
-        df = self.sample_map[app_id]
         # update the shared sample place holder
         self.update_sample_map(app_id, request_body)
-        self.future_map[app_id] = []
+        # fetch the latest sample_map        
+        df = self.sample_map[app_id]
 
-        df = self.create_sizing_dataframe(request_body)
         features = np.array(df['feature'])
         objective_perf_over_cost = np.array(df['objective_perf_over_cost'])
         objective_cost_satisfies_slo = np.array(
@@ -57,6 +56,7 @@ class BayesianOptimizerPool():
             df['objective_perf_satisfies_slo'])
         bounds = get_bounds()
 
+        self.future_map[app_id] = []
         for obj in [objective_perf_over_cost, objective_cost_satisfies_slo, objective_perf_satisfies_slo]:
             future = self.worker_pool.submit(
                 get_candidate,
@@ -65,6 +65,11 @@ class BayesianOptimizerPool():
                 bounds
             )
             self.future_map[app_id].append(future)
+
+    def create_bo_feature(self, app_id, request_body, kind):
+        """ TODO: deal with different kind of acq
+        """
+        pass
 
     def get_status(self, app_id):
         future_list = self.future_map.get(app_id)
