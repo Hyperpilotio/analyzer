@@ -139,7 +139,7 @@ class BayesianOptimizationTest(TestCase):
                                   constraint=2., constraints=c_train)
         logger.debug(f"argmax of acquisition CEI_numeric:\n{candidate}")
 
-    def oracleTest(self):
+    def testOracle(self):
         """ Check for correctness with reference implementation
         """
         def f(x):
