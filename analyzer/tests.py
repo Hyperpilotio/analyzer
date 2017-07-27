@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 
 import logging
 import json
-import os
 import pandas as pd
+import numpy as np
 from unittest import TestCase
 from time import sleep
 from pathlib import Path
@@ -16,9 +16,7 @@ from logger import get_logger
 
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
-
-class BayesianOptimizationTest(TestCase):
-
+class BayesianOptimizationPoolTest(TestCase):
     def setUp(self):
         logger.debug('Creating flask clients')
         self.client = api_service_app.test_client()
@@ -59,16 +57,18 @@ class BayesianOptimizationTest(TestCase):
         """ Test Cherry pick workflow without testing BayesianOptimizationPool 
         """
         rawdata = self.getTestRequest()
-        df = encode(rawdata) # convert request to rawdata
-        
+        df = encode(rawdata)  # convert request to rawdata
+
         # Feature
         feature = np.array(df['feature'])
         # Objective values
         objective_perf_over_cost = np.array(df['objective_perf_over_cost'])
-        objective_cost_satisfies_slo = np.array(df['objective_cost_satisfies_slo'])
-        objective_perf_satisfies_slo = np.array(df['objective_perf_satisfies_slo'])
+        objective_cost_satisfies_slo = np.array(
+            df['objective_cost_satisfies_slo'])
+        objective_perf_satisfies_slo = np.array(
+            df['objective_perf_satisfies_slo'])
         # Set the boundary of encoded feature space. (to be implemented)
-        bounds = get_bounds() 
+        bounds = get_bounds()
 
         outputs = []
         for j in [objective_perf_over_cost, objective_cost_satisfies_slo, objective_perf_satisfies_slo]:
@@ -76,19 +76,61 @@ class BayesianOptimizationTest(TestCase):
             outputs.append(output)
         # The final result of instance_type (i.e. [x2.large, x2.xlarge, t2.xlarge])
         candidates = [decode(output) for output in outputs]
-
-
-
-    def testBayesianOptimizer(self):
-        import numpy as np
-        # dimension=7, nsamples=2
-        result = get_candidate(np.array([[6, 9, 9, 0, 8, 0, 9], [
-            9, 8, 8, 0, 8, 5, 8]]), np.array([0.8, 0.7]), [(0, 1)] * 7)
-        logger.debug(result)
-
+    
     def testSingleton(self):
         # TODO: Test if the singleton works in multiprocess
         pass
+
+
+class BayesianOptimizationTest(TestCase):
+
+    def testGetCandidateEI(self):
+        """ Flow dummy data through get_candidate with acquisition = ei
+        """
+        # Preparing dummy data
+        n_dimension, n_sample = 12, 10
+        lo, hi = 0, 1
+
+        X_train, y_train, c_train = np.random.rand(
+            n_sample, n_dimension), np.random.rand(n_sample), np.random.rand(n_sample)
+        bounds = [(lo, hi)] * n_dimension  # boundary for of searching space
+
+        # Test with EI acquisition
+        candidate = get_candidate(X_train, y_train, bounds, acq='ei')
+        logger.debug(candidate)
+
+    def testGetCandidateCEIAnaltric(self):
+        """ Flow dummy data through get_candidate with acquisition = cei_analytic
+        """
+        # Preparing dummy data
+        n_dimension, n_sample = 12, 10
+        lo, hi = 0, 1
+
+        X_train, y_train, c_train = np.random.rand(
+            n_sample, n_dimension), np.random.rand(n_sample), np.random.rand(n_sample)
+        bounds = [(lo, hi)] * n_dimension  # boundary for of searching space
+
+         # Test with CEI_analytic acquisition
+        candidate = get_candidate(X_train, y_train, bounds, acq='cei_analytic',
+                                  constraint=2., constraints=y_train)
+        logger.debug(candidate)
+
+    def testGetCandidateCEINumeric(self):
+        """ Flow dummy data through get_candidate with acquisition = cei_numeric
+        """
+        # Preparing dummy data
+        n_dimension, n_sample = 12, 10
+        lo, hi = 0, 1
+
+        X_train, y_train, c_train = np.random.rand(
+            n_sample, n_dimension), np.random.rand(n_sample), np.random.rand(n_sample)
+        bounds = [(lo, hi)] * n_dimension  # boundary for of searching space
+
+        # Test with CEI_numeric acquisition        
+        candidate = get_candidate(X_train, y_train, bounds, acq='cei_numeric',
+                                  constraint=2., constraints=c_train)
+        logger.debug(candidate)
+
 
 
 class PredictionTest(TestCase):
