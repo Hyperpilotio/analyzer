@@ -11,18 +11,29 @@ COST_TYPE = "LinuxReserved"
 NETWORK_DICT = {'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
                 "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
 
-# TODO: improve query efficiency
-# convert each instance type to a vector of feature values
 
-
-def encode_instance_type(instance_type):
-    # TODO: Add region to the input
-    region_filter = {'region': MY_REGION}
-    all_nodetypes = configdb[NODETYPE_COLLECTION].find_one(region_filter)
+def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
+    region_filter = {'region': region}
+    all_nodetypes = configdb[collection].find_one(region_filter)
     if all_nodetypes is None:
         raise KeyError(
             'Cannot find nodetype document: filter={}'.format(region_filter))
+    return all_nodetypes
 
+
+def get_bounds(all_node_type):
+    """ Get the (min, max) boundary for each dimension
+    """
+    features = [encode_instance_type(node_type) for node_type in all_node_type]
+    return list(zip(features.min(axis=0), features.max(axis=0)))
+
+
+def encode_instance_type(instance_type):
+    """ convert each instance type to a vector of feature values 
+        TODO: improve query efficiency
+    """
+    # TODO: Add region to the input
+    all_nodetypes = get_all_nodetypes()
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
             vcpu = nodetype['cpuConfig']['vCPU']
@@ -50,12 +61,7 @@ def decode_instance_type(feature_vector):
 # TODO: improve query efficiency
 # get from configdb the price (hourly cost) of an instance_type
 def get_price(instance_type):
-    region_filter = {'region': MY_REGION}
-    all_nodetypes = configdb[NODETYPE_COLLECTION].find_one(region_filter)
-    if all_nodetypes is None:
-        raise KeyError(
-            'Cannot find nodetype document: filter={}'.format(region_filter))
-
+    get_all_nodetypes = get_all_nodetypes()
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
             price = nodetype['hourlyCost'][COST_TYPE]['value']
