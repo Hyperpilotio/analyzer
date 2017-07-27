@@ -99,6 +99,9 @@ export default class AppProvider extends Component {
         _.fromPairs([[appId, {$set: data}]])
       )
     });
+    this.props.setCalibrations(update(this.state.calibrations,
+        _.fromPairs([[appId, {$set: data}]])
+      ));
   }
 
   async fetchProfiling(appId, serviceName) {
@@ -114,6 +117,10 @@ export default class AppProvider extends Component {
         _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
       )
     });
+    this.props.setProfilings(update(
+        this.state.profilings,
+        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
+      ));
   }
 
   async fetchInterference(appId, serviceName) {
@@ -129,15 +136,22 @@ export default class AppProvider extends Component {
         _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
       )
     });
+    this.props.setInterferences(update(
+        this.state.interferences,
+        _.fromPairs([[`${appId}-${serviceName}`, {$set: data}]])
+      ));
+  }
+  
+  //must set state well before component mount      
+  componentWillMount() {
+      let actions = this.getChildContext().actions;
+      this.props.setAllActions(actions);
+      this.props.setState(this.getChildContext().myStore);
   }
 
+
   render() {
-    return Children.only(this.props.children);
-  }
-    
-  componentDidMount() {
-     this.props.setAllActions(this.getChildContext().actions);
-     this.props.setState(this.getChildContext().myStore);
+      return Children.only(this.props.children);
   }
 
 }

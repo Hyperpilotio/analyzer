@@ -46,3 +46,4 @@ export default class AppPage extends Component {
   }
 
 }
+module.exports = AppPage;

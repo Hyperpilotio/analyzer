@@ -4,17 +4,23 @@ import React, { Component } from "react";
 import { BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
 import ReactDOM from "react-dom";
 import HeaderNav from "./components/HeaderNav";
-import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
-import AppPage from "./containers/AppPage";
+//import AppPage from "./containers/AppPage";
 import UserAuth from "./components/UserAuth";
 //import AppProvider from "./containers/AppProvider";
 import PropTypes from "prop-types";
 import { render } from 'react-dom';
 import { Provider, connect } from 'react-redux';
-import { appStore } from './containers/AppReducer'
+import { appStore, mapStateToProps, mapDispatchToProps } from './containers/AppReducer'
 
+//import will be set as const variable
 let AppProvider = require("./containers/AppProvider");
+let DashboardHome = require("./components/DashboardHome");
+let AppPage = require("./containers/AppPage");
+
+
+DashboardHome = connect(mapStateToProps, mapDispatchToProps)(DashboardHome);
+AppPage = connect(mapStateToProps, mapDispatchToProps)(AppPage);
 class App extends Component {
   constructor(props) {
      super(props);
@@ -26,8 +32,9 @@ class App extends Component {
   }
 
   componentDidMount() {
-    if (_.keys(this.context.myStore.apps).length === 0)
-      this.context.actions.getApps();
+    if (_.keys(this.context.myStore.apps).length === 0){
+      this.props.actions.getApps();
+    }
   }
 
   render() {
@@ -54,37 +61,9 @@ class App extends Component {
   }
 }
 
-function mapStateToProps(state) {
-    return {
-        cluster: state.cluster,
-        apps: state.apps,
-        calibrations: state.calibrations,
-        profilings: state.profilings,
-        interferences: state.interferences,
-        recommendations: state.recommendations
-    };
-}
-function mapDispatchToProps(dispatch){
-  return {
-    setAllActions: function(actions){
-        dispatch({type: 'SET_ACTIONS', actions: actions});
-    },
-    setState: function(state){
-        dispatch({type: 'SET_STATE', state: state});
-    },
-    setApps: function(apps){
-        dispatch({type: 'SET_APPS', apps: apps});
-    },
-    setRecommendations: function(recommendations){
-        dispatch({type: 'SET_RECOMMENDATIONS', recommendations: recommendations});
-    }, 
-    setCluster: function(cluster){
-        dispatch({type: 'SET_CLUSTER', cluster: cluster});
-    }
-  };
-}
 
 AppProvider = connect(mapStateToProps, mapDispatchToProps)(AppProvider);
+App = connect(mapStateToProps, mapDispatchToProps)(App);
 //console.log(App);
 ReactDOM.render(
   <Provider store={appStore}>
