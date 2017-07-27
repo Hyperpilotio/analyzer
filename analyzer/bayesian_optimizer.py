@@ -1,12 +1,11 @@
-from __future__ import print_function
-from __future__ import division
+from __future__ import division, print_function
 
 import numpy as np
+from logger import get_logger
+from scipy.optimize import minimize
+from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern
-from scipy.stats import norm
-from scipy.optimize import minimize
-from logger import get_logger
 
 logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
@@ -160,6 +159,7 @@ def get_candidate(features, objectives, bounds, acq='cei_analytic', constraints=
     Return:
         argmax(vector): argmax of acquisition function
     """
+    # features = features.reshape(2, -1)
     # Set boundary
     bounds = np.asarray(bounds)
 
@@ -175,11 +175,11 @@ def get_candidate(features, objectives, bounds, acq='cei_analytic', constraints=
 
     # Find unique rows of X to avoid GP from breaking
     ur = unique_rows(features)
-    logger.debug("Fitting Gaussian Processor Regressor")
+    logger.debug(f"Fitting Gaussian Processor Regressor: {gp_objective}")
     gp_objective.fit(features[ur], objectives[ur])
 
     # Finding argmax of the acquisition function.
-    logger.debug("Computing argmax_x of acquisition function")
+    logger.debug("Computing argmax of acquisition function")
     y_max = objectives.max()
 
     if acq == 'cei_analytic':
@@ -204,8 +204,7 @@ def get_candidate(features, objectives, bounds, acq='cei_analytic', constraints=
         gp_constraint.set_params(**gp_params)
         # Find unique rows of X to avoid GP from breaking
         ur = unique_rows(features)
-        logger.debug(ur)
-        logger.debug("Fitting Gaussian Processor Regressor")
+        logger.debug(f"Fitting Gaussian Processor Regressor: {gp_constraint}")
         gp_constraint.fit(features[ur], constraints[ur])
 
         argmax = acq_max(ac=util.utility,
