@@ -7,6 +7,7 @@ import kafkaLogo from "../assets/images/asset_kafka_logo.svg";
 import gridIcon from "../assets/images/icon_grid_view.svg";
 import listIcon from "../assets/images/icon_list_view.svg";
 import PropTypes from "prop-types";
+import _ from "lodash";
 
 
 const ApplicationItem = ({ _id, name, serviceNames }) => (

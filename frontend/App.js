@@ -7,6 +7,7 @@ import AppPage from "./containers/AppPage";
 import UserAuth from "./components/UserAuth";
 import AppProvider from "./containers/AppProvider";
 import PropTypes from "prop-types";
+import _ from "lodash";
 
 
 class App extends Component {
