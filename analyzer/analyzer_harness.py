@@ -172,9 +172,6 @@ def __main__():
                          args.ioa, args.iob, args.ioc, args.iow, \
                          args.noise, args.nrange)
 
-  # initialyze analyzer
-  # TODO
-
   # get all the instance info
   all_nodetypes = util.get_all_nodetypes()
   numtypes = len(all_nodetypes)
@@ -189,27 +186,9 @@ def __main__():
   # visited instances
   visited = set()
 
-  # provide 3 random instances to analyzer
-  rand = randint(0, numtypes)
-  type1 = features.keys()[rand]
-  feat = features[type1]
-  perf1 = cloud_perf.perf(feat[0], feat[1], feat[2], feat[3], feat[4], True)
-  visited.add(type1)
-  rand = randint(0, numtypes)
-  type2 = features.keys()[rand]
-  feat = features[type2]
-  perf2 = cloud_perf.perf(feat[0], feat[1], feat[2], feat[3], feat[4], True)
-  visited.add(type2)
-  type3 = features.keys()[rand]
-  feat = features[type3]
-  feat = util.encode_instance_type(type3)
-  perf3 = cloud_perf.perf(feat[0], feat[1], feat[2], feat[3], feat[4], True)
-  visited.add(type3)
-  request_str = "{\"appName\": \"redis\", \
-                 \"data\": [ {\"instanceType\": \"%s\", \"qosValue\": %f}, \
-                             {\"instanceType\": \"%s\", \"qosValue\": %f}, \
-                             {\"instanceType\": \"%s\", \"qosValue\": %f}]}" \
-                 %(type1, perf1, type2, perf2, type3, perf3)
+  # initialyze analyzer
+  analyzer = bayesian_optimizer_pool.BayesianOptimizerPool()
+  request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
   request_dict = json.loads(request_str)
   analyzer.get_candidates("redis", request_dict)
 
