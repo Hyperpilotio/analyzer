@@ -4,15 +4,20 @@ import { Switch, Route, Redirect } from "react-router";
 import { NavLink, Link } from "react-router-dom";
 import KeyInfo from "./KeyInfo";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
-import CalibrationChart from "../containers/CalibrationChart";
+//import CalibrationChart from "../containers/CalibrationChart";
 import ProfilingChart from "../containers/ProfilingChart";
 import InterferenceChart from "../containers/InterferenceChart";
 import MetricScoreChart from "./MetricScoreChart";
 import _ from "lodash";
-
 // For cross-app interference chart, use random dataset for now
 import CrossAppInterfChart from "./CrossAppInterfChart";
+import { connect } from 'react-redux';
+import { mapStateToProps } from '../containers/AppReducer'
 
+
+
+let CalibrationChart = require("../containers/CalibrationChart");
+CalibrationChart = connect(mapStateToProps)(CalibrationChart);
 export default ({ appId, data, loading }) => (
   <div className="app-page-body">
 

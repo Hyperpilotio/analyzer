@@ -13,7 +13,7 @@ import { render } from 'react-dom';
 import { Provider, connect } from 'react-redux';
 import { appStore, mapStateToProps, mapDispatchToProps } from './containers/AppReducer'
 
-//import will be set as const variable
+//can not use import because it will be set as const variable
 let AppProvider = require("./containers/AppProvider");
 let DashboardHome = require("./components/DashboardHome");
 let AppPage = require("./containers/AppPage");

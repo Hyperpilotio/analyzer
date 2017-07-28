@@ -19,17 +19,20 @@ export default class AppPage extends Component {
   state = { data: null, loading: true }
 
   async fetchData(appId) {
-    if (!_.has(this.context.myStore.apps[appId], "type")) {
-      await this.context.actions.fetchAppInfo(appId)
+    // if (!_.has(this.context.myStore.apps[appId], "type")) {
+    //   await this.context.actions.fetchAppInfo(appId)
+    // }
+    if (!_.has(this.props.apps[appId], "type")) {
+      await this.props.actions.fetchAppInfo(appId)
     }
     this.setState({
-      data: this.context.myStore.apps[appId],
+      data: this.props.apps[appId],
       loading: false
     });
   }
 
   componentDidMount() {
-    this.setState({ data: this.context.myStore.apps[this.appId] });
+    this.setState({ data: this.props.apps[this.appId] });
     this.fetchData(this.appId);
   }
 

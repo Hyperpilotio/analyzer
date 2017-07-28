@@ -57,14 +57,18 @@ class ApplicationItem extends Component{
 
 
 export default class DashboardHome extends Component {
+  constructor(props) {
+        super(props);
+  }
 
   static contextTypes = {
     myStore: PropTypes.object,
-    actions: PropTypes.object
+    actions: PropTypes.object, 
   };
 
   render() {
-    const { apps } = this.context.myStore;
+    //const { apps } = this.context.myStore;
+    const apps = this.props.apps;
     return <div className="dashboard">
 
       <KeyInfo>

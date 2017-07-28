@@ -14,11 +14,14 @@ export default class CalibrationChart extends Component {
   state = { data: null, loading: true }
 
   async fetchData(appId) {
-    if (_.isUndefined(_.get(this.context.myStore.calibrations, appId))) {
-      await this.context.actions.fetchCalibration(appId)
+    // if (_.isUndefined(_.get(this.context.myStore.calibrations, appId))) {
+    //   await this.context.actions.fetchCalibration(appId)
+    // }
+    if (_.isUndefined(_.get(this.props.calibrations, appId))) {
+      await this.props.actions.fetchCalibration(appId)
     }
     this.setState({
-      data: this.context.myStore.calibrations[appId],
+      data: this.props.calibrations[appId],
       loading: false
     });
   }
@@ -37,5 +40,5 @@ export default class CalibrationChart extends Component {
   render() {
     return <CalibrationChartComponent {...this.state} />
   }
-
 }
+module.exports = CalibrationChart;

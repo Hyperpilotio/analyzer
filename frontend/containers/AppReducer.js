@@ -54,17 +54,7 @@ function reducer(state, action){
 
 
 function mapStateToProps(state) {
-    return {
-        cluster: state.cluster,
-        apps: state.apps,
-        calibrations: state.calibrations,
-        profilings: state.profilings,
-        interferences: state.interferences,
-        recommendations: state.recommendations,
-        action: state.action,
-        actions: state.actions
-
-    };
+    return state;
 }
 
 function mapDispatchToProps(dispatch){
