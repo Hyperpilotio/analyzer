@@ -11,27 +11,16 @@ from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_instance_type, encode_instance_type,
-                   get_all_nodetypes, get_bounds, get_price, get_slo_type)
+                    get_all_nodetypes, get_bounds, get_price, get_slo_type, get_slo_value, get_budget)
 
 logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
-
-
-class BOTrainingData():
-    """ Training data for bayesian optimizer
-    """
-
-    def __init__(self, objective_type, feature_mat, objective_arr, constraint_arr=None, constraint_upper=None):
-        self.objective_type = objective_type
-        self.feature_mat = feature_mat
-        self.objective_arr = objective_arr
-        self.constraint_arr = constraint_arr
-        self.constraint_upper = constraint_upper
 
 
 class BayesianOptimizerPool():
     """ This class manages the training samples for each app_id,
         dispatches the optimization jobs, and track the status of jobs.
     """
+
     # TODO: Thread safe?
     __singleton_lock = threading.Lock()
     __singleton_instance = None
@@ -61,33 +50,31 @@ class BayesianOptimizerPool():
         Returns:
             None. client are expect to pull the results with get_status method.
         """
-        # update the shared sample map holder
+        # update the shared sample map
         self.update_sample_map(app_id, request_body)
         # fetch the latest sample_map
-        df = self.sample_map[app_id]
+        dataframe = self.sample_map[app_id]
         # create the training data to Bayesian optimizer
-        c1 = BayesianOptimizerPool.create_optimizer_training_data(
-            df, objective_type='perf_over_cost')
-        c2 = BayesianOptimizerPool.create_optimizer_training_data(
-            df, objective_type='cost_given_perf')
-        c3 = BayesianOptimizerPool.create_optimizer_training_data(
-            df, objective_type='perf_given_cost')
+        training_data_list = [BayesianOptimizerPool.
+                              make_optimizer_training_data(
+                                  dataframe, objective_type=o)
+                              for o in ['perf_over_cost', 'cost_given_perf', 'perf_given_cost']]
 
-        bounds = get_bounds(get_all_nodetypes())
-
+        feature_bounds = get_bounds(get_all_nodetypes())
         self.future_map[app_id] = []
-        for c in [c1, c2, c3]:
-            logger.info(f"Dispatching optimizer: \n {c}")
-            acq = 'ei' if c.constraint_upper is None else 'cei_numeric'
+
+        for training_data in training_data_list:
+            logger.info(f"[{app_id}]Dispatching optimizer: \n {training_data}")
+            acq = 'cei_numeric' if training_data.has_constraint else 'ei'
 
             future = self.worker_pool.submit(
                 get_candidate,
-                c.feature_mat,
-                c.objective_arr,
-                bounds,
+                training_data.feature_mat,
+                training_data.objective_arr,
+                feature_bounds,
                 acq=acq,
-                constraint_arr=c.constraint_arr,
-                constraint_upper=c.constraint_upper
+                constraint_arr=training_data.constraint_arr,
+                constraint_upper=training_data.constraint_upper
             )
             self.future_map[app_id].append(future)
 
@@ -128,10 +115,33 @@ class BayesianOptimizerPool():
         return True
 
     @staticmethod
-    def create_optimizer_training_data(df, objective_type=None):
+    def make_optimizer_training_data(df, objective_type=None):
         """ Convert the objective and constraints such the optimizer can always‰:
             1. maximize objective function such that 2. constraints function < constraint
         """
+        class BOTrainingData():
+            """ Training data for bayesian optimizer
+            """
+
+            def __init__(self, objective_type, feature_mat, objective_arr,
+                         constraint_arr=None, constraint_upper=None):
+                self.objective_type = objective_type
+                self.feature_mat = feature_mat
+                self.objective_arr = objective_arr
+                self.constraint_arr = constraint_arr
+                self.constraint_upper = constraint_upper
+
+            def __str__(self):
+                return f'objective_type: {self.objective_type}\n' +\
+                    f'feature_mat: {self.feature_mat}\n' + \
+                    f'objective_arr: {self.objective_arr}\n' + \
+                    f'constraint_arr: {self.constraint_arr}\n' + \
+                    f'constraint_upper: {self.constraint_upper}\n'
+
+            def has_constraint(self):
+                """ See if this trainning data has constraint """
+                return self.constraint_upper is not None
+
         implmentation = ['perf_over_cost',
                          'cost_given_perf', 'perf_given_cost']
         if objective_type not in implmentation:
@@ -179,8 +189,8 @@ class BayesianOptimizerPool():
                                'instance_type': [instance_type],
                                'feature': [encode_instance_type(instance_type)],
                                'cost': [compute_cost(get_price(instance_type), slo_type, qos_value)],
-                               'perf_constraint': [0],  # TODO
-                               'cost_constraint': [0]  # TODO
+                               'slo': [get_slo_value(app_name)],
+                               'budget': [get_budget(app_name)]
                                })
             dfs.append(df)
         return pd.concat(dfs)
