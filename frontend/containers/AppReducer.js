@@ -58,7 +58,7 @@ function mapDispatchToProps(dispatch){
     setAllActions: function(actions){
         dispatch({type: 'SET_ACTIONS', actions: actions});
     },
-    setState: function(state){
+    setMyState: function(state){
         dispatch({type: 'SET_STATE', state: state});
     },
     setApps: function(apps){

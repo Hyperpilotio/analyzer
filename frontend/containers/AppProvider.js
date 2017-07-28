@@ -146,7 +146,7 @@ export default class AppProvider extends Component {
   componentWillMount() {
       let actions = this.getChildContext().actions;
       this.props.setAllActions(actions);
-      this.props.setState(this.getChildContext().myStore);
+      this.props.setMyState(this.getChildContext().myStore);
   }
 
 
