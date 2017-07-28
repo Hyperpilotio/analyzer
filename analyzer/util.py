@@ -37,7 +37,8 @@ def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
 def get_bounds(all_node_types):
     """ Get the (min, max) boundary for each dimension
     """
-    features = [encode_instance_type(node_type) for node_type in all_node_types]
+    features = np.array([encode_instance_type(node_type)
+                         for node_type in all_node_types])
     return list(zip(features.min(axis=0), features.max(axis=0)))
 
 
@@ -82,8 +83,8 @@ def decode_instance_type(feature_vector):
     """
 
     all_nodetypes = get_all_nodetypes()
-    instane_types = [nodetype['name'] for nodetype in all_nodetypes]
-    distance = np.array(list(map(lambda x: feature_distance(encode_instance_type(x), feature_vector), 
+    instance_types = [nodetype['name'] for nodetype in all_nodetypes]
+    distance = np.array(list(map(lambda x: feature_distance(encode_instance_type(x), feature_vector),
                                  instance_types)))
 
     return instance_types[np.argmin(distance)]
@@ -136,6 +137,22 @@ def get_slo_type(app_name):
     return slo_type
 
 
+def get_slo_value(app_name):
+    app_filter = {'appName': app_name}
+    app = configdb[APP_COLLECTION].find_one(app_filter)
+    slo_type = app['slo']['value']
+
+    return slo_type
+
+
+def get_budget(app_name):
+    app_filter = {'appName': app_name}
+    app = configdb[APP_COLLECTION].find_one(app_filter)
+    budget = app['slo']['budget']
+
+    return budget
+
+
 # TODO: probably need to change to appId.
 def create_profiling_dataframe(app_name, collection='profiling'):
     """ Create a dataframe of features.
@@ -147,7 +164,7 @@ def create_profiling_dataframe(app_name, collection='profiling'):
     """
     filt = {'appName': app_name}
     app = metricdb[collection].find_one(filt)
-    if app == None:
+    if app is None:
         raise KeyError(
             'Cannot find document: filter={}'.format(filt))
     serviceNames = pd.Index(app['services'])
@@ -158,7 +175,7 @@ def create_profiling_dataframe(app_name, collection='profiling'):
     for service in serviceNames:
         filt = {'appName': app_name, 'serviceInTest': service}
         app = metricdb[collection].find_one(filt)
-        if app == None:
+        if app is None:
             raise KeyError(
                 'Cannot find document: filter={}'.format(filt))
         ibenchScores.append([i['toleratedInterference']
