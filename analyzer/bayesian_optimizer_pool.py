@@ -45,7 +45,7 @@ class BayesianOptimizerPool():
     def get_candidates(self, app_id, request_body):
         # update the shared sample place holder
         self.update_sample_map(app_id, request_body)
-        # fetch the latest sample_map        
+        # fetch the latest sample_map
         df = self.sample_map[app_id]
 
         features = np.array(df['feature'])
@@ -86,9 +86,9 @@ class BayesianOptimizerPool():
                 else:
                     return {"Status": "Done", "instance_type": list(map(lambda feature: decode_instance_type(feature), candidates))}
             else:
-                return {"Status": "Unexpected future state"}
+                return {"Status": "Exception", "Exception": "Unexpected future state"}
         else:
-            return {"Status": "Not running"}
+            return {"Status": "Submitted"}
 
     # TODO: implement objective functions
     @staticmethod
