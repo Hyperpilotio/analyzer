@@ -6,11 +6,6 @@ import ServicePlacementComponent from "../components/ServicePlacement";
 
 export default class ServicePlacement extends Component {
 
-  // static contextTypes = {
-  //   myStore: PropTypes.object,
-  //   actions: PropTypes.object
-  // }
-
   state = { placement: null, loading: true }
 
   constructor(props) {

@@ -145,7 +145,6 @@ export default class AppProvider extends Component {
   //must set state well before component mount      
   componentWillMount() {
       let actions = this.getChildContext().actions;
-      console.log(actions.fetchProfiling);
       this.props.setAllActions(actions);
       this.props.setState(this.getChildContext().myStore);
   }

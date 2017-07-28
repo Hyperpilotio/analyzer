@@ -6,11 +6,6 @@ import ProfilingChartComponent from "../components/ProfilingChart";
 
 export default class ProfilingChart extends Component {
 
-  // static contextTypes = {
-  //   myStore: PropTypes.object,
-  //   actions: PropTypes.object
-  // }
-
   state = { data: null, loading: true };
 
   async fetchData(appId, serviceName) {
