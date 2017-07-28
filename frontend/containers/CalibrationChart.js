@@ -6,10 +6,10 @@ import CalibrationChartComponent from "../components/CalibrationChart";
 
 export default class CalibrationChart extends Component {
 
-  static contextTypes = {
-    myStore: PropTypes.object,
-    actions: PropTypes.object
-  }
+  // static contextTypes = {
+  //   myStore: PropTypes.object,
+  //   actions: PropTypes.object
+  // }
 
   state = { data: null, loading: true }
 

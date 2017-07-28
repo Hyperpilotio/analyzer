@@ -6,19 +6,19 @@ import ProfilingChartComponent from "../components/ProfilingChart";
 
 export default class ProfilingChart extends Component {
 
-  static contextTypes = {
-    myStore: PropTypes.object,
-    actions: PropTypes.object
-  }
+  // static contextTypes = {
+  //   myStore: PropTypes.object,
+  //   actions: PropTypes.object
+  // }
 
   state = { data: null, loading: true };
 
   async fetchData(appId, serviceName) {
-    if (!_.has(this.context.myStore.profilings, `${appId}-${serviceName}`)) {
-      await this.context.actions.fetchProfiling(appId, serviceName)
+    if (!_.has(this.props.profilings, `${appId}-${serviceName}`)) {
+      await this.props.actions.fetchProfiling(appId, serviceName)
     }
     this.setState({
-      data: this.context.myStore.profilings[`${appId}-${serviceName}`],
+      data: this.props.profilings[`${appId}-${serviceName}`],
       loading: false
     });
   }
@@ -39,3 +39,4 @@ export default class ProfilingChart extends Component {
   }
 
 }
+module.exports = ProfilingChart;

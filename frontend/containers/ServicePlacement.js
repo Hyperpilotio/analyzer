@@ -6,25 +6,25 @@ import ServicePlacementComponent from "../components/ServicePlacement";
 
 export default class ServicePlacement extends Component {
 
-  static contextTypes = {
-    myStore: PropTypes.object,
-    actions: PropTypes.object
-  }
+  // static contextTypes = {
+  //   myStore: PropTypes.object,
+  //   actions: PropTypes.object
+  // }
 
   state = { placement: null, loading: true }
 
   constructor(props) {
     super(props);
     if (props.recommended) {
-      this.placementObject = "context.myStore.recommendations.placement";
+      this.placementObject = "props.recommendations.placement";
     } else {
-      this.placementObject = "context.myStore.cluster";
+      this.placementObject = "props.cluster";
     }
   }
 
   async fetchData() {
     if (_.isEmpty(_.get(this, this.placementObject))) {
-      await this.context.actions.fetchServicePlacement(this.props.recommended);
+      await this.props.actions.fetchServicePlacement(this.props.recommended);
     }
     this.setState({
       placement: _.get(this, this.placementObject),
@@ -42,3 +42,4 @@ export default class ServicePlacement extends Component {
   }
 
 }
+module.exports = ServicePlacement;

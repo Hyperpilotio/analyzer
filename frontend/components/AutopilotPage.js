@@ -1,12 +1,17 @@
 import React from "react";
 import { Link, Route, Switch } from "react-router-dom";
 import MetricScoreChart from "./MetricScoreChart";
-import ServicePlacement from "../containers/ServicePlacement";
+// import ServicePlacement from "../containers/ServicePlacement";
 import redisLogo from "../assets/images/asset_redis_logo.svg";
 import mongoLogo from "../assets/images/asset_mongoDB_logo.svg";
 import kafkaLogo from "../assets/images/asset_kafka_logo.svg";
 
+import { connect } from 'react-redux';
+import { mapStateToProps } from '../containers/AppReducer'
 
+
+let ServicePlacement = require("../containers/ServicePlacement");
+ServicePlacement = connect(mapStateToProps)(ServicePlacement);
 export default ({ placement }) => (
   <div className="container autopilot">
     <div className="columns">
