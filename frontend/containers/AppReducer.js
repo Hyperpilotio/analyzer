@@ -1,8 +1,4 @@
-import React, { Component, Children } from "react";
-import update from "immutability-helper";
 import { createStore } from 'redux';
-import _ from "lodash";
-import AppProvider from './AppProvider';
 
 var initialState = {
     cluster: {},
