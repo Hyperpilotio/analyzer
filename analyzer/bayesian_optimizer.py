@@ -42,7 +42,7 @@ class UtilityFunction(object):
         if self.kind == 'ei':
             return UtilityFunction._ei(x, gp_objective, xi)
         if self.kind == 'cei':
-            assert gp_constraint is not None, 'gaussian processor of constraint must be provided'
+            assert gp_constraint is not None, 'gaussian processor for constraint must be provided'
             assert constraint_upper is not None, 'constraint_upper must be provided'
             return UtilityFunction._cei(x, gp_objective, xi, gp_constraint, constraint_upper)
         if self.kind == 'poi':
@@ -65,7 +65,6 @@ class UtilityFunction(object):
         """ Compute the cdf under constraint_upper (i.e. P(c(x) < constraint_upper)) modualte the ei(x).
             whereas c(x) is a estimated gaussian distribution.
         """
-        y_max = gp_objective.y_train_.max()
         ei = UtilityFunction._ei(x, gp_objective, xi)
 
         mean, std = gp_constraint.predict(x, return_std=True)
@@ -94,7 +93,7 @@ def acq_max(utility, bounds):
     Returns
         x_max: The arg max of the acquisition function.
     """
-    
+
     # Warm up with random points
     x_tries = np.random.uniform(bounds[:, 0], bounds[:, 1],
                                 size=(100000, bounds.shape[0]))
@@ -150,7 +149,7 @@ def get_fitted_gaussian_processor(X_train, y_train, **gp_params):
     ur = unique_rows(X_train)
     logger.debug(f"Fitting gaussian processor")
     gp.fit(X_train[ur], y_train[ur])
-    logger.debug(f'Done.')
+    logger.debug('Fitted')
     return gp
 
 
