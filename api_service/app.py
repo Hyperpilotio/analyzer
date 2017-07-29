@@ -106,7 +106,7 @@ def get_next_instance_types(app_id):
         return response
     body = request.get_json()
     BO.get_candidates(app_id, body)
-    return jsonify({"Status": "Submited"})
+    return jsonify({"Status": "Submitted"})
 
 # TODO: change back to uuid
 
