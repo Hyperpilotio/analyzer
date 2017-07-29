@@ -11,7 +11,7 @@ from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_instance_type, encode_instance_type,
-                    get_all_nodetypes, get_bounds, get_price, get_slo_type, get_slo_value, get_budget)
+                   get_all_nodetypes, get_bounds, get_price, get_slo_type, get_slo_value, get_budget)
 
 logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
@@ -51,21 +51,31 @@ class BayesianOptimizerPool():
             None. client are expect to pull the results with get_status method.
         """
         # update the shared sample map
-        self.update_sample_map(app_id, request_body)
+        updated = self.update_sample_map(app_id, request_body)
+        # if nothing was updated, initialize point for workload profiler
+        if not updated:
+            print("Not Updated")
+            self.future_map[app_id] = []
+            future = self.worker_pool.submit(
+                BayesianOptimizerPool.generate_initial_points)
+            self.future_map[app_id].append(future)
+            return
+
         # fetch the latest sample_map
         dataframe = self.sample_map[app_id]
         # create the training data to Bayesian optimizer
         training_data_list = [BayesianOptimizerPool.
                               make_optimizer_training_data(
                                   dataframe, objective_type=o)
-                              for o in ['perf_over_cost', 'cost_given_perf', 'perf_given_cost']]
+                              for o in ['perf_over_cost',
+                                        'cost_given_perf', 'perf_given_cost']]
 
-        feature_bounds = get_bounds(get_all_nodetypes())
+        feature_bounds = get_bounds()
         self.future_map[app_id] = []
 
         for training_data in training_data_list:
-            logger.info(f"[{app_id}]Dispatching optimizer: \n {training_data}")
-            acq = 'cei_numeric' if training_data.has_constraint else 'ei'
+            logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
+            acq = 'cei' if training_data.has_constraint() else 'ei'
 
             future = self.worker_pool.submit(
                 get_candidate,
@@ -83,36 +93,50 @@ class BayesianOptimizerPool():
         """
         future_list = self.future_map.get(app_id)
         if future_list:
-            if any(map(lambda future: future.running(), future_list)):
+            if any([future.running() for future in future_list]):
                 return {"Status": "Running"}
-            elif any(map(lambda future: future.cancelled(), future_list)):
+            elif any([future.cancelled() for future in future_list]):
                 return {"Status": "Cancelled"}
-            elif all(map(lambda future: future.done(), future_list)):
+            elif all([future.done() for future in future_list]):
                 try:
-                    candidates = all(map(lambda x: x.result(), future_list))
+                    candidates = [future.result() for future in future_list]
                 except Exception as e:
-                    return {"Status": "Exception", "Exception": str(e)}
+                    return {"Status": "Exception",
+                            "Data": str(e)}
                 else:
                     return {"Status": "Done",
-                            "instance_types": [decode_instance_type(c) for c in candidates if not self.should_terminate(c)]}
+                            "Data": [decode_instance_type(c) for c in candidates
+                                     if not self.should_terminate(decode_instance_type(c))]}
                 return {"Status": "Unexpected future state"}
         else:
             return {"Status": "Not running"}
 
     def update_sample_map(self, app_id, request_body):
         # TODO: thread safe?
+        # TODO: check if workload profiler sends duplicate samples.
         df = BayesianOptimizerPool.create_sample_dataframe(request_body)
+
         if df is not None:
+            # if duplicated":
+            #     raise AssertionError(
+            #         'Duplicated sample was sent from workload profiler')
+            # logger.warning(f"request body dump: \n{request_body}")
             self.sample_map[app_id] = pd.concat(
                 [df, self.sample_map.get(app_id)])
+            return True
         else:
             logger.warning(
-                "request body cannot is not converted to sample map dataframe")
-            logger.warning(f"request body dump: \n{request_body}")
+                "empty dataframe was generated from request body")
+            return False
 
     # TODO: implement this
     def should_terminate(self, instance_type):
-        return True
+        return False
+
+    # TODO: implement this
+    @staticmethod
+    def generate_initial_points():
+        return ['t2.large', 'p2.8xlarge', 'x1.32xlarge']
 
     @staticmethod
     def make_optimizer_training_data(df, objective_type=None):
@@ -132,11 +156,11 @@ class BayesianOptimizerPool():
                 self.constraint_upper = constraint_upper
 
             def __str__(self):
-                return f'objective_type: {self.objective_type}\n' +\
-                    f'feature_mat: {self.feature_mat}\n' + \
-                    f'objective_arr: {self.objective_arr}\n' + \
-                    f'constraint_arr: {self.constraint_arr}\n' + \
-                    f'constraint_upper: {self.constraint_upper}\n'
+                return f'objective_type:\n{self.objective_type}\n' +\
+                    f'feature_mat:\n{self.feature_mat}\n' +\
+                    f'objective_arr:\n{self.objective_arr}\n' +\
+                    f'constraint_arr:\n{self.constraint_arr}\n' +\
+                    f'constraint_upper:\n{self.constraint_upper}\n'
 
             def has_constraint(self):
                 """ See if this trainning data has constraint """
@@ -147,23 +171,29 @@ class BayesianOptimizerPool():
         if objective_type not in implmentation:
             raise NotImplementedError(f'objective_type: {objective_type} is not implemented.')
 
-        slo_type = df['slo_type'].values[0]
-        assert slo_type in ['throughput', 'latency'], f'invalid slo type: {slo_type}'
-
         feature_mat = np.array(df['feature'].tolist())
-        perf_arr = df['qos_value'] if slo_type == 'throughput' else 1. / \
-            df['qos_value']
+        slo_type = df['slo_type'].iloc[0]
+        budget = df['budget'].iloc[0]
+        perf_constraint = df['slo'].iloc[0]
+        perf_arr = df['qos_value']
+
+        # Convert metric so we always try to maximize performance
+        if slo_type == 'latency':
+            perf_arr = 1. / df['qos_value']
+            perf_constraint = 1 / perf_constraint
+        elif slo_type == 'throughput':
+            pass
+        else:
+            raise AssertionError(f'invalid slo type: {slo_type}')
 
         if objective_type == 'perf_over_cost':
             return BOTrainingData(objective_type, feature_mat, perf_arr / df['cost'])
         elif objective_type == 'cost_given_perf':
-            # minus inverse the comparison operater
-            return BOTrainingData(objective_type, feature_mat, df['cost'], -perf_arr, -df['perf_constraint'])
+            return BOTrainingData(objective_type, feature_mat, df['cost'], -perf_arr, -perf_constraint)
         elif objective_type == 'perf_given_cost':
-            return BOTrainingData(objective_type, feature_mat, perf_arr, df['cost'], df['cost_constraint'])
+            return BOTrainingData(objective_type, feature_mat, perf_arr, df['cost'], budget)
         else:
-            logger.error('Impossible...')
-            raise UserWarning("Something wrong...")
+            raise UserWarning("Unexpected error")
 
     @staticmethod
     def create_sample_dataframe(request_body):
@@ -175,8 +205,8 @@ class BayesianOptimizerPool():
         """
         app_name = request_body['appName']
         slo_type = get_slo_type(app_name)
-        assert slo_type in ['throughtput', 'latency'],\
-            'slo type should be either throught or latency'
+        assert slo_type in ['throughput', 'latency'],\
+            f'slo type should be either throughput or latency, but got {slo_type}'
 
         dfs = []
         for data in request_body['data']:

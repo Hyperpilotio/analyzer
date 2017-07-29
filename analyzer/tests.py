@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import json
 from pathlib import Path
+from time import sleep
 from unittest import TestCase
 
 import numpy as np
@@ -26,58 +27,76 @@ class BayesianOptimizationPoolTest(TestCase):
     def setUp(self):
         logger.debug('Creating flask clients')
         self.client = api_service_app.test_client()
-        self.client2 = api_service_app.test_client()
 
-    def getTestRequest(self):
-        return {"appName": "redis",
-                "data": [
-                    {"instanceType": "t2.large",
-                     "qosValue": 200.
-                     },
-                    {"instanceType": "m4.large",
-                     "qosValue": 100.
-                     }
-                ]}
+    def testBayesianOptimizerPoolFlow(self):
+        """ 2 sample was sent from workload profiler through API
+        """
+        uuid = "hyperpilot-sizing-demo-1234-horray"
+        request_body = {
+            "appName": "redis",
+            "data": [
+                {"instanceType": "t2.large",
+                 "qosValue": 200.
+                 },
+                {"instanceType": "m4.large",
+                 "qosValue": 100.
+                 }
+            ]}
+        # Sending request
+        logger.debug(f'Sending request to API service:\n{request_body}')
+        response = json.loads(self.client.post(f'/apps/{uuid}/suggest-instance-types',
+                                               data=json.dumps(request_body),
+                                               content_type="application/json").data)
 
-    # def testPoolFlowSingleCient(self):
-    #     fake_uuid = "8whe-weui-qjhf-38os"
-    #     response = json.loads(self.client.post('/get-next-instance-types/' + fake_uuid,
-    #                                            data=json.dumps(self.getTestRequest()),
-    #                                            content_type="application/json").data)
-    #     logger.debug(f"Response from posting request: {self.getTestRequest()}")
-    #     logger.debug(response)
+        logger.debug(f"Response:\n{response}")
 
-    #     while True:
-    #         response = json.loads(self.client.get(
-    #             "/get-optimizer-status/" + fake_uuid).data)
-    #         logger.debug("Response after sending GET /get-optimizer-status")
-    #         logger.debug(response)
+        # Polling from workload profiler
+        while True:
+            logger.debug('Polling status from API service')
+            response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status/').data)
+            logger.debug(f'Response:\n{response}')
 
-    #         if response['Status'] == 'Running':
-    #             logger.debug("Waiting for 5 sec")
-    #             sleep(5)
-    #         else:
-    #             break
+            if response['Status'] == 'Running':
+                logger.debug("Waiting for 5 sec")
+                sleep(5)
+            else:
+                break
+
+        self.assertEqual(response['Status'], "Done")
 
     def testCherryPickWorkFlow(self):
         """ Test Cherry pick workflow without testing multiprocrss pool functionality.
+            nput: 3 training sample from workload profiller
+            Output: 0~3 candidates for next run, number of candidates depends on the terminate condition
         """
-        reqest_body = self.getTestRequest()
-        df = BOP.create_sample_dataframe(reqest_body)
+        # Request bofy constains 3 input sample
+        request_body = {
+            "appName": "redis",
+            "data": [
+                {"instanceType": "t2.large",
+                 "qosValue": 200.
+                 },
+                {"instanceType": "m4.large",
+                 "qosValue": 100.
+                 }
+            ]}
 
+        df = BOP.create_sample_dataframe(request_body)
         training_data_list = [BOP.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf', 'perf_given_cost']]
-        bounds = get_bounds(get_all_nodetypes())
+        bounds = get_bounds()
 
         outputs = []
         for t in training_data_list:
-            acq = 'cei_numeric' if t.has_constraint else 'ei'
-            output = get_candidate(t.feature_mat, t.objective_arr,
-                                   bounds, acq=acq, constraint_upper=t.constraint_uppe)
+            logger.debug(f"Dispatching training data: {t}")
+            acq = 'cei' if t.has_constraint() else 'ei'
+            output = get_candidate(t.feature_mat, t.objective_arr, bounds,
+                                   acq=acq, constraint_arr=t.constraint_arr, constraint_upper=t.constraint_upper)
             outputs.append(output)
 
         # The final result of instance_type (i.e. [x2.large, x2.xlarge, t2.xlarge])
         candidates = [decode_instance_type(output) for output in outputs]
+        logger.info(candidates)
 
     def testSingleton(self):
         # TODO: Test if the singleton is thread safe
@@ -115,7 +134,7 @@ class BayesianOptimizationTest(TestCase):
         # Test with CEI_numeric acquisition
         candidate = get_candidate(X_train, y_train, bounds, 'cei',
                                   constraint_arr=c_train, constraint_upper=2.)
-        logger.debug(f"argmax of acquisition CEI_numeric:\n{candidate}")
+        logger.debug(f"argmax of acquisition cei:\n{candidate}")
 
     def testReferenceImplementation(self):
         """ Check for numeric correctness against reference implementation
