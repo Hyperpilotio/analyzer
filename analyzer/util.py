@@ -82,11 +82,10 @@ def decode_instance_type(feature_vector):
         Returns:
             instance_type: node type closest to the feature vector based on a distance function
     """
-
     all_nodetypes = get_all_nodetypes()['data']
     instance_types = [nodetype['name'] for nodetype in all_nodetypes]
-    distance = np.array(list(map(lambda x: feature_distance(encode_instance_type(x), feature_vector),
-                                 instance_types)))
+    distance = [feature_distance(encode_instance_type(
+        instance_type), feature_vector) for instance_type in instance_types]
 
     return instance_types[np.argmin(distance)]
 
