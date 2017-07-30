@@ -47,19 +47,17 @@ class BayesianOptimizerPool():
         Args:
             app_id(str): unique key to identify the application
             request_body(dict): the request body sent from workload profiler
-        Returns:
-            None. client are expect to pull the results with get_status method.
         """
         # update the shared sample map
         updated = self.update_sample_map(app_id, request_body)
         # if nothing was updated, initialize point for workload profiler
         if not updated:
-            print("Not Updated")
             self.future_map[app_id] = []
             future = self.worker_pool.submit(
                 BayesianOptimizerPool.generate_initial_points)
             self.future_map[app_id].append(future)
-            return
+            return {"status": "exception",
+                    "exception": f"sample map wasn't updated.\napp_id: {app_id}\nrequest_body: {request_body}"}
 
         # fetch the latest sample_map
         dataframe = self.sample_map[app_id]
@@ -72,7 +70,6 @@ class BayesianOptimizerPool():
 
         feature_bounds = get_bounds()
         self.future_map[app_id] = []
-
         for training_data in training_data_list:
             logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
             acq = 'cei' if training_data.has_constraint() else 'ei'
@@ -87,6 +84,7 @@ class BayesianOptimizerPool():
                 constraint_upper=training_data.constraint_upper
             )
             self.future_map[app_id].append(future)
+        return {"status": "submitted"}
 
     def get_status(self, app_id):
         """ The public method to get the running state of each worker.
@@ -94,22 +92,22 @@ class BayesianOptimizerPool():
         future_list = self.future_map.get(app_id)
         if future_list:
             if any([future.running() for future in future_list]):
-                return {"Status": "Running"}
+                return {"status": "running"}
             elif any([future.cancelled() for future in future_list]):
-                return {"Status": "Cancelled"}
+                return {"status": "execption", "exception": "task cancelled"}
             elif all([future.done() for future in future_list]):
                 try:
                     candidates = [future.result() for future in future_list]
                 except Exception as e:
-                    return {"Status": "Exception",
-                            "Data": str(e)}
+                    return {"status": "exception",
+                            "data": str(e)}
                 else:
-                    return {"Status": "Done",
-                            "Data": [decode_instance_type(c) for c in candidates
+                    return {"status": "done",
+                            "data": [decode_instance_type(c) for c in candidates
                                      if not self.should_terminate(decode_instance_type(c))]}
-                return {"Status": "Unexpected future state"}
+                return {"status": "unexpected future state"}
         else:
-            return {"Status": "Not running"}
+            return {"status": "not running"}
 
     def update_sample_map(self, app_id, request_body):
         # TODO: thread safe?

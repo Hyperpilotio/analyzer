@@ -56,13 +56,13 @@ class BayesianOptimizationPoolTest(TestCase):
             response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status/').data)
             logger.debug(f'Response:\n{response}')
 
-            if response['Status'] == 'Running':
+            if response['status'] == 'running':
                 logger.debug("Waiting for 5 sec")
                 sleep(5)
             else:
                 break
 
-        self.assertEqual(response['Status'], "Done")
+        self.assertEqual(response['status'], "done")
 
     def testCherryPickWorkFlow(self):
         """ Test Cherry pick workflow without testing multiprocrss pool functionality.
