@@ -18,7 +18,7 @@ logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
 class BayesianOptimizerPool():
     """ This class manages the training samples for each app_id,
-        dispatches the optimization jobs, and track the status of jobs.
+        dispatches the optimization jobs, and tracks the status of each job.
     """
 
     # TODO: Thread safe?
@@ -46,45 +46,46 @@ class BayesianOptimizerPool():
         """ The public method to dispatch optimizers asychronously.
         Args:
             app_id(str): unique key to identify the application
-            request_body(dict): the request body sent from workload profiler
+            request_body(dict): the request body sent from the client of the analyzer service
         """
-        # update the shared sample map
-        updated = self.update_sample_map(app_id, request_body)
-        # if nothing was updated, initialize point for workload profiler
-        if not updated:
+        df = BayesianOptimizerPool.create_sample_dataframe(request_body)
+
+        # initialize points if there is no training sample coming
+        if (df is not None) and (len(df) == 0):
             self.future_map[app_id] = []
             future = self.worker_pool.submit(
                 BayesianOptimizerPool.generate_initial_points)
             self.future_map[app_id].append(future)
-            return {"status": "exception",
-                    "exception": f"sample map wasn't updated.\napp_id: {app_id}\nrequest_body: {request_body}"}
+        # Else dispatch the optimizers
+        else:
+            # update the shared sample map
+            self.update_sample_map(app_id, df)
 
-        # fetch the latest sample_map
-        dataframe = self.sample_map[app_id]
-        # create the training data to Bayesian optimizer
-        training_data_list = [BayesianOptimizerPool.
-                              make_optimizer_training_data(
-                                  dataframe, objective_type=o)
-                              for o in ['perf_over_cost',
-                                        'cost_given_perf', 'perf_given_cost']]
+            # fetch the latest sample_map
+            dataframe = self.sample_map[app_id]
+            # create the training data to Bayesian optimizer
+            training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
+                dataframe, objective_type=o)
+                for o in ['perf_over_cost',
+                          'cost_given_perf', 'perf_given_cost']]
 
-        feature_bounds = get_bounds()
-        self.future_map[app_id] = []
-        for training_data in training_data_list:
-            logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
-            acq = 'cei' if training_data.has_constraint() else 'ei'
+            feature_bounds = get_bounds()
+            self.future_map[app_id] = []
+            for training_data in training_data_list:
+                logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
+                acq = 'cei' if training_data.has_constraint() else 'ei'
 
-            future = self.worker_pool.submit(
-                get_candidate,
-                training_data.feature_mat,
-                training_data.objective_arr,
-                feature_bounds,
-                acq=acq,
-                constraint_arr=training_data.constraint_arr,
-                constraint_upper=training_data.constraint_upper
-            )
-            self.future_map[app_id].append(future)
-        return {"status": "submitted"}
+                future = self.worker_pool.submit(
+                    get_candidate,
+                    training_data.feature_mat,
+                    training_data.objective_arr,
+                    feature_bounds,
+                    acq=acq,
+                    constraint_arr=training_data.constraint_arr,
+                    constraint_upper=training_data.constraint_upper
+                )
+                self.future_map[app_id].append(future)
+            return {"status": "submitted"}
 
     def get_status(self, app_id):
         """ The public method to get the running state of each worker.
@@ -109,23 +110,15 @@ class BayesianOptimizerPool():
         else:
             return {"status": "not running"}
 
-    def update_sample_map(self, app_id, request_body):
+    def update_sample_map(self, app_id, df):
         # TODO: thread safe?
-        # TODO: check if workload profiler sends duplicate samples.
-        df = BayesianOptimizerPool.create_sample_dataframe(request_body)
+        if self.sample_map.get('app_id'): 
+            # check if incoming df contains duplicated instance_type with sample_map:
+            if len(set(df['instance_type']).intersection(set(self.sample_map[app_id]['instance_type']))) != 0:
+                logger.warning(f"Duplicated sample was sent from client\nrequest body dump: \n{request_body}")
 
-        if df is not None:
-            # if duplicated":
-            #     raise AssertionError(
-            #         'Duplicated sample was sent from workload profiler')
-            # logger.warning(f"request body dump: \n{request_body}")
-            self.sample_map[app_id] = pd.concat(
-                [df, self.sample_map.get(app_id)])
-            return True
-        else:
-            logger.warning(
-                "empty dataframe was generated from request body")
-            return False
+        self.sample_map[app_id] = pd.concat(
+            [df, self.sample_map.get(app_id)])
 
     def should_terminate(self, app_id, instance_type, max_run=10):
         """ This method determine if a suggested candidate by optimizer should be terminated.
@@ -159,7 +152,7 @@ class BayesianOptimizerPool():
 
     @staticmethod
     def make_optimizer_training_data(df, objective_type=None):
-        """ Convert the objective and constraints such the optimizer can always‰:
+        """ Convert the objective and constraints such the optimizer can always:
             1. maximize objective function such that 2. constraints function < constraint
         """
         class BOTrainingData():
