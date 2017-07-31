@@ -53,9 +53,10 @@ class BayesianOptimizerPool():
         # initialize points if there is no training sample coming
         if df is None:
             self.future_map[app_id] = []
-            future = self.worker_pool.submit(
-                BayesianOptimizerPool.generate_initial_points)
-            self.future_map[app_id].append(future)
+            init_points = BayesianOptimizerPool.generate_initial_points()
+            for i in init_points:
+                future = self.worker_pool.submit(encode_instance_type, i)
+                self.future_map[app_id].append(future)
         # Else dispatch the optimizers
         else:
             # update the shared sample map
@@ -103,6 +104,7 @@ class BayesianOptimizerPool():
                     return {"status": "exception",
                             "data": str(e)}
                 else:
+    
                     return {"status": "done",
                             "data": [decode_instance_type(c) for c in candidates
                                      if not self.should_terminate(app_id, decode_instance_type(c))]}
@@ -112,7 +114,7 @@ class BayesianOptimizerPool():
 
     def update_sample_map(self, app_id, df):
         # TODO: thread safe?
-        if self.sample_map.get('app_id'): 
+        if self.sample_map.get('app_id'):
             # check if incoming df contains duplicated instance_type with sample_map:
             if len(set(df['instance_type']).intersection(set(self.sample_map[app_id]['instance_type']))) != 0:
                 logger.warning(f"Duplicated sample was sent from client\nrequest body dump: \n{request_body}")
@@ -125,8 +127,11 @@ class BayesianOptimizerPool():
         Terminate conditions: 1. if number of run exceed than max_run or,
                               2. if the recommended instance_type is duplicated
         """
-        samples = self.sample_map[app_id]
-        return (len(samples) >= max_run) or (instance_type in samples['instance_type'])
+        if self.sample_map.get(app_id):
+            samples = self.sample_map[app_id]
+            return (len(samples) >= max_run) or (instance_type in samples['instance_type'])
+        else:
+            return False
 
     @staticmethod
     def generate_initial_points(init_points=3):
