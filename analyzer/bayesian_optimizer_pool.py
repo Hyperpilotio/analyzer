@@ -51,7 +51,7 @@ class BayesianOptimizerPool():
         df = BayesianOptimizerPool.create_sample_dataframe(request_body)
 
         # initialize points if there is no training sample coming
-        if (df is not None) and (len(df) == 0):
+        if df is None:
             self.future_map[app_id] = []
             future = self.worker_pool.submit(
                 BayesianOptimizerPool.generate_initial_points)
@@ -235,4 +235,6 @@ class BayesianOptimizerPool():
                                'budget': [get_budget(app_name)]
                                })
             dfs.append(df)
+        else:
+            return None
         return pd.concat(dfs)
