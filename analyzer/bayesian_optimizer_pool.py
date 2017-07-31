@@ -133,8 +133,26 @@ class BayesianOptimizerPool():
 
     # TODO: implement this
     @staticmethod
-    def generate_initial_points():
-        return ['t2.large', 'p2.8xlarge', 'x1.32xlarge']
+    def generate_initial_points(init_points=3):
+        """ This method randomly select a 'instanceFamily',
+            and randomly select a 'nodetype' from that family repeatly
+        """
+        dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
+        # check if there is any node belongs to empty instanceFamily\
+        # assert '' not in dataframe['instanceFamily'], "instanceFamily shouldn't be empty"
+        instance_families = list(set(dataframe['instanceFamily']))
+
+        result = []
+
+        logger.debug("Generating random initial points")
+        for _ in range(init_points):
+            family = np.random.choice(instance_families, 1)[0]
+            instance_type = np.random.choice(
+                dataframe[dataframe['instanceFamily'] == family]['name'], 1)[0]
+            result.append(instance_type)
+
+        logger.debug(f"initial points:\n{result}")
+        return result
 
     @staticmethod
     def make_optimizer_training_data(df, objective_type=None):
