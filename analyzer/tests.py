@@ -11,13 +11,13 @@ import pandas as pd
 from bayes_opt import BayesianOptimization as BO_ref
 from sklearn.gaussian_process.kernels import Matern
 
-from analyzer.bayesian_optimizer import UtilityFunction, get_candidate
+from analyzer.bayesian_optimizer import (UtilityFunction, get_candidate,
+                                         get_fitted_gaussian_processor)
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool as BOP
 from api_service.app import app as api_service_app
 from api_service.db import metricdb
 from logger import get_logger
 
-from .bayesian_optimizer import get_fitted_gaussian_processor
 from .util import decode_instance_type, get_all_nodetypes, get_bounds
 
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
@@ -29,7 +29,7 @@ class BayesianOptimizationPoolTest(TestCase):
         self.client = api_service_app.test_client()
 
     def testBayesianOptimizerPoolFlow(self):
-        """ 2 sample was sent from workload profiler through API
+        """ 2 sample was submitted by client through API
         """
         uuid = "hyperpilot-sizing-demo-1234-horray"
         request_body = {
@@ -69,7 +69,7 @@ class BayesianOptimizationPoolTest(TestCase):
             nput: 3 training sample from workload profiller
             Output: 0~3 candidates for next run, number of candidates depends on the terminate condition
         """
-        # Request bofy constains 3 input sample
+        # Request body constains 2 input samples
         request_body = {
             "appName": "redis",
             "data": [
