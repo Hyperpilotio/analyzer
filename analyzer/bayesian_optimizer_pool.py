@@ -104,7 +104,7 @@ class BayesianOptimizerPool():
                 else:
                     return {"status": "done",
                             "data": [decode_instance_type(c) for c in candidates
-                                     if not self.should_terminate(decode_instance_type(c))]}
+                                     if not self.should_terminate(app_id, decode_instance_type(c))]}
                 return {"status": "unexpected future state"}
         else:
             return {"status": "not running"}
@@ -127,11 +127,14 @@ class BayesianOptimizerPool():
                 "empty dataframe was generated from request body")
             return False
 
-    # TODO: implement this
-    def should_terminate(self, instance_type):
-        return False
+    def should_terminate(self, app_id, instance_type, max_run=10):
+        """ This method determine if a suggested candidate by optimizer should be terminated.
+        Terminate conditions: 1. if number of run exceed than max_run or,
+                              2. if the recommended instance_type is duplicated
+        """
+        samples = self.sample_map[app_id]
+        return (len(samples) >= max_run) or (instance_type in samples['instance_type'])
 
-    # TODO: implement this
     @staticmethod
     def generate_initial_points(init_points=3):
         """ This method randomly select a 'instanceFamily',
