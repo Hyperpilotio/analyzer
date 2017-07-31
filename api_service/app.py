@@ -1,10 +1,21 @@
 from flask import Flask, jsonify, request
 from config import get_config
-from .util import JSONEncoderWithMongo, ObjectIdConverter, ensure_document_found
+from pymongo import DESCENDING
+from .util import (
+    JSONEncoderWithMongo,
+    ObjectIdConverter,
+    ensure_document_found,
+    shape_service_placement,
+)
 from .db import configdb, metricdb
 from analyzer.linear_regression import LinearRegression1
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
-from analyzer.util import get_calibration_dataframe, get_profiling_dataframe, get_radar_dataframe
+from analyzer.util import (
+    get_calibration_dataframe,
+    get_profiling_dataframe,
+    get_radar_dataframe,
+)
+import json
 
 app = Flask(__name__)
 
@@ -20,54 +31,103 @@ def index():
     return jsonify(status="ok")
 
 
-@app.route("/available-apps")
-def get_available_apps():
-    return jsonify({
-        collection: metricdb[collection].find(
-            filter={"appName": {"$exists": 1}},
-            projection={"appName": 1},
-        )
-        for collection in ("calibration", "profiling", "validation")
-    })
+@app.route("/cluster")
+def cluster_service_placement():
+    with open(app.config["ANALYZER"]["DEPLOY_JSON"]) as f:
+        deploy_json = json.load(f)
+    result = shape_service_placement(deploy_json)
+    return jsonify(result)
 
 
-@app.route("/single-app/services/<app_name>")
-def services_json(app_name):
-    app_config = configdb.applications.find_one(
-        filter={"name": app_name},
-        projection={"_id": 0, "name": 1, "serviceNames": 1},
-    )
-    return ensure_document_found(app_config, app="name", services="serviceNames")
+@app.route("/cluster/recommended")
+def recommended_service_placement():
+    with open(app.config["ANALYZER"]["RECOMMENDED_DEPLOY_JSON"]) as f:
+        deploy_json = json.load(f)
+    result = shape_service_placement(deploy_json)
+    return jsonify(result)
 
 
-@app.route("/single-app/profiling/<objectid:app_id>")
-def profiling_json(app_id):
-    profiling = metricdb.profiling.find_one(app_id)
-    return ensure_document_found(profiling)
+@app.route("/apps")
+def get_all_apps():
+    with open(app.config["ANALYZER"]["DEPLOY_JSON"]) as f:
+        deploy_json = json.load(f)
+    apps = {}
+    service_names = [
+        task["deployment"]["metadata"]["name"]
+        for task in deploy_json["kubernetes"]["taskDefinitions"]
+        if task["deployment"]["metadata"].get("namespace") != "hyperpilot"
+    ]
+    for application in configdb.applications.find(
+        {"serviceNames": {"$in": service_names}},
+        {"name": 1, "serviceNames": 1}
+    ):
+        app_id = application.pop("_id")
+        apps[str(app_id)] = application
+    return jsonify(apps)
 
 
-@app.route("/single-app/profiling-data/<objectid:app_id>")
-def profiling_data(app_id):
-    profiling = metricdb.profiling.find_one(app_id)
-    data = get_profiling_dataframe(profiling)
-    if data is not None:
-        profiling["testResult"] = data
-    return ensure_document_found(profiling)
+@app.route("/apps/<objectid:app_id>")
+def get_app_info(app_id):
+    application = configdb.applications.find_one(app_id, {"_id": 0})
+    return ensure_document_found(application)
 
 
-@app.route("/single-app/calibration/<objectid:app_id>")
-def calibration_json(app_id):
-    calibration = metricdb.calibration.find_one(app_id)
-    return ensure_document_found(calibration)
+@app.route("/apps/<objectid:app_id>/calibration")
+def app_calibration(app_id):
+    application = configdb.applications.find_one(app_id)
+    if app is None:
+        return ensure_document_found(None)
+
+    cursor = metricdb.calibration.find(
+        {"appName": application["name"]},
+        {"appName": 0, "_id": 0},
+    ).sort("_id", DESCENDING).limit(1)
+    try:
+        calibration = next(cursor)
+        data = get_calibration_dataframe(calibration)
+        del calibration["testResult"]
+        calibration["results"] = data
+        return jsonify(calibration)
+    except StopIteration:
+        return ensure_document_found(None)
 
 
-@app.route("/single-app/calibration-data/<objectid:app_id>")
-def calibration_data(app_id):
-    calibration = metricdb.calibration.find_one(app_id)
-    data = get_calibration_dataframe(calibration)
-    if data is not None:
-        calibration["testResult"] = data
-    return ensure_document_found(calibration)
+@app.route("/apps/<objectid:app_id>/services/<service_name>/profiling")
+def service_profiling(app_id, service_name):
+    application = configdb.applications.find_one(app_id)
+    if app is None:
+        return ensure_document_found(None)
+
+    cursor = metricdb.profiling.find(
+        {"appName": application["name"], "serviceInTest": service_name},
+        {"appName": 0, "_id": 0},
+    ).sort("_id", DESCENDING).limit(1)
+    try:
+        profiling = next(cursor)
+        data = get_profiling_dataframe(profiling)
+        del profiling["testResult"]
+        profiling["results"] = data
+        return jsonify(profiling)
+    except StopIteration:
+        return ensure_document_found(None)
+
+
+@app.route("/apps/<objectid:app_id>/services/<service_name>/interference")
+def interference_scores(app_id, service_name):
+    application = configdb.applications.find_one(app_id)
+    if application is None:
+        return ensure_document_found(None)
+
+    cursor = metricdb.profiling.find(
+        {"appName": application["name"], "serviceInTest": service_name}
+    ).sort("_id", DESCENDING).limit(1)
+    try:
+        profiling = next(cursor)
+        data = get_radar_dataframe(profiling)
+        del profiling["testResult"]
+        return jsonify(data)
+    except StopIteration:
+        return ensure_document_found(None)
 
 
 @app.route("/cross-app/predict", methods=["POST"])
@@ -85,16 +145,6 @@ def predict():
         response = jsonify(error="Model not found")
         response.status_code = 404
         return response
-
-
-@app.route("/radar-data/<objectid:app_id>")
-def radar_data(app_id):
-    profiling = metricdb.profiling.find_one(app_id)
-    data = get_radar_dataframe(profiling)
-    if data is not None:
-        profiling['radarChartData'] = data
-        del profiling['testResult']
-    return ensure_document_found(profiling)
 
 
 # TODO: change back to uuid
