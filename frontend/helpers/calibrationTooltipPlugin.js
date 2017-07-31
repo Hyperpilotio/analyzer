@@ -10,7 +10,7 @@ export default {
     if (!_.isUndefined(tooltip.currentPoints)) {
       let [mean, min, max] = tooltip.currentPoints;
 
-      ctx.textAlign = vm.xAlign;
+      ctx.textAlign = vm.xAlign === "right" ? "right" : "left";
 
       let texts = [
         { style: "important", text: mean.xLabel, label: "Load intensity" },
@@ -31,7 +31,7 @@ export default {
         }
       ];
 
-      let xPos = mean.x + (vm.xAlign === "left" ? 15 : -15)
+      let xPos = mean.x + (vm.xAlign !== "right" ? 15 : -15)
 
       texts.forEach(({ style, text, label }, i) => {
         if (style === "important") {

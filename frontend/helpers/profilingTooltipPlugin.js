@@ -14,9 +14,9 @@ export default {
     for (let point of tooltipPoints) {
       let dataset = datasets[point.datasetIndex];
       let displayIndex = dataset.displayIndex;
-      let offset = 30 + (tooltipPoints.length - displayIndex - 1) * 120;
+      let offset = 30 + (datasets.length - displayIndex - 1) * 120;
       let xPos = chartArea.right - offset;
-      let dataPoint = dataset.data[point.index];
+      let dataPoint = dataset.data[point.index] || {y: NaN, top: NaN, bottom: NaN};
 
       // Write statistic
       ctx.fillStyle = dataset.borderColor;

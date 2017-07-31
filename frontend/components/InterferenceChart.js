@@ -9,10 +9,10 @@ import noTooltipPlugin from "../helpers/noTooltipPlugin";
 export default chartWithLoading( ({ data }) => (
   <Radar
     data={{
-      labels: data.radarChartData.benchmark,
+      labels: data.benchmark,
       datasets: [{
         label: "Score",
-        data: data.radarChartData.score,
+        data: data.score,
         borderColor: "#5677fa",
         borderWidth: 1,
         backgroundColor: "rgba(86, 119, 250, 0.08)",

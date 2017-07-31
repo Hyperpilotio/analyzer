@@ -18,7 +18,7 @@ class ProfilingChart extends PureComponent {
 
   constructor(props) {
     super(props);
-    this.benchmarks = _.sortBy(_.keys(props.data.testResult));
+    this.benchmarks = _.sortBy(_.keys(props.data.results));
   }
 
   componentDidUpdate() {
@@ -55,9 +55,9 @@ class ProfilingChart extends PureComponent {
 
   getData() {
     const { highlightedBenchmark } = this.state;
-    const { testResult } = this.props.data;
+    const { results } = this.props.data;
 
-    let datasets = _.entries(testResult).map(([benchmark, points], i) => ({
+    let datasets = _.entries(results).map(([benchmark, points], i) => ({
       label: benchmark,
       highlighted: _.includes([benchmark, null], highlightedBenchmark),
       onlyHighlighted: highlightedBenchmark === benchmark,

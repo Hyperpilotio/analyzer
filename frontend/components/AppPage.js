@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Switch, Route, Redirect } from "react-router";
 import { NavLink, Link } from "react-router-dom";
 import KeyInfo from "./KeyInfo";
@@ -7,20 +8,21 @@ import CalibrationChart from "../containers/CalibrationChart";
 import ProfilingChart from "../containers/ProfilingChart";
 import InterferenceChart from "../containers/InterferenceChart";
 import MetricScoreChart from "./MetricScoreChart";
+import _ from "lodash";
 
 // For cross-app interference chart, use random dataset for now
 import CrossAppInterfChart from "./CrossAppInterfChart";
 
-export default ({ match }) => (
+export default ({ appId, data, loading }) => (
   <div className="app-page-body">
 
     <KeyInfo>
       <div className="left app-identity">
         <div className="name-and-icon">
           <img src={redisLogo} width="45" />
-          <h1>Redis</h1>
+          <h1>{ _.get(data, "name", "Loading...") }</h1>
         </div>
-        <span className="app-id muted badge">59306145e3fd9e5094db04e6</span>
+        <span className="app-id muted badge">{ appId }</span>
       </div>
       <div className="right columns">
         <div className="column info-list">
@@ -40,7 +42,7 @@ export default ({ match }) => (
           </div>
           <div className="info-section">
             <span className="info-key">App type</span>
-            <span className="info-value">Workload</span>
+            <span className="info-value">{ loading ? "Loading..." : data.type }</span>
           </div>
         </div>
         <div className="column info-list">
@@ -58,29 +60,48 @@ export default ({ match }) => (
 
     <nav className="subnav">
       <div className="container">
-        <NavLink to={`/apps/${match.params.appId}/calibration`} className="nav-item" activeClassName="selected">
+        <NavLink to={`/apps/${appId}/calibration`} className="nav-item" activeClassName="selected">
           Calibration
         </NavLink>
-        <NavLink to={`/apps/${match.params.appId}/profiling`} className="nav-item" activeClassName="selected">
-          Profiling
-        </NavLink>
+        { loading
+          ? <a className="nav-item">Loading...</a>
+          : data.serviceNames.map(serviceName => (
+            <NavLink
+              key={serviceName}
+              to={`/apps/${appId}/services/${serviceName}/profiling`}
+              className="nav-item"
+              activeClassName="selected">
+              Profiling of { serviceName }
+            </NavLink>
+            ))
+        }
       </div>
     </nav>
 
     <div className="container">
       <Switch>
-        <Route path="/apps/:appId/calibration" render={() => (
-          <CalibrationChart calibrationId="595f6008e3fd9e5094deb2c0" />
+        <Route path="/apps/:appId/calibration" render={({ match }) => (
+          <CalibrationChart appId={match.params.appId} />
         )} />
-        <Route path="/apps/:appId/profiling" render={() => (
-          <ProfilingChart profilingId="59606286e3fd9e5094deb389" />
-        )} />
+        <Route
+          path="/apps/:appId/services/:serviceName/profiling"
+          render={({ match }) => (
+            <ProfilingChart
+              appId={match.params.appId}
+              serviceName={match.params.serviceName} />
+          )} />
         <Redirect to="calibration" />
       </Switch>
       <div className="radar-charts columns">
         <div className="column">
           <h3 className="title">Interference Score</h3>
-          <InterferenceChart profilingId="59640392e3fd9e5094df375a" />
+          <Route
+            path="/apps/:appId/services/:serviceName/profiling"
+            render={({ match }) => (
+              <InterferenceChart
+                appId={match.params.appId}
+                serviceName={match.params.serviceName} />
+            )} />
         </div>
         <div className="qos-metrics column">
           <h3 className="title">QoS Metrics</h3>

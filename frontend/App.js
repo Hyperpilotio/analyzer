@@ -3,11 +3,24 @@ import { BrowserRouter as Router, Switch, Route, Redirect } from "react-router-d
 import HeaderNav from "./components/HeaderNav";
 import DashboardHome from "./components/DashboardHome";
 import AutopilotPage from "./components/AutopilotPage";
-import AppPage from "./components/AppPage";
+import AppPage from "./containers/AppPage";
 import UserAuth from "./components/UserAuth";
+import AppProvider from "./containers/AppProvider";
+import PropTypes from "prop-types";
+import _ from "lodash";
 
 
-export default class App extends Component {
+class App extends Component {
+
+  static contextTypes = {
+    actions: PropTypes.object,
+    store: PropTypes.object
+  }
+
+  componentDidMount() {
+    if (_.keys(this.context.store.apps).length === 0)
+      this.context.actions.getApps();
+  }
 
   render() {
     return (
@@ -32,3 +45,10 @@ export default class App extends Component {
     );
   }
 }
+
+
+export default () => (
+  <AppProvider>
+    <App />
+  </AppProvider>
+)

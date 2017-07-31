@@ -15,7 +15,7 @@ export default chartWithLoading( ({ data }) => (
       datasets: [
         {
           label: "mean",
-          data: data.testResult.map(
+          data: data.results.map(
             point => ({ x: point.loadIntensity, y: point.mean })
           ),
           borderColor: "#5677fa",
@@ -31,7 +31,7 @@ export default chartWithLoading( ({ data }) => (
         },
         // Add hidden min and max datasets to make getting data for tooltips easier
         ...["min", "max"].map(metric => ({
-          data: data.testResult.map(
+          data: data.results.map(
             point => ({ x: point.loadIntensity, y: point[metric] })
           ),
           label: metric,
