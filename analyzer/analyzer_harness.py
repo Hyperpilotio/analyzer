@@ -19,7 +19,7 @@ import json
 import sys
 import time
 from . import util
-from . import bayesian_optimizer_pool  
+from . import bayesian_optimizer_pool
 class CloudPerf(object):
   """ A class for a cloud performance model
   """
@@ -48,11 +48,11 @@ class CloudPerf(object):
     self.io_a = io_a
     self.io_b = io_b
     self.io_c = io_c
-    self.vcpu_w = vcpu_w,
-    self.clk_w = clk_w,
-    self.mem_w = mem_w,
-    self.net_w = net_w,
-    self.io_w = io_w,
+    self.vcpu_w = vcpu_w
+    self.clk_w = clk_w
+    self.mem_w = mem_w
+    self.net_w = net_w
+    self.io_w = io_w
     self.noise = noise
     self.nrange = nrange
     # some sanity checks
@@ -139,7 +139,7 @@ def __main__():
   parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
   parser.add_argument("-i", "--iter", type=int, required=False, default=10, help="maximum iterations")
   parser.add_argument("-n", "--noise", help="add noise to cloud performance", action="store_false")
-  parser.add_argument("-r", "--nrange", type=int, required=False, default=10,help="noise range (int)")
+  parser.add_argument("-r", "--nrange", type=int, required=False, default=10, help="noise range (int)")
   parser.add_argument("-va", "-vcpua", type=float, required=False, default=1.0, help="vcpu a")
   parser.add_argument("-vb", "-vcpub", type=float, required=False, default=0.0, help="vcpu b")
   parser.add_argument("-vc", "-vcpuc", type=float, required=False, default=0.0, help="vcpu c")
@@ -161,7 +161,7 @@ def __main__():
   parser.add_argument("-ic", "-ioc", type=float, required=False, default=0.0, help="io c")
   parser.add_argument("-iw", "-iow", type=float, required=False, default=0.2, help="io w")
   args = parser.parse_args()
-  
+
   # initialize performance model
   cloud_perf = CloudPerf(args.va, args.vb, args.vc, args.vw, \
                          args.ca, args.cb, args.cc, args.cw, \
@@ -172,7 +172,7 @@ def __main__():
   print("Running analyzer harness with following parameters:")
   print(args)
   print()
-  
+
   # get all the instance info
   all_nodetypes = util.get_all_nodetypes()['data']
   numtypes = len(all_nodetypes)
@@ -202,34 +202,36 @@ def __main__():
     # check if done
     while True:
       status_dict = analyzer.get_status("redis")
-      print(status_dict)
       if status_dict['status'] != "running":
         break
       time.sleep(1)
     # throw error if needed
     if status_dict["status"] != "done":
-      print("ERROR: Analyzer returned with status %s"  %status_dict["Status"])
+      print("ERROR: Analyzer returned with status %s"  %status_dict["status"])
       sys.exit()
     # termination
-    if len(status_dict["instance_type"]) == 0:
+    if len(status_dict["data"]) == 0:
       break
     # prepare next candidates
     request_str = "{\"appName\": \"redis\", \"data\": [ "
     count = 0
-    for nodetype in status_dict["instance_type"]:
+    for nodetype in status_dict["data"]:
       count += 1
-      feat = features[nodetype]
+      np_feat = features[nodetype]
+      feat = np_feat.astype(type('float', (float,), {}))
       perf = cloud_perf.perf(feat[0], feat[1], feat[2], feat[3], feat[4], True)
       request_str += "{\"instanceType\": \"%s\", \"qosValue\": %f}" %(nodetype, perf)
-      if count < len(status_dict["instance_type"]):
+      if count < len(status_dict["data"]):
         request_str += ", "
       if nodetype in visited:
-        print("WARNING: reconsidering type %s" %nodetype)
+        print("WARNING: re-considering type %s" %nodetype)
       else:
         visited.add(nodetype)
+        print("......Considering nodetype %s" %nodetype)
     request_str += "]}"
     request_dict = json.loads(request_str)
     analyzer.get_candidates("redis", request_dict)
+    time.sleep(1)
 
   # evaluate results
   slo = util.get_slo_value("redis")
@@ -274,18 +276,21 @@ def __main__():
   print("")
   print(".......................")
   print("... Analyzer results...")
-  print("Iterations (requested/done): %d/%d", args.iter, i)
+  print("Iterations requested): %d", args.iter)
   print("Noise: ", args.noise)
   print("Noise range: ", args.nrange)
   print("Min perf: ", slo)
   print("Max cost: ", budget)
+  print("Nodetypes examined: ", len(visited))
   print("")
   print("Performance/cost")
   print("   Best avalailable: %s, performance/cost %f" %(cloud_perfcost_i, cloud_perfcost))
   print("   Best found: %s, performance/cost %f" %(visited_perfcost_i, visited_perfcost))
+  print("")
   print("Perfomance with cost constraint")
   print("   Best avalailable: %s, performance %f" %(cloud_perf_i, cloud_perf))
   print("   Best found: %s, performance %f" %(visited_perf_i, visited_perf))
+  print("")
   print("Cost with performance constraint")
   print("   Best avalailable: %s, cost %f" %(cloud_cost_i, cloud_cost))
   print("   Best found: %s, cost %f" %(visited_cost_i, cloud_cost))
