@@ -18,12 +18,12 @@ export default class AppProvider extends Component {
     recommendations: {}
   }
 
-  static childContextTypes = {
-    myStore: PropTypes.object,
-    actions: PropTypes.object
-  }
+//  static childContextTypes = {
+//    myStore: PropTypes.object,
+//    actions: PropTypes.object
+//  }
 
-  getChildContext() {
+  getStateContext() {
     return {
       myStore: this.state,
       actions: {
@@ -144,9 +144,9 @@ export default class AppProvider extends Component {
   
   //must set state well before component mount      
   componentWillMount() {
-      let actions = this.getChildContext().actions;
+      let actions = this.getStateContext().actions;
       this.props.setAllActions(actions);
-      this.props.setMyState(this.getChildContext().myStore);
+      this.props.setMyState(this.getStateContext().myStore);
   }
 
 

@@ -32,7 +32,7 @@ class App extends Component {
   }
 
   componentDidMount() {
-    if (_.keys(this.context.myStore.apps).length === 0){
+    if (_.keys(this.props.apps).length === 0){
       this.props.actions.getApps();
     }
   }
