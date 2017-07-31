@@ -23,7 +23,7 @@ MAX_IO_THPT = MAX_NET_BW / 8.0
 NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
                 "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
 
-
+@lru_cache(maxsize=1)
 def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
     region_filter = {'region': region}
     all_nodetypes = configdb[collection].find_one(region_filter)
@@ -34,26 +34,31 @@ def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
 
 
 @lru_cache(maxsize=1)
-def get_bounds(all_node_types):
+def get_bounds():
     """ Get the (min, max) boundary for each dimension
     """
-    features = [encode_instance_type(node_type) for node_type in all_node_types]
+    all_node_types = get_all_nodetypes()['data']
+    features = np.array([encode_instance_type(node_type['name'])
+                         for node_type in all_node_types])
+
     return list(zip(features.min(axis=0), features.max(axis=0)))
 
-
+@lru_cache(maxsize=16)
 def encode_instance_type(instance_type):
     """ convert each instance type to a vector of feature values 
         TODO: improve query efficiency by precomputing & caching all feature vectors
     """
-
-    all_nodetypes = get_all_nodetypes()
+    all_nodetypes = get_all_nodetypes()['data']
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
             vcpu = nodetype['cpuConfig']['vCPU']
             clock_speed = nodetype['cpuConfig']['clockSpeed']['value']
-            mem_size = nodetype['memConfig']['size']['value']
+            mem_size = nodetype['memoryConfig']['size']['value']
             net_perf = nodetype['networkConfig']['performance']
-            io_thpt = nodetype['storageConfig']['expectedThroughput']['value']
+            try:
+                io_thpt = nodetype['storageConfig']['expectedThroughput']['value']
+            except KeyError:
+                io_thpt = DEFAULT_IO_THPT
 
             if clock_speed == 0:
                 clock_speed = DEFAULT_CLOCK_SPEED
@@ -61,9 +66,6 @@ def encode_instance_type(instance_type):
             if net_perf == "":
                 net_perf = DEFAULT_NET_PERF
             net_bw = NETWORK_DICT[net_perf]
-
-            if io_thpt is None:
-                io_thpt = DEFAULT_IO_THPT
 
             feature_vector = np.array(
                 [vcpu, clock_speed, mem_size, net_bw, io_thpt])
@@ -80,11 +82,10 @@ def decode_instance_type(feature_vector):
         Returns:
             instance_type: node type closest to the feature vector based on a distance function
     """
-
-    all_nodetypes = get_all_nodetypes()
-    instane_types = [nodetype['name'] for nodetype in all_nodetypes]
-    distance = np.array(list(map(lambda x: feature_distance(encode_instance_type(x), feature_vector), 
-                                 instance_types)))
+    all_nodetypes = get_all_nodetypes()['data']
+    instance_types = [nodetype['name'] for nodetype in all_nodetypes]
+    distance = [feature_distance(encode_instance_type(
+        instance_type), feature_vector) for instance_type in instance_types]
 
     return instance_types[np.argmin(distance)]
 
@@ -96,7 +97,7 @@ def feature_distance(f1, f2):
 # TODO: improve query efficiency
 # get from configdb the price (hourly cost) of an instance_type
 def get_price(instance_type):
-    all_nodetypes = get_all_nodetypes()
+    all_nodetypes = get_all_nodetypes()['data']
 
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
@@ -120,7 +121,7 @@ def compute_cost(price, slo_type, qos_value):
 
 # get from configdb the type of an application ("long-running" or "batch")
 def get_app_type(app_name):
-    app_filter = {'appName': app_name}
+    app_filter = {'name': app_name}
     app = configdb[APP_COLLECTION].find_one(app_filter)
     app_type = app['type']
 
@@ -129,11 +130,33 @@ def get_app_type(app_name):
 
 # get from configdb the slo metric type of an application
 def get_slo_type(app_name):
-    app_filter = {'appName': app_name}
+    app_filter = {'name': app_name}
     app = configdb[APP_COLLECTION].find_one(app_filter)
     slo_type = app['slo']['type']
 
     return slo_type
+
+
+def get_slo_value(app_name):
+    app_filter = {'name': app_name}
+    app = configdb[APP_COLLECTION].find_one(app_filter)
+    try:
+        slo_type = app['slo']['value']
+    except KeyError:
+        slo_type = 500.  # TODO: put an nan
+
+    return slo_type
+
+
+def get_budget(app_name):
+    app_filter = {'name': app_name}
+    app = configdb[APP_COLLECTION].find_one(app_filter)
+    try:
+        budget = app['budget']['value']
+    except KeyError:
+        budget = 500.  # TODO: put an nan
+
+    return budget
 
 
 # TODO: probably need to change to appId.
@@ -147,7 +170,7 @@ def create_profiling_dataframe(app_name, collection='profiling'):
     """
     filt = {'appName': app_name}
     app = metricdb[collection].find_one(filt)
-    if app == None:
+    if app is None:
         raise KeyError(
             'Cannot find document: filter={}'.format(filt))
     serviceNames = pd.Index(app['services'])
@@ -158,7 +181,7 @@ def create_profiling_dataframe(app_name, collection='profiling'):
     for service in serviceNames:
         filt = {'appName': app_name, 'serviceInTest': service}
         app = metricdb[collection].find_one(filt)
-        if app == None:
+        if app is None:
             raise KeyError(
                 'Cannot find document: filter={}'.format(filt))
         ibenchScores.append([i['toleratedInterference']

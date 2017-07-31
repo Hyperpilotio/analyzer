@@ -100,13 +100,13 @@ def radar_data(app_id):
 # TODO: change back to uuid
 @app.route("/apps/<string:app_id>/suggest-instance-types", methods=["POST"])
 def get_next_instance_types(app_id):
-    if BO.get_status(app_id)['Status'] == "Running":
+    if BO.get_status(app_id)['status'] == "running":
         response = jsonify(error="Optimization process still running")
         response.status_code = 400
         return response
-    body = request.get_json()
-    BO.get_candidates(app_id, body)
-    return jsonify({"Status": "Submited"})
+    request_body = request.get_json()
+    response = jsonify(BO.get_candidates(app_id, request_body))
+    return response
 
 # TODO: change back to uuid
 
