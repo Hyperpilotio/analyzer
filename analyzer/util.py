@@ -23,7 +23,7 @@ MAX_IO_THPT = MAX_NET_BW / 8.0
 NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
                 "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
 
-
+@lru_cache(maxsize=1)
 def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
     region_filter = {'region': region}
     all_nodetypes = configdb[collection].find_one(region_filter)
@@ -43,7 +43,7 @@ def get_bounds():
 
     return list(zip(features.min(axis=0), features.max(axis=0)))
 
-
+@lru_cache(maxsize=16)
 def encode_instance_type(instance_type):
     """ convert each instance type to a vector of feature values 
         TODO: improve query efficiency by precomputing & caching all feature vectors
