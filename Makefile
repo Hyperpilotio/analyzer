@@ -72,7 +72,7 @@ docker-rm:
 	docker rm -f $(shell docker ps -a -q --filter ancestor=$(ANALYZER_IMAGE))
 	
 docker-test:
-	docker run -it $(ANALYZER_IMAGE) python -m unittest
+	docker run -it $(ANALYZER_IMAGE) pipenv run python -m unittest
 
 build-slo-form:
 	docker build -t $(SLO_CONFIG_IMAGE) -f slo_config/Dockerfile .

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "35e99d5dc34ce3aa20033186346bd2a81bcaaaa5442a5b116eb3625ffa065a4f"
+            "sha256": "4ddcba9b0da5f6c43b0ac6a99ded15c740c6eafc70e0b3ae52d8a4683528bf99"
         },
         "requires": {
             "python_full_version": "3.6.1",
@@ -62,9 +62,6 @@
         },
         "six": {
             "version": "==1.10.0"
-        },
-        "sklearn": {
-            "version": "==0.0"
         },
         "werkzeug": {
             "version": "==0.12.2"
