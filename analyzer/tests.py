@@ -57,8 +57,8 @@ class BayesianOptimizationPoolTest(TestCase):
             logger.debug(f'Response:\n{response}')
 
             if response['status'] == 'running':
-                logger.debug("Waiting for 5 sec")
-                sleep(5)
+                logger.debug("Waiting for 1 sec")
+                sleep(1)
             else:
                 break
 
