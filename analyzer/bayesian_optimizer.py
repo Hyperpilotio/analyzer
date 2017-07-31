@@ -62,8 +62,8 @@ class UtilityFunction(object):
 
     @staticmethod
     def _cei(x, gp_objective, xi, gp_constraint, constraint_upper):
-        """ Compute the cdf under constraint_upper (i.e. P(c(x) < constraint_upper)) modualte the ei(x).
-            whereas c(x) is a estimated gaussian distribution.
+        """ Compute the cdf under constraint_upper (i.e. P(c(x) < constraint_upper)) to modulate the ei(x).
+            where c(x) is the estimated marginal distribution of the Gaussian process.
         """
         ei = UtilityFunction._ei(x, gp_objective, xi)
 
