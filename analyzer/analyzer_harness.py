@@ -17,9 +17,9 @@ from random import randint
 import argparse
 import json
 import sys
+import time
 from . import util
-from . import bayesian_optimizer_pool
-
+from . import bayesian_optimizer_pool  
 class CloudPerf(object):
   """ A class for a cloud performance model
   """
@@ -137,11 +137,9 @@ def __main__():
   # parse arguments
   parser = argparse.ArgumentParser()
   parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
-  parser.add_argument("-i", "--iter", type=int, required=False, default=10,
-                      help="maximum iterations")
+  parser.add_argument("-i", "--iter", type=int, required=False, default=10, help="maximum iterations")
   parser.add_argument("-n", "--noise", help="add noise to cloud performance", action="store_false")
-  parser.add_argument("-r", "--nrange", type=int, required=False, default=10,
-                      help="noise range (int)")
+  parser.add_argument("-r", "--nrange", type=int, required=False, default=10,help="noise range (int)")
   parser.add_argument("-va", "-vcpua", type=float, required=False, default=1.0, help="vcpu a")
   parser.add_argument("-vb", "-vcpub", type=float, required=False, default=0.0, help="vcpu b")
   parser.add_argument("-vc", "-vcpuc", type=float, required=False, default=0.0, help="vcpu c")
@@ -163,17 +161,20 @@ def __main__():
   parser.add_argument("-ic", "-ioc", type=float, required=False, default=0.0, help="io c")
   parser.add_argument("-iw", "-iow", type=float, required=False, default=0.2, help="io w")
   args = parser.parse_args()
-
+  
   # initialize performance model
-  cloud_perf = CloudPerf(args.vcpua, args.vcpub, args.vcpc, args.vcpuw, \
-                         args.clka, args.clkb, args.clkc, args.clkw, \
-                         args.mema, args.memb, args.memc, args.memw, \
-                         args.neta, args.netb, args.netc, args.netw, \
-                         args.ioa, args.iob, args.ioc, args.iow, \
+  cloud_perf = CloudPerf(args.va, args.vb, args.vc, args.vw, \
+                         args.ca, args.cb, args.cc, args.cw, \
+                         args.ma, args.mb, args.mc, args.mw, \
+                         args.na, args.nb, args.nc, args.nw, \
+                         args.ia, args.ib, args.ic, args.iw, \
                          args.noise, args.nrange)
-
+  print("Running analyzer harness with following parameters:")
+  print(args)
+  print()
+  
   # get all the instance info
-  all_nodetypes = util.get_all_nodetypes()
+  all_nodetypes = util.get_all_nodetypes()['data']
   numtypes = len(all_nodetypes)
   if numtypes < args.iter*3:
     print("ERROR: Not enough nodetypes in database")
@@ -181,27 +182,32 @@ def __main__():
   # build dictionary with features for all instances
   features = {}
   for nodetype in all_nodetypes:
-    feat = util.encode_instance_type(nodetype)
-    features[nodetype] = feat
+    name = nodetype['name']
+    feat = util.encode_instance_type(name)
+    features[name] = feat
   # visited instances
   visited = set()
+  print("...Got information for %d instance types" %numtypes)
 
   # initialyze analyzer
-  analyzer = bayesian_optimizer_pool.BayesianOptimizerPool()
+  analyzer = bayesian_optimizer_pool.BayesianOptimizerPool.instance()
   request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
   request_dict = json.loads(request_str)
   analyzer.get_candidates("redis", request_dict)
+  print("...Initialized analyzer")
 
   #main loop
-  for i in range(args.iters):
+  for i in range(args.iter):
+    print("...Iteration %d out of %d" %(i, args.iter))
     # check if done
     while True:
-      status_str = analyzer.get_status("redis")
-      status_dict = json.loads(status_str)
-      if status_dict["Status"] != "Running":
+      status_dict = analyzer.get_status("redis")
+      print(status_dict)
+      if status_dict['status'] != "running":
         break
+      time.sleep(1)
     # throw error if needed
-    if status_dict["Status"] != "Done":
+    if status_dict["status"] != "done":
       print("ERROR: Analyzer returned with status %s"  %status_dict["Status"])
       sys.exit()
     # termination
