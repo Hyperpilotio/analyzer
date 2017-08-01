@@ -279,47 +279,53 @@ def __main__():
   slo = float(util.get_slo_value("redis"))
   budget = float(util.get_budget("redis"))
   # scan all visited nodetypes
-  visited_perfcost_i = visited_perf_i = visited_cost_i = "none"
-  visited_perf_perf = visited_cost_perf = 0.0
-  visited_cost_cost = visited_perf_cost = 1.79e+30
-  visited_perfcost = 0.0
+  v_optPC_i = v_optP_i = v_optC_i = "none"
+  v_optP_perf = v_optC_perf = 0.0
+  v_optP_cost = v_optC_cost = 1.79e+30
+  v_optPC_perfcost = 0.0
   for key in visited:
-    feat = features[nodetype]
+    feat = features[key]
     perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
     price = util.get_price(key)
     cost = util.compute_cost(price, 'throughput', perf)
-    if cost <= budget and (perf > visited_perf_perf or (perf == visited_perf_perf and cost < visited_perf_cost)):
-      visited_perf_i = key
-      visited_perf_perf = perf
-      visited_perf_cost = cost
-    if perf >= slo and (cost < visited_cost_cost or (cost == visited_cost_cost and perf > visited_cost_perf)):
-      visited_cost_i = key
-      visited_cost_cost = cost
-      visited_cost_perf = perf
-    if (perf/cost) > visited_perfcost:
-      visited_perfcost_i = key
-      visited_perfcost = perf/cost
+    # best perf under budget constraint
+    if cost <= budget and (perf > v_optP_perf or (perf == v_optP_perf and cost < v_optP_cost)):
+      v_optP_i = key
+      v_optP_perf = perf
+      v_optP_cost = cost
+    # best cost under perf constraint
+    if perf >= slo and (cost < v_optC_cost or (cost == v_optC_cost and perf > v_optC_perf)):
+      v_optC_i = key
+      v_optC_cost = cost
+      v_optC_perf = perf
+    # best perf/cost
+    if (perf/cost) > v_optPC_perfcost:
+      v_optPC_i = key
+      v_optPC_perfcost = perf/cost
   # scan all nodetypes
-  cloud_perfcost_i = cloud_perf_i = cloud_cost_i = "none"
-  cloud_perf_perf = cloud_cost_perf = 0.0
-  cloud_cost_cost = cloud_perf_cost = 1.79e+30
-  cloud_perfcost = 0.0
+  c_optPC_i = c_optP_i = c_optC_i = "none"
+  c_optP_perf = c_optC_perf = 0.0
+  c_optP_cost = c_optC_cost = 1.79e+30
+  c_optPC_perfcost = 0.0
   for key in features:
     feat = features[key]
     perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
     price = util.get_price(key)
     cost = util.compute_cost(price, 'throughput', perf)
-    if cost <= budget and (perf > cloud_perf_perf or (perf == cloud_perf_perf and cost < cloud_perf_cost)):
-      cloud_perf_i = key
-      cloud_perf_perf = perf
-      cloud_perf_cost = cost
-    if perf >= slo and (cost < cloud_cost_cost or (cost == cloud_cost_cost and perf > cloud_cost_perf)):
-      cloud_cost_i = key
-      cloud_cost_cost = cost
-      cloud_cost_perf = perf
-    if (perf/cost) > cloud_perfcost:
-      cloud_perfcost_i = key
-      cloud_perfcost = perf/cost
+    # best perf under budget constraint
+    if cost <= budget and (perf > c_optP_perf or (perf == c_optP_perf and cost < c_optP_cost)):
+      c_optP_i = key
+      c_optP_perf = perf
+      c_optP_cost = cost
+    # best cost under perf constraint
+    if perf >= slo and (cost < c_optC_cost or (cost == c_optC_cost and perf > c_optC_perf)):
+      c_optC_i = key
+      c_optC_cost = cost
+      c_optC_perf = perf
+    # best perf/cost
+    if (perf/cost) > c_optPC_perfcost:
+      c_optPC_i = key
+      c_optPC_perfcost = perf/cost
 
   # print results
   print("")
@@ -334,15 +340,15 @@ def __main__():
   print("Nodetypes examined: ", len(visited))
   print("")
   print("Performance/cost")
-  print("   Best available: %10s, %s" %(cloud_perfcost_i, nodeinfo(cloud_perfcost_i)))
-  print("   Best found:     %10s, %s" %(visited_perfcost_i, nodeinfo(visited_perfcost_i)))
-  print("")
-  print("Performance with cost constraint (%0.2f)" %budget)
-  print("   Best available: %10s, %s" %(cloud_perf_i, nodeinfo(cloud_perf_i)))
-  print("   Best found:     %10s, %s" %(visited_perf_i, nodeinfo(visited_perf_i)))
+  print("   Best available: %10s, %s" %(c_optPC_i, nodeinfo(c_optPC_i)))
+  print("   Best found:     %10s, %s" %(v_optPC_i, nodeinfo(v_optPC_i)))
   print("")
   print("Cost with performance constraint (%0.2f)" %slo)
-  print("   Best available: %10s, %s" %(cloud_cost_i, nodeinfo(cloud_cost_i)))
-  print("   Best found:     %10s, %s" %(visited_cost_i, nodeinfo(visited_cost_i)))
+  print("   Best available: %10s, %s" %(c_optC_i, nodeinfo(c_optC_i)))
+  print("   Best found:     %10s, %s" %(v_optC_i, nodeinfo(v_optC_i)))
+  print("")
+  print("Performance with cost constraint (%0.2f)" %budget)
+  print("   Best available: %10s, %s" %(c_optP_i, nodeinfo(c_optP_i)))
+  print("   Best found:     %10s, %s" %(v_optP_i, nodeinfo(v_optP_i)))
 
 __main__()
