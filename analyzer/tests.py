@@ -18,7 +18,7 @@ from api_service.app import app as api_service_app
 from api_service.db import metricdb
 from logger import get_logger
 
-from .util import decode_instance_type, get_all_nodetypes, get_bounds
+from .util import decode_instance_type, get_all_nodetypes, get_feature_bounds
 
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
@@ -84,7 +84,7 @@ class BayesianOptimizationPoolTest(TestCase):
         df = BOP.create_sample_dataframe(request_body)
         training_data_list = [BOP.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf', 'perf_given_cost']]
-        bounds = get_bounds()
+        bounds = get_feature_bounds()
 
         outputs = []
         for t in training_data_list:

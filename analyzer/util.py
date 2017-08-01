@@ -2,31 +2,25 @@ import pandas as pd
 import numpy as np
 from api_service.db import metricdb, configdb
 from functools import lru_cache
+from config import get_config
 
-# TODO: Move these into a config or constants file
-NODETYPE_COLLECTION = 'nodetypes'
-APP_COLLECTION = 'applications'
-MY_REGION = 'us-east-1'
-COST_TYPE = 'LinuxReserved'
+config = get_config()
+nodetype_collection = config.get("ANALYZER","NODETYPE_COLLECTION")
+app_collection = config.get("ANALYZER","APP_COLLECTION")
+my_region = config.get("ANALYZER", "MY_REGION")
+cost_type = config.get("ANALYZER", "COST_TYPE")
 
 DEFAULT_CLOCK_SPEED = 2.3
 DEFAULT_NET_PERF = 'Low'
 DEFAULT_IO_THPT = 125
 
-# TODO: Use the upper bounds to normalize the feature variables
-MAX_VCPU = 128
-MAX_CLOCK_SPEED = 3.5
-MAX_MEM_SIZE = 1952
-MAX_NET_BW = 20000
-MAX_IO_THPT = MAX_NET_BW / 8.0
-
 NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
                 "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
 
 @lru_cache(maxsize=1)
-def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
+def get_all_nodetypes(region=my_region):
     region_filter = {'region': region}
-    all_nodetypes = configdb[collection].find_one(region_filter)
+    all_nodetypes = configdb[nodetype_collection].find_one(region_filter)
     if all_nodetypes is None:
         raise KeyError(
             'Cannot find nodetype document: filter={}'.format(region_filter))
@@ -34,21 +28,23 @@ def get_all_nodetypes(collection=NODETYPE_COLLECTION, region=MY_REGION):
 
 
 @lru_cache(maxsize=1)
-def get_bounds():
-    """ Get the (min, max) boundary for each dimension
+def get_feature_bounds():
+    """ Get the (min, max) bounds for each feature variable
     """
     all_node_types = get_all_nodetypes()['data']
-    features = np.array([encode_instance_type(node_type['name'])
+    features = np.array([get_raw_features(node_type['name'])
                          for node_type in all_node_types])
 
     return list(zip(features.min(axis=0), features.max(axis=0)))
 
+
 @lru_cache(maxsize=16)
-def encode_instance_type(instance_type):
-    """ convert each instance type to a vector of feature values 
+def get_raw_features(instance_type):
+    """ for each instance type, get a vector of raw feature values from the database
         TODO: improve query efficiency by precomputing & caching all feature vectors
     """
     all_nodetypes = get_all_nodetypes()['data']
+
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
             vcpu = nodetype['cpuConfig']['vCPU']
@@ -72,11 +68,23 @@ def encode_instance_type(instance_type):
 
             return feature_vector
     else:
-        raise KeyError(f'Cannot find instance type: name={instance_type}')
+        raise KeyError(f'Cannot find instance type in the database: name={instance_type}')
+
+
+@lru_cache(maxsize=16)
+def encode_instance_type(instance_type):
+    """ convert each instance type to a vector of normalized feature values
+    """
+
+    features = get_raw_features(instance_type)
+    bounds = np.array(get_feature_bounds())
+
+    # normalizing each feature variable by its maximum value
+    return np.divide(features, bounds[:,1])
 
 
 def decode_instance_type(feature_vector):
-    """ convert a candidate solution recommended by the optimizer into an aws instance type
+    """ convert a candidate solution recommended by the optimizer into an ec2 instance type
         Args:
             feature_vector: candidate solution in a vector space
         Returns:
@@ -101,7 +109,7 @@ def get_price(instance_type):
 
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
-            price = nodetype['hourlyCost'][COST_TYPE]['value']
+            price = nodetype['hourlyCost'][cost_type]['value']
             return price
     else:
         raise KeyError(f'Cannot find instance type: name={instance_type}')
@@ -122,7 +130,7 @@ def compute_cost(price, slo_type, qos_value):
 # get from configdb the type of an application ("long-running" or "batch")
 def get_app_type(app_name):
     app_filter = {'name': app_name}
-    app = configdb[APP_COLLECTION].find_one(app_filter)
+    app = configdb[app_collection].find_one(app_filter)
     app_type = app['type']
 
     return app_type
@@ -131,7 +139,7 @@ def get_app_type(app_name):
 # get from configdb the slo metric type of an application
 def get_slo_type(app_name):
     app_filter = {'name': app_name}
-    app = configdb[APP_COLLECTION].find_one(app_filter)
+    app = configdb[app_collection].find_one(app_filter)
     slo_type = app['slo']['type']
 
     return slo_type
@@ -139,7 +147,7 @@ def get_slo_type(app_name):
 
 def get_slo_value(app_name):
     app_filter = {'name': app_name}
-    app = configdb[APP_COLLECTION].find_one(app_filter)
+    app = configdb[app_collection].find_one(app_filter)
     try:
         slo_type = app['slo']['value']
     except KeyError:
@@ -150,7 +158,7 @@ def get_slo_value(app_name):
 
 def get_budget(app_name):
     app_filter = {'name': app_name}
-    app = configdb[APP_COLLECTION].find_one(app_filter)
+    app = configdb[app_collection].find_one(app_filter)
     try:
         budget = app['budget']['value']
     except KeyError:
