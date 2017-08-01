@@ -11,7 +11,7 @@ from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_instance_type, encode_instance_type,
-                   get_all_nodetypes, get_bounds, get_price, get_slo_type, get_slo_value, get_budget)
+                   get_all_nodetypes, get_feature_bounds, get_price, get_slo_type, get_slo_value, get_budget)
 
 logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
@@ -51,7 +51,7 @@ class BayesianOptimizerPool():
         df = BayesianOptimizerPool.create_sample_dataframe(request_body)
 
         # initialize points if there is no training sample coming
-        if df is None:
+        if (df is not None) and (len(df) == 0):
             self.future_map[app_id] = []
             future = self.worker_pool.submit(
                 BayesianOptimizerPool.generate_initial_points)
@@ -69,7 +69,7 @@ class BayesianOptimizerPool():
                 for o in ['perf_over_cost',
                           'cost_given_perf', 'perf_given_cost']]
 
-            feature_bounds = get_bounds()
+            feature_bounds = get_feature_bounds()
             self.future_map[app_id] = []
             for training_data in training_data_list:
                 logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
@@ -235,6 +235,4 @@ class BayesianOptimizerPool():
                                'budget': [get_budget(app_name)]
                                })
             dfs.append(df)
-        else:
-            return None
         return pd.concat(dfs)
