@@ -3,6 +3,9 @@ import numpy as np
 from api_service.db import metricdb, configdb
 from functools import lru_cache
 from config import get_config
+from logger import get_logger
+
+logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 config = get_config()
 nodetype_collection = config.get("ANALYZER","NODETYPE_COLLECTION")
@@ -13,6 +16,7 @@ cost_type = config.get("ANALYZER", "COST_TYPE")
 DEFAULT_CLOCK_SPEED = 2.3
 DEFAULT_NET_PERF = 'Low'
 DEFAULT_IO_THPT = 125
+DEFAULT_COST = {'LinuxOnDemand': 2.1, 'LinuxReserved': 1.14, "WindowsOnDemand": 2.6, "WindowsReserved": 1.35}
 
 NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
                 "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
@@ -80,7 +84,10 @@ def encode_instance_type(instance_type):
     bounds = np.array(get_feature_bounds())
 
     # normalizing each feature variable by its maximum value
-    return np.divide(features, bounds[:,1])
+    features_normalized = np.divide(features, bounds[:,1])
+    #logger.debug(f"Encoded feature vector for {instance_type}: {features_normalized}")
+
+    return features_normalized
 
 
 def decode_instance_type(feature_vector):
@@ -109,10 +116,16 @@ def get_price(instance_type):
 
     for nodetype in all_nodetypes:
         if nodetype['name'] == instance_type:
-            price = nodetype['hourlyCost'][cost_type]['value']
+            try:
+                price = nodetype['hourlyCost'][cost_type]['value']
+                if price == 0:
+                    price = DEFAULT_COST[cost_type]
+            except KeyError:
+                price = DEFAULT_COST[cost_type]
+
             return price
     else:
-        raise KeyError(f'Cannot find instance type: name={instance_type}')
+        raise KeyError(f'Cannot find instance type in the database: name={instance_type}')
 
 
 # cost function based on sloMetric type and value, and hourly price
