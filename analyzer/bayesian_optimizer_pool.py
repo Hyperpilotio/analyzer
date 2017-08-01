@@ -48,10 +48,9 @@ class BayesianOptimizerPool():
             app_id(str): unique key to identify the application
             request_body(dict): the request body sent from the client of the analyzer service
         """
-        df = BayesianOptimizerPool.create_sample_dataframe(request_body)
 
         # initialize points if there is no training sample coming
-        if (df is not None) and (len(df) == 0):
+        if not request_body.get('data'):
             self.future_map[app_id] = []
             init_points = BayesianOptimizerPool.generate_initial_points()
             for i in init_points:
@@ -59,9 +58,10 @@ class BayesianOptimizerPool():
                 self.future_map[app_id].append(future)
         # Else dispatch the optimizers
         else:
+            # create datafame
+            df = BayesianOptimizerPool.create_sample_dataframe(request_body)
             # update the shared sample map
             self.update_sample_map(app_id, df)
-
             # fetch the latest sample_map
             dataframe = self.sample_map[app_id]
             # create the training data to Bayesian optimizer
@@ -116,7 +116,7 @@ class BayesianOptimizerPool():
         # TODO: thread safe?
         if self.sample_map.get('app_id'):
             # check if incoming df contains duplicated instance_type with sample_map:
-            if len(set(df['instance_type']).intersection(set(self.sample_map[app_id]['instance_type']))) != 0:
+            if set(df['instance_type']).intersection(set(self.sample_map[app_id]['instance_type'])):
                 logger.warning(f"Duplicated sample was sent from client\nrequest body dump: \n{request_body}")
 
         self.sample_map[app_id] = pd.concat(
@@ -240,6 +240,6 @@ class BayesianOptimizerPool():
                                'budget': [get_budget(app_name)]
                                })
             dfs.append(df)
-        if len(dfs) == 0:
+        if not dfs:
             raise AssertionError(f'dataframe is not created\nrequest_body:\n{request_body}')
         return pd.concat(dfs)
