@@ -156,6 +156,7 @@ def nodeinfo(nodetype):
   np_feat = features[nodetype]
   feat = np_feat.astype(type('float', (float,), {}))
   perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
+  print ("test", nodetype, feat[0], perf, feat)
   price = util.get_price(nodetype)
   cost = util.compute_cost(price, 'throughput', perf)
   return "perf %0.2f, price %0.3f, cost %0.2f, perf/cost %0.2f" \
@@ -217,6 +218,9 @@ def __main__():
     name = nodetype['name']
     feat = util.encode_instance_type(name)
     features[name] = feat
+    if name == "r4.xlarge":
+      print(nodetype)
+      print(feat)
   # visited instances
   visited = set()
   print("...Got information for %d instance types" %numtypes)
