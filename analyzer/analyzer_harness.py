@@ -6,7 +6,7 @@ Assumptions
 - performance is throughput (higher is better)
 
 TODO
-- initialize analyzerL
+- initialize analyzer
 """
 
 __author__ = "Christos Kozyrakis"
@@ -152,19 +152,21 @@ def nodeinfo(nodetype):
   global features
   global cloud
   if nodetype == "none":
-    return "perf 0.00, price 0.000, cost 0.00, perf/cost 0.00"
-  np_feat = features[nodetype]
-  feat = np_feat.astype(type('float', (float,), {}))
+    return "perf %9.2f, price %5.3f, cost %6.2f, perf/cost %8.2f" \
+         %(0.0, 0.0, 0.0, 0.0)
+  feat = features[nodetype]
   perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
-  print ("test", nodetype, feat[0], perf, feat)
   price = util.get_price(nodetype)
   cost = util.compute_cost(price, 'throughput', perf)
-  return "perf %0.2f, price %0.3f, cost %0.2f, perf/cost %0.2f" \
+  return "perf %9.2f, price %5.3f, cost %6.2f, perf/cost %8.2f" \
          %(perf, price, cost, perf/cost)
 
 def __main__():
   """ Main function of analyzer harness
   """
+  # command line summary
+  print("Running: ", ' '.join(map(str, sys.argv)))
+  print()
   # parse arguments
   parser = argparse.ArgumentParser()
   parser.add_argument("-v", "--verbose", type=str2bool, required=False, default=False, help="increase output verbosity")
@@ -216,11 +218,11 @@ def __main__():
   # build dictionary with features for all instances
   for nodetype in all_nodetypes:
     name = nodetype['name']
-    feat = util.encode_instance_type(name)
+    np_feat = util.encode_instance_type(name)
+    feat = np_feat.astype(type('float', (float,), {}))
+    if feat[0] == 0.0 or feat[1] == 0.0 or feat[2] == 0.0 or feat[3] == 0.0 or feat[4] == 0.0:
+      print("WARNING: problem with nodetype features ", name, feat)
     features[name] = feat
-    if name == "r4.xlarge":
-      print(nodetype)
-      print(feat)
   # visited instances
   visited = set()
   print("...Got information for %d instance types" %numtypes)
@@ -256,8 +258,7 @@ def __main__():
     count = 0
     for nodetype in status_dict["data"]:
       count += 1
-      np_feat = features[nodetype]
-      feat = np_feat.astype(type('float', (float,), {}))
+      feat = features[nodetype]
       perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], True)
       request_str += "{\"instanceType\": \"%s\", \"qosValue\": %f}" %(nodetype, perf)
       if count < len(status_dict["data"]):
@@ -275,45 +276,47 @@ def __main__():
     time.sleep(1)
 
   # evaluate results
-  slo = util.get_slo_value("redis")
-  budget = util.get_budget("redis")
+  slo = float(util.get_slo_value("redis"))
+  budget = float(util.get_budget("redis"))
   # scan all visited nodetypes
   visited_perfcost_i = visited_perf_i = visited_cost_i = "none"
-  visited_perf = 0.0
+  visited_perf_perf = visited_cost_perf = 0.0
+  visited_cost_cost = visited_perf_cost = 1.79e+30
   visited_perfcost = 0.0
-  visited_cost = 1.79e+30
   for key in visited:
-    np_feat = features[nodetype]
-    feat = np_feat.astype(type('float', (float,), {}))
+    feat = features[nodetype]
     perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
     price = util.get_price(key)
     cost = util.compute_cost(price, 'throughput', perf)
-    if perf > visited_perf and cost <= budget:
+    if cost <= budget and (perf > visited_perf_perf or (perf == visited_perf_perf and cost < visited_perf_cost)):
       visited_perf_i = key
-      visited_perf = perf
-    if cost < visited_cost and perf >= slo:
+      visited_perf_perf = perf
+      visited_perf_cost = cost
+    if perf >= slo and (cost < visited_cost_cost or (cost == visited_cost_cost and perf > visited_cost_perf)):
       visited_cost_i = key
-      visited_cost = cost
+      visited_cost_cost = cost
+      visited_cost_perf = perf
     if (perf/cost) > visited_perfcost:
       visited_perfcost_i = key
       visited_perfcost = perf/cost
   # scan all nodetypes
   cloud_perfcost_i = cloud_perf_i = cloud_cost_i = "none"
+  cloud_perf_perf = cloud_cost_perf = 0.0
+  cloud_cost_cost = cloud_perf_cost = 1.79e+30
   cloud_perfcost = 0.0
-  cloud_perf = 0.0
-  cloud_cost = 1.79e+30
   for key in features:
-    np_feat = features[nodetype]
-    feat = np_feat.astype(type('float', (float,), {}))
+    feat = features[key]
     perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
     price = util.get_price(key)
     cost = util.compute_cost(price, 'throughput', perf)
-    if perf > cloud_perf and cost <= budget:
+    if cost <= budget and (perf > cloud_perf_perf or (perf == cloud_perf_perf and cost < cloud_perf_cost)):
       cloud_perf_i = key
-      cloud_perf = perf
-    if cost < cloud_cost and perf >= slo:
+      cloud_perf_perf = perf
+      cloud_perf_cost = cost
+    if perf >= slo and (cost < cloud_cost_cost or (cost == cloud_cost_cost and perf > cloud_cost_perf)):
       cloud_cost_i = key
-      cloud_cost = cost
+      cloud_cost_cost = cost
+      cloud_cost_perf = perf
     if (perf/cost) > cloud_perfcost:
       cloud_perfcost_i = key
       cloud_perfcost = perf/cost
@@ -331,15 +334,15 @@ def __main__():
   print("Nodetypes examined: ", len(visited))
   print("")
   print("Performance/cost")
-  print("   Best avalailable: %s, %s" %(cloud_perfcost_i, nodeinfo(cloud_perfcost_i)))
-  print("   Best found: %s, %s" %(visited_perfcost_i, nodeinfo(visited_perfcost_i)))
+  print("   Best available: %10s, %s" %(cloud_perfcost_i, nodeinfo(cloud_perfcost_i)))
+  print("   Best found:     %10s, %s" %(visited_perfcost_i, nodeinfo(visited_perfcost_i)))
   print("")
-  print("Perfomance with cost constraint")
-  print("   Best avalailable: %s, %s" %(cloud_perf_i, nodeinfo(cloud_perf_i)))
-  print("   Best found: %s, %s" %(visited_perf_i, nodeinfo(visited_perf_i)))
+  print("Performance with cost constraint (%0.2f)" %budget)
+  print("   Best available: %10s, %s" %(cloud_perf_i, nodeinfo(cloud_perf_i)))
+  print("   Best found:     %10s, %s" %(visited_perf_i, nodeinfo(visited_perf_i)))
   print("")
-  print("Cost with performance constraint")
-  print("   Best avalailable: %s, %s" %(cloud_cost_i, nodeinfo(cloud_cost_i)))
-  print("   Best found: %s, %s" %(visited_cost_i, nodeinfo(visited_cost_i)))
+  print("Cost with performance constraint (%0.2f)" %slo)
+  print("   Best available: %10s, %s" %(cloud_cost_i, nodeinfo(cloud_cost_i)))
+  print("   Best found:     %10s, %s" %(visited_cost_i, nodeinfo(visited_cost_i)))
 
 __main__()
