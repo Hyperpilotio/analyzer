@@ -31,7 +31,7 @@ class UtilityFunction(object):
         self.kappa = kappa
         self.constraint_upper = constraint_upper
 
-    def utility(self, x):
+    def utility(self, x, *args):
         gp_objective = self.gp_objective
         gp_constraint = self.gp_constraint
         constraint_upper = self.constraint_upper
@@ -69,6 +69,7 @@ class UtilityFunction(object):
 
         mean, std = gp_constraint.predict(x, return_std=True)
         z = (constraint_upper - mean) / std
+
         cumulative_probabiliy = norm.cdf(z)
         return cumulative_probabiliy * ei
 
