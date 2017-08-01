@@ -104,7 +104,7 @@ class BayesianOptimizerPool():
                     return {"status": "exception",
                             "data": str(e)}
                 else:
-    
+
                     return {"status": "done",
                             "data": [decode_instance_type(c) for c in candidates
                                      if not self.should_terminate(app_id, decode_instance_type(c))]}
@@ -127,7 +127,7 @@ class BayesianOptimizerPool():
         Terminate conditions: 1. if number of run exceed than max_run or,
                               2. if the recommended instance_type is duplicated
         """
-        if self.sample_map.get(app_id):
+        if self.sample_map.get(app_id) is not None:
             samples = self.sample_map[app_id]
             return (len(samples) >= max_run) or (instance_type in samples['instance_type'])
         else:
@@ -240,6 +240,7 @@ class BayesianOptimizerPool():
                                'budget': [get_budget(app_name)]
                                })
             dfs.append(df)
-        else:
-            return None
+        if len(dfs) == 0:
+            raise AssertionError(f'dataframe is not created\nrequest_body:\n{request_body}')
+
         return pd.concat(dfs)
