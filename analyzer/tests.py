@@ -96,11 +96,25 @@ class BayesianOptimizationPoolTest(TestCase):
 
         # The final result of instance_type (i.e. [x2.large, x2.xlarge, t2.xlarge])
         candidates = [decode_instance_type(output) for output in outputs]
-        logger.info(candidates)
+        logger.debug(candidates)
 
     def testSingleton(self):
         # TODO: Test if the singleton is thread safe
         pass
+
+    def testGenerateInitialPoints(self):
+        dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
+        instance_type_map = {}
+
+        for i, j in dataframe.iterrows():
+            instance_type_map[j['name']] = j['instanceFamily']
+
+        for i in range(100):
+            points = BOP.generate_initial_points(
+                len(set(dataframe['instanceFamily'])))
+            if len(points) != len(set([instance_type_map[i] for i in points])):
+                raise AssertionError(
+                    "Initial point generator points coming from same families")
 
 
 class BayesianOptimizationTest(TestCase):

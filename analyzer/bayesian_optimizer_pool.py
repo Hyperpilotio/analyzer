@@ -146,18 +146,25 @@ class BayesianOptimizerPool():
             and randomly select a 'nodetype' from that family repeatly
         """
         dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
-        # check if there is any node belongs to empty instanceFamily\
-        # assert '' not in dataframe['instanceFamily'], "instanceFamily shouldn't be empty"
         instance_families = list(set(dataframe['instanceFamily']))
-
+        available = list(instance_families)
+        # check if there is any instance's instanceFamily field is empty string
+        assert '' not in instance_families, "instanceFamily shouldn't be empty"
         result = []
 
         logger.debug("Generating random initial points")
-        for _ in range(init_points):
-            family = np.random.choice(instance_families, 1)[0]
-            instance_type = np.random.choice(
-                dataframe[dataframe['instanceFamily'] == family]['name'], 1)[0]
-            result.append(instance_type)
+        while init_points > 0:
+            family = np.random.choice(instance_families, 1)[0]  # O(1)
+            if family in available:  # O(n)
+                instance_type = np.random.choice(
+                    dataframe[dataframe['instanceFamily'] == family]['name'], 1)[0]
+                result.append(instance_type)
+                init_points -= 1
+                available.remove(family)  # O(n)
+
+            # refill available
+            if not available:
+                available = list(instance_families)
 
         logger.debug(f"initial points:\n{result}")
         return result
