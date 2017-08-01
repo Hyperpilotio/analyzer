@@ -13,7 +13,8 @@ from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_instance_type, encode_instance_type,
                    get_all_nodetypes, get_feature_bounds, get_price, get_slo_type, get_slo_value, get_budget)
 
-logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
+logger = get_logger(__name__, log_level=(
+    "BAYESIAN_OPTIMIZER_POOL", "LOGLEVEL"))
 
 
 class BayesianOptimizerPool():
@@ -73,7 +74,7 @@ class BayesianOptimizerPool():
             feature_bounds = get_feature_bounds()
             self.future_map[app_id] = []
             for training_data in training_data_list:
-                logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
+                logger.debug(f"[{app_id}]Dispatching optimizer:\n{training_data}")
                 acq = 'cei' if training_data.has_constraint() else 'ei'
 
                 future = self.worker_pool.submit(
@@ -106,32 +107,38 @@ class BayesianOptimizerPool():
                 else:
 
                     return {"status": "done",
-                            "data": [decode_instance_type(c) for c in candidates
-                                     if not self.should_terminate(app_id, decode_instance_type(c))]}
+                            "data": self.filter_candidates(app_id, [decode_instance_type(c) for c in candidates])}
+
                 return {"status": "unexpected future state"}
         else:
             return {"status": "not running"}
 
     def update_sample_map(self, app_id, df):
         # TODO: thread safe?
-        if self.sample_map.get('app_id'):
+        if self.sample_map.get(app_id) is not None:
             # check if incoming df contains duplicated instance_type with sample_map:
-            if set(df['instance_type']).intersection(set(self.sample_map[app_id]['instance_type'])):
-                logger.warning(f"Duplicated sample was sent from client\nrequest body dump: \n{request_body}")
+            intersection = set(df['instance_type']).intersection(
+                set(self.sample_map[app_id]['instance_type']))
+            if intersection:
+                logger.warning(f"Duplicated sample was sent from client")
+                logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(app_id)}")
+                logger.warning(f"intersection: {intersection}")
 
         self.sample_map[app_id] = pd.concat(
             [df, self.sample_map.get(app_id)])
 
-    def should_terminate(self, app_id, instance_type, max_run=10):
-        """ This method determine if a suggested candidate by optimizer should be terminated.
+    def filter_candidates(self, app_id, candidates, max_run=10):
+        """ This method determine if candidates should be returned to client.
         Terminate conditions: 1. if number of run exceed than max_run or,
-                              2. if the recommended instance_type is duplicated
+                              2. if the recommended instance_type is duplicated within this run or with previous runs
         """
-        if self.sample_map.get(app_id) is not None:
-            samples = self.sample_map[app_id]
-            return (len(samples) >= max_run) or (instance_type in samples['instance_type'])
-        else:
-            return False
+        # remove duplicates within this run
+        candidates = list(set(candidates))
+
+        if self.sample_map.get(app_id) is None:
+            return candidates
+        else:  # remove duplicates with previous run
+            return [c for c in candidates if c not in self.sample_map.get(app_id)['instance_type'].values]
 
     @staticmethod
     def generate_initial_points(init_points=3):
