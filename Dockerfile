@@ -14,4 +14,4 @@ RUN make init
 
 # Run app
 EXPOSE 5000
-CMD make run-server
+CMD make serve

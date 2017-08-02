@@ -30,11 +30,15 @@ test:
 	$(PIPENV) check
 	$(PIPENV) run python -m unittest
 
-run-server:
+serve:
 	$(PIPENV) run gunicorn $(GUNICORN_ARGS)
 
-dev-py:
+run-server: serve
+
+dev:
 	$(PIPENV) run gunicorn $(GUNICORN_ARGS) --reload
+
+dev-py: dev
 
 docker-build:
 	docker build -t $(ANALYZER_IMAGE) .
