@@ -19,7 +19,7 @@ from api_service.app import app as api_service_app
 from api_service.db import metricdb
 from logger import get_logger
 
-from .util import decode_instance_type, get_all_nodetypes, get_feature_bounds
+from .util import decode_nodetype, get_all_nodetypes, get_feature_bounds
 
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
@@ -54,7 +54,7 @@ class BayesianOptimizerPoolTest(TestCase):
         # Polling from workload profiler
         while True:
             logger.debug('Polling status from API service')
-            response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status/').data)
+            response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
             logger.debug(f'Response:\n{response}')
 
             if response['status'] == 'running':
@@ -85,8 +85,8 @@ class BayesianOptimizerPoolTest(TestCase):
         df = BOP.create_sample_dataframe(request_body)
         training_data_list = [BOP.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf', 'perf_given_cost']]
-        bounds = get_feature_bounds()
 
+        bounds = get_feature_bounds(normalized=True)
         outputs = []
         for t in training_data_list:
             logger.debug(f"Dispatching training data: {t}")
@@ -95,8 +95,8 @@ class BayesianOptimizerPoolTest(TestCase):
                                    acq=acq, constraint_arr=t.constraint_arr, constraint_upper=t.constraint_upper)
             outputs.append(output)
 
-        # The final result of instance_type (i.e. [x2.large, x2.xlarge, t2.xlarge])
-        candidates = [decode_instance_type(output) for output in outputs]
+        # The final result of nodetype (i.e. [x2.large, x2.xlarge, t2.xlarge])
+        candidates = [decode_nodetype(output) for output in outputs]
         logger.debug(candidates)
 
     def testSingleton(self):
@@ -114,7 +114,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
         future_list, total = [], 0
         for i in range(1000):
-            df = pd.DataFrame({"instance_type": [i]})
+            df = pd.DataFrame({"nodetype": [i]})
             future_list.append(pool.submit(
                 bop.update_sample_map, app_id, df))
             total += i
@@ -123,21 +123,21 @@ class BayesianOptimizerPoolTest(TestCase):
             sleep(1)
 
         self.assertEqual(
-            sum(bop.sample_map[app_id]['instance_type']), total, "Race condition detected")
+            sum(bop.sample_map[app_id]['nodetype']), total, "Race condition detected")
 
         del pool
 
     def testGenerateInitialPoints(self):
-        dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
-        instance_type_map = {}
+        dataframe = pd.DataFrame.from_dict(list(get_all_nodetypes().values()))
+        nodetype_map = {}
 
         for _, j in dataframe.iterrows():
-            instance_type_map[j['name']] = j['instanceFamily']
+            nodetype_map[j['name']] = j['instanceFamily']
 
         for i in range(100):
             points = BOP.generate_initial_points(
                 len(set(dataframe['instanceFamily'])))
-            if len(points) != len(set([instance_type_map[i] for i in points])):
+            if len(points) != len(set([nodetype_map[i] for i in points])):
                 raise AssertionError(
                     "Initial point generator points coming from same families")
 
@@ -148,7 +148,7 @@ class BayesianOptimizerTest(TestCase):
         """ Flow dummy data through get_candidate with acquisition = ei
         """
         # Preparing dummy data
-        n_dimension, n_sample = 12, 10
+        n_dimension, n_sample = 5, 4
         lo, hi = 0, 1
 
         X_train, y_train, c_train = np.random.rand(
@@ -163,7 +163,7 @@ class BayesianOptimizerTest(TestCase):
         """ Flow dummy data through get_candidate with acquisition = cei
         """
         # Preparing dummy data
-        n_dimension, n_sample = 12, 10
+        n_dimension, n_sample = 5, 4
         lo, hi = 0, 1
 
         X_train, y_train, c_train = np.random.rand(
@@ -263,3 +263,11 @@ class PredictionTest(TestCase):
             db[self.test_collection].drop()
             db.client.close()
             logger.debug('Client connection closed')
+
+
+def UtilTest(TestCase):
+    def testGetBounds(self):
+        pass
+
+    def testGetFeatureBoundsNorm(self):
+        pass
