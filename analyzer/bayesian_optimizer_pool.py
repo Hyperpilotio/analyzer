@@ -74,7 +74,7 @@ class BayesianOptimizerPool():
             feature_bounds = get_feature_bounds()
             self.future_map[app_id] = []
             for training_data in training_data_list:
-                logger.debug(f"[{app_id}]Dispatching optimizer:\n{training_data}")
+                logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
                 acq = 'cei' if training_data.has_constraint() else 'ei'
 
                 future = self.worker_pool.submit(
@@ -211,7 +211,7 @@ class BayesianOptimizerPool():
         # Convert metric so we always try to maximize performance
         if slo_type == 'latency':
             perf_arr = 1. / df['qos_value']
-            perf_constraint = 1 / perf_constraint
+            perf_constraint = 1. / perf_constraint
         elif slo_type == 'throughput':
             pass
         else:
@@ -220,7 +220,7 @@ class BayesianOptimizerPool():
         if objective_type == 'perf_over_cost':
             return BOTrainingData(objective_type, feature_mat, perf_arr / df['cost'])
         elif objective_type == 'cost_given_perf':
-            return BOTrainingData(objective_type, feature_mat, df['cost'], -perf_arr, -perf_constraint)
+            return BOTrainingData(objective_type, feature_mat, -df['cost'], -perf_arr, -perf_constraint)
         elif objective_type == 'perf_given_cost':
             return BOTrainingData(objective_type, feature_mat, perf_arr, df['cost'], budget)
         else:
