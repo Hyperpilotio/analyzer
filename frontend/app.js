@@ -14,8 +14,6 @@ import { Provider, connect } from 'react-redux';
 import { appStore, mapStateToProps, mapDispatchToProps } from './containers/AppReducer';
 import CSSTransitionGroup from 'react-transition-group/CSSTransitionGroup'
 
-let transitionCSS = require("./styles/transition.scss");
-console.log(transitionCSS);
 //can not use import because it will be set as const variable
 let AppProvider = require("./containers/AppProvider");
 let DashboardHome = require("./components/DashboardHome");
@@ -47,12 +45,12 @@ class App extends Component {
                  transitionName="fade"
                  transitionEnterTimeout={5000}
                  transitionLeaveTimeout={5000}>
-              <Switch key={location.key} >
-                <Route key={location.key + "_one"} path="/dashboard" component={DashboardHome} />
-                <Route key={location.key + "_two"} path="/autopilot" component={AutopilotPage} />
-                <Route key={location.key + "_three"} path="/apps/:appId" component={AppPage} />
-                <Redirect from="/" to="/dashboard" />
-              </Switch>
+                <Switch key={location.key} >
+                  <Route key={location.key + "_one"} path="/dashboard" component={DashboardHome} />
+                  <Route key={location.key + "_two"} path="/autopilot" component={AutopilotPage} />
+                  <Route key={location.key + "_three"} path="/apps/:appId" component={AppPage} />
+                  <Redirect from="/" to="/dashboard" />
+                </Switch>
               </CSSTransitionGroup>
             </div>
           )} />
