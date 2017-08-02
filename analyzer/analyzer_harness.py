@@ -208,7 +208,7 @@ def __main__():
   request_dict = json.loads(request_str)
   analyzer.get_candidates("redis", request_dict)
   print("...Initialized analyzer")
-  bounds = util.get_feature_bounds()
+  bounds = util.get_feature_bounds(normalized=False)
   min_v = float(bounds[0][0])
   max_v = float(bounds[0][1])
   min_c = float(bounds[1][0])
@@ -238,7 +238,7 @@ def __main__():
   print()
 
   # get all the instance info
-  all_nodetypes = util.get_all_nodetypes()['data']
+  all_nodetypes = list(util.get_all_nodetypes().values())
   numtypes = len(all_nodetypes)
   if numtypes < args.iter*3:
     print("ERROR: Not enough nodetypes in database")
@@ -246,7 +246,7 @@ def __main__():
   # build dictionary with features for all instances
   for nodetype in all_nodetypes:
     name = nodetype['name']
-    np_feat = util.encode_instance_type(name)
+    np_feat = util.encode_nodetype(name)
     feat = np_feat.astype(type('float', (float,), {}))
     if feat[0] == 0.0 or feat[1] == 0.0 or feat[2] == 0.0 or feat[3] == 0.0 or feat[4] == 0.0:
       print("WARNING: problem with nodetype features ", name, feat)
