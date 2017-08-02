@@ -10,8 +10,10 @@ import pandas as pd
 from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
-from .util import (compute_cost, decode_instance_type, encode_instance_type,
-                   get_all_nodetypes, get_feature_bounds, get_price, get_slo_type, get_slo_value, get_budget)
+from .util import (compute_cost, decode_nodetype, encode_nodetype,
+                   get_all_nodetypes, get_budget, get_feature_bounds,
+                   get_price, get_slo_type, get_slo_value)
+
 pd.set_option('display.width', 1000)  # wider the display
 np.set_printoptions(precision=3)
 logger = get_logger(__name__, log_level=(
@@ -57,7 +59,7 @@ class BayesianOptimizerPool():
             self.future_map[app_id] = []
             init_points = BayesianOptimizerPool.generate_initial_points()
             for i in init_points:
-                future = self.worker_pool.submit(encode_instance_type, i)
+                future = self.worker_pool.submit(encode_nodetype, i)
                 self.future_map[app_id].append(future)
         # Else dispatch the optimizers
         else:
@@ -74,17 +76,15 @@ class BayesianOptimizerPool():
                 for o in ['perf_over_cost',
                           'cost_given_perf', 'perf_given_cost']]
 
-            feature_bounds = get_feature_bounds()
             self.future_map[app_id] = []
             for training_data in training_data_list:
                 logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
                 acq = 'cei' if training_data.has_constraint() else 'ei'
-                logger.info('using:' + str(acq))
                 future = self.worker_pool.submit(
                     get_candidate,
                     training_data.feature_mat,
                     training_data.objective_arr,
-                    feature_bounds,
+                    get_feature_bounds(normalized=True),
                     acq=acq,
                     constraint_arr=training_data.constraint_arr,
                     constraint_upper=training_data.constraint_upper
@@ -108,9 +108,9 @@ class BayesianOptimizerPool():
                     return {"status": "exception",
                             "data": str(e)}
                 else:
-
+                    logger.info(f"Candidates: {candidates}")
                     return {"status": "done",
-                            "data": self.filter_candidates(app_id, [decode_instance_type(c) for c in candidates])}
+                            "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
 
                 return {"status": "unexpected future state"}
         else:
@@ -119,9 +119,9 @@ class BayesianOptimizerPool():
     def update_sample_map(self, app_id, df):
         with self.__singleton_lock:
             if self.sample_map.get(app_id) is not None:
-                # check if incoming df contains duplicated instance_type with sample_map:
-                intersection = set(df['instance_type']).intersection(
-                    set(self.sample_map[app_id]['instance_type']))
+                # check if incoming df contains duplicated nodetype with sample_map:
+                intersection = set(df['nodetype']).intersection(
+                    set(self.sample_map[app_id]['nodetype']))
                 if intersection:
                     logger.warning(f"Duplicated sample was sent from client")
                     logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(app_id)}")
@@ -133,7 +133,7 @@ class BayesianOptimizerPool():
     def filter_candidates(self, app_id, candidates, max_run=10):
         """ This method determine if candidates should be returned to client.
         Terminate conditions: 1. if number of run exceed than max_run or,
-                              2. if the recommended instance_type is duplicated within this run or with previous runs
+                              2. if the recommended nodetype is duplicated within this run or with previous runs
         """
         # remove duplicates within this run
         candidates = list(set(candidates))
@@ -141,14 +141,14 @@ class BayesianOptimizerPool():
         if self.sample_map.get(app_id) is None:
             return candidates
         else:  # remove duplicates with previous run
-            return [c for c in candidates if c not in self.sample_map.get(app_id)['instance_type'].values]
+            return [c for c in candidates if c not in self.sample_map.get(app_id)['nodetype'].values]
 
     @staticmethod
     def generate_initial_points(init_points=3):
         """ This method randomly select a 'instanceFamily',
             and randomly select a 'nodetype' from that family repeatly
         """
-        dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
+        dataframe = pd.DataFrame.from_dict(list(get_all_nodetypes().values()))
         instance_families = list(set(dataframe['instanceFamily']))
         available = list(instance_families)
         # check if there is any instance's instanceFamily field is empty string
@@ -159,9 +159,9 @@ class BayesianOptimizerPool():
         while init_points > 0:
             family = np.random.choice(instance_families, 1)[0]
             if family in available:
-                instance_type = np.random.choice(
+                nodetype = np.random.choice(
                     dataframe[dataframe['instanceFamily'] == family]['name'], 1)[0]
-                result.append(instance_type)
+                result.append(nodetype)
                 init_points -= 1
                 available.remove(family)
 
@@ -171,13 +171,12 @@ class BayesianOptimizerPool():
 
         logger.debug(f"initial points:\n{result}")
         return result
-    
+
     # @staticmethod
     # def generate_initial_points(init_points=3):
     #     dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
     #     result = np.random.choice(dataframe['name'], init_points)
     #     return result
-    
 
     @staticmethod
     def make_optimizer_training_data(df, objective_type=None):
@@ -259,15 +258,15 @@ class BayesianOptimizerPool():
 
         dfs = []
         for data in request_body['data']:
-            instance_type = data['instanceType']
+            nodetype = data['instanceType']
             qos_value = data['qosValue']
 
             df = pd.DataFrame({'app_name': [app_name],
                                'qos_value': [qos_value],
                                'slo_type': [slo_type],
-                               'instance_type': [instance_type],
-                               'feature': [encode_instance_type(instance_type)],
-                               'cost': [compute_cost(get_price(instance_type), slo_type, qos_value)],
+                               'nodetype': [nodetype],
+                               'feature': [encode_nodetype(nodetype)],
+                               'cost': [compute_cost(get_price(nodetype), slo_type, qos_value)],
                                'slo': [get_slo_value(app_name)],
                                'budget': [get_budget(app_name)]
                                })
