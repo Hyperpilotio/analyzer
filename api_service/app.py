@@ -161,7 +161,7 @@ def get_next_instance_types(app_id):
 # TODO: change back to uuid
 
 
-@app.route("/apps/<string:app_id>/get-optimizer-status/")
+@app.route("/apps/<string:app_id>/get-optimizer-status")
 def get_task_status(app_id):
     response = jsonify(BO.get_status(app_id))
     return response
