@@ -30,29 +30,34 @@ class CloudPerf(object):
   """
 
   def __init__(self,
-               vcpu_a, vcpu_b, vcpu_c, vcpu_w,
-               clk_a, clk_b, clk_c, clk_w,
-               mem_a, mem_b, mem_c, mem_w,
-               net_a, net_b, net_c, net_w,
-               io_a, io_b, io_c, io_w,
+               vcpu_a, vcpu_b, vcpu_c, vcpu_w, vcpu_s,
+               clk_a, clk_b, clk_c, clk_w, clk_s,
+               mem_a, mem_b, mem_c, mem_w, mem_s,
+               net_a, net_b, net_c, net_w, net_s,
+               io_a, io_b, io_c, io_w, io_s,
                base, noise, nrange):
     """ initialize key parameters
     """
     self.vcpu_a = vcpu_a
     self.vcpu_b = vcpu_b
     self.vcpu_c = vcpu_c
+    self.vcpu_s = vcpu_s
     self.clk_a = clk_a
     self.clk_b = clk_b
     self.clk_c = clk_c
+    self.clk_s = clk_s
     self.mem_a = mem_a
     self.mem_b = mem_b
     self.mem_c = mem_c
+    self.mem_s = mem_s
     self.net_a = net_a
     self.net_b = net_b
     self.net_c = net_c
+    self.net_s = net_s
     self.io_a = io_a
     self.io_b = io_b
     self.io_c = io_c
+    self.io_s = io_s
     self.vcpu_w = vcpu_w
     self.clk_w = clk_w
     self.mem_w = mem_w
@@ -85,15 +90,16 @@ class CloudPerf(object):
         interesting cases:  b=c=0, b>0/c=0, b>>0/c=0, b>>0/c>0
         assumes vcpu_min = 1
     """
-    return vcpu / (self.vcpu_a + self.vcpu_b*vcpu + self.vcpu_c*vcpu*vcpu)
+    base = vcpu * self.vcpu_s
+    return base / (self.vcpu_a + self.vcpu_b*base + self.vcpu_c*base*base)
 
   def clk_model(self, clk):
     """ a clk based performance model.
         perf = clk / (a + clk*b + clk^2*b)
         assumes clk_min = 2.3
     """
-    clk = (clk / 2.3)
-    return clk / (self.clk_a + self.clk_b*clk + self.clk_c*clk*clk)
+    base = clk * self.clk_s
+    return base / (self.clk_a + self.clk_b*base + self.clk_c*base*base)
 
   def mem_model(self, mem):
     """ a mem based performance model.
@@ -101,8 +107,8 @@ class CloudPerf(object):
         interesting cases:  b=c=0, b>0/c=0, b>>0/c=0, b>>0/c>0
         assumes mem_min = 0.5
     """
-    mem = (mem / 0.5)
-    return mem / (self.mem_a + self.mem_b*mem + self.mem_c*mem*mem)
+    base = mem * self.mem_s
+    return base / (self.mem_a + self.mem_b*base + self.mem_c*base*base)
 
   def net_model(self, net):
     """ a net based performance model.
@@ -110,8 +116,8 @@ class CloudPerf(object):
         interesting cases:  b=c=0, b>0/c=0, b>>0/c=0, b>>0/c>0
         assumes net_min = 100
     """
-    net = (net / 100)
-    return net / (self.net_a + self.net_b*net + self.net_c*net*net)
+    base = net * self.net_s
+    return base / (self.net_a + self.net_b*base + self.net_c*base*base)
 
   def io_model(self, io):
     """ a io based performance model.
@@ -119,8 +125,8 @@ class CloudPerf(object):
         interesting cases:  b=c=0, b>0/c=0, b>>0/c=0, b>>0/c>0
         assumes io_min = 50
     """
-    io = (io / 50)
-    return io / (self.io_a + self.io_b*io + self.io_c*io*io)
+    base = io * self.io_s
+    return base / (self.io_a + self.io_b*base + self.io_c*base*base)
 
   def perf(self, vcpu, clk, mem, net, io, noise):
     """ estimate performance
@@ -196,15 +202,37 @@ def __main__():
   parser.add_argument("-b", "-base", type=float, required=False, default=1.0, help="base performance")
   args = parser.parse_args()
 
+  # initialyze analyzer
+  analyzer = bayesian_optimizer_pool.BayesianOptimizerPool.instance()
+  request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
+  request_dict = json.loads(request_str)
+  analyzer.get_candidates("redis", request_dict)
+  print("...Initialized analyzer")
+  bounds = util.get_feature_bounds()
+  min_v = float(bounds[0][0])
+  max_v = float(bounds[0][1])
+  min_c = float(bounds[1][0])
+  max_c = float(bounds[1][1])
+  min_m = float(bounds[2][0])
+  max_m = float(bounds[2][1])
+  min_n = float(bounds[3][0])
+  max_n = float(bounds[3][1])
+  min_i = float(bounds[4][0])
+  max_i = float(bounds[4][1])
+  if min_v == 0.0:
+    min_v = 0.2
+  if min_m == 0.0:
+    min_m = 0.5
+
   # initialize performance model
   global cloud
   global features
-  cloud = CloudPerf(args.va, args.vb, args.vc, args.vw, \
-                         args.ca, args.cb, args.cc, args.cw, \
-                         args.ma, args.mb, args.mc, args.mw, \
-                         args.na, args.nb, args.nc, args.nw, \
-                         args.ia, args.ib, args.ic, args.iw, \
-                         args.b, args.noise, args.nrange)
+  cloud = CloudPerf(args.va, args.vb, args.vc, args.vw, max_v, \
+                    args.ca, args.cb, args.cc, args.cw, max_c, \
+                    args.ma, args.mb, args.mc, args.mw, max_m, \
+                    args.na, args.nb, args.nc, args.nw, max_n, \
+                    args.ia, args.ib, args.ic, args.iw, max_i, \
+                    args.b, args.noise, args.nrange)
   print("Running analyzer harness with following parameters:")
   print(args)
   print()
@@ -226,13 +254,6 @@ def __main__():
   # visited instances
   visited = set()
   print("...Got information for %d instance types" %numtypes)
-
-  # initialyze analyzer
-  analyzer = bayesian_optimizer_pool.BayesianOptimizerPool.instance()
-  request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
-  request_dict = json.loads(request_str)
-  analyzer.get_candidates("redis", request_dict)
-  print("...Initialized analyzer")
 
   #main loop
   for i in range(args.iter):
