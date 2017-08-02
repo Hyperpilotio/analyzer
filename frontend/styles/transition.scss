@@ -1,0 +1,39 @@
+.myleft-enter{
+  opacity: 0;
+  transform: translateX(100px);
+}
+.myleft-enter-active{
+  opacity: 1;
+  transform: none;
+  transition: opacity .3s, transform .3s;
+}
+.myleft-leave{
+  position: absolute;
+  opacity: 1;
+  transform: none;
+}
+.myleft-leave-active{
+  opacity: 0;
+  transform: translateX(-100px);
+  transition: opacity .3s, transform .3s;
+}
+
+.myright-enter{
+  opacity: 0;
+  transform: translateX(-100px);
+}
+.myright-enter-active{
+  opacity: 1;
+  transform: none;
+  transition: opacity .3s, transform .3s;
+}
+.myright-leave{
+  position: absolute;
+  opacity: 1;
+  transform: none;
+}
+.myright-leave-active{
+  opacity: 0;
+  transform: translateX(100px);
+  transition: opacity .3s, transform .3s;
+}

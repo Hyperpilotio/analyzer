@@ -1,7 +1,7 @@
 import "babel-polyfill";
 import "whatwg-fetch";
 import React, { Component } from "react";
-import { BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
+import { BrowserRouter as Router, Switch, Route, Redirect, hasHistory, Link } from "react-router-dom";
 import ReactDOM from "react-dom";
 import HeaderNav from "./components/HeaderNav";
 import AutopilotPage from "./components/AutopilotPage";
@@ -11,8 +11,11 @@ import UserAuth from "./components/UserAuth";
 import PropTypes from "prop-types";
 import { render } from 'react-dom';
 import { Provider, connect } from 'react-redux';
-import { appStore, mapStateToProps, mapDispatchToProps } from './containers/AppReducer'
+import { appStore, mapStateToProps, mapDispatchToProps } from './containers/AppReducer';
+import CSSTransitionGroup from 'react-transition-group/CSSTransitionGroup'
 
+let transitionCSS = require("./styles/transition.scss");
+console.log(transitionCSS);
 //can not use import because it will be set as const variable
 let AppProvider = require("./containers/AppProvider");
 let DashboardHome = require("./components/DashboardHome");
@@ -26,11 +29,6 @@ class App extends Component {
      super(props);
   }
     
-  static contextTypes = {
-    actions: PropTypes.object,
-    myStore: PropTypes.object
-  }
-
   componentDidMount() {
     if (_.keys(this.props.apps).length === 0){
       this.props.actions.getApps();
@@ -39,19 +37,23 @@ class App extends Component {
 
   render() {
     return (
-      <Router>
-
+      <Router history={hasHistory}>
         <Switch>
           <Route path="/login" component={UserAuth} />
-          <Route path="/" children={({ history }) => (
+          <Route path="/" children={({ location }) => (
             <div>
-              <HeaderNav history={history} />
-              <Switch>
-                <Route path="/dashboard" component={DashboardHome} />
-                <Route path="/autopilot" component={AutopilotPage} />
-                <Route path="/apps/:appId" component={AppPage} />
+              <HeaderNav/>
+              <CSSTransitionGroup
+                 transitionName="fade"
+                 transitionEnterTimeout={5000}
+                 transitionLeaveTimeout={5000}>
+              <Switch key={location.key} >
+                <Route key={location.key + "_one"} path="/dashboard" component={DashboardHome} />
+                <Route key={location.key + "_two"} path="/autopilot" component={AutopilotPage} />
+                <Route key={location.key + "_three"} path="/apps/:appId" component={AppPage} />
                 <Redirect from="/" to="/dashboard" />
               </Switch>
+              </CSSTransitionGroup>
             </div>
           )} />
         </Switch>
