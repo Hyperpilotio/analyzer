@@ -12,7 +12,8 @@ from logger import get_logger
 from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_instance_type, encode_instance_type,
                    get_all_nodetypes, get_feature_bounds, get_price, get_slo_type, get_slo_value, get_budget)
-
+pd.set_option('display.width', 1000)  # wider the display
+np.set_printoptions(precision=3)
 logger = get_logger(__name__, log_level=(
     "BAYESIAN_OPTIMIZER_POOL", "LOGLEVEL"))
 
@@ -50,6 +51,7 @@ class BayesianOptimizerPool():
             request_body(dict): the request body sent from the client of the analyzer service
         """
 
+        logger.info(f"request_body:\n{request_body}")
         # initialize points if there is no training sample coming
         if not request_body.get('data'):
             self.future_map[app_id] = []
@@ -63,6 +65,7 @@ class BayesianOptimizerPool():
             df = BayesianOptimizerPool.create_sample_dataframe(request_body)
             # update the shared sample map
             self.update_sample_map(app_id, df)
+            logger.info(f"Training data:\n{self.sample_map}")
             # fetch the latest sample_map
             dataframe = self.sample_map[app_id]
             # create the training data to Bayesian optimizer
@@ -76,7 +79,7 @@ class BayesianOptimizerPool():
             for training_data in training_data_list:
                 logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
                 acq = 'cei' if training_data.has_constraint() else 'ei'
-
+                logger.info('using:' + str(acq))
                 future = self.worker_pool.submit(
                     get_candidate,
                     training_data.feature_mat,
@@ -125,7 +128,7 @@ class BayesianOptimizerPool():
                     logger.warning(f"intersection: {intersection}")
 
             self.sample_map[app_id] = pd.concat(
-                [df, self.sample_map.get(app_id)])
+                [self.sample_map.get(app_id), df])
 
     def filter_candidates(self, app_id, candidates, max_run=10):
         """ This method determine if candidates should be returned to client.
@@ -154,20 +157,27 @@ class BayesianOptimizerPool():
 
         logger.debug("Generating random initial points")
         while init_points > 0:
-            family = np.random.choice(instance_families, 1)[0]  # O(1)
-            if family in available:  # O(n)
+            family = np.random.choice(instance_families, 1)[0]
+            if family in available:
                 instance_type = np.random.choice(
                     dataframe[dataframe['instanceFamily'] == family]['name'], 1)[0]
                 result.append(instance_type)
                 init_points -= 1
-                available.remove(family)  # O(n)
+                available.remove(family)
 
-            # refill available
+            # reset available when all families are visited
             if not available:
                 available = list(instance_families)
 
         logger.debug(f"initial points:\n{result}")
         return result
+    
+    # @staticmethod
+    # def generate_initial_points(init_points=3):
+    #     dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
+    #     result = np.random.choice(dataframe['name'], init_points)
+    #     return result
+    
 
     @staticmethod
     def make_optimizer_training_data(df, objective_type=None):
@@ -187,11 +197,15 @@ class BayesianOptimizerPool():
                 self.constraint_upper = constraint_upper
 
             def __str__(self):
-                return f'objective_type:\n{self.objective_type}\n' +\
-                    f'feature_mat:\n{self.feature_mat}\n' +\
-                    f'objective_arr:\n{self.objective_arr}\n' +\
-                    f'constraint_arr:\n{self.constraint_arr}\n' +\
-                    f'constraint_upper:\n{self.constraint_upper}\n'
+                result = ""
+                result += f'Feature_mat:\n{self.feature_mat}\n'
+                result += f'Objective_type: {self.objective_type}\n'
+                result += f'Objective_arr: {self.objective_arr.values}\n'
+                if self.constraint_arr is not None:
+                    result += f'Constraint_arr: {self.constraint_arr.values}\n'
+                if self.constraint_upper is not None:
+                    result += f'Constraint_upper: {self.constraint_upper}\n'
+                return result
 
             def has_constraint(self):
                 """ See if this trainning data has constraint """
@@ -217,8 +231,12 @@ class BayesianOptimizerPool():
         else:
             raise AssertionError(f'invalid slo type: {slo_type}')
 
+        # Compute objectives
+        perf_over_cost = (perf_arr / df['cost']
+                          ).rename("performance over cost")
+
         if objective_type == 'perf_over_cost':
-            return BOTrainingData(objective_type, feature_mat, perf_arr / df['cost'])
+            return BOTrainingData(objective_type, feature_mat, perf_over_cost)
         elif objective_type == 'cost_given_perf':
             return BOTrainingData(objective_type, feature_mat, -df['cost'], -perf_arr, -perf_constraint)
         elif objective_type == 'perf_given_cost':
