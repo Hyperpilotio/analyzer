@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from bayes_opt import BayesianOptimization as BO_ref
 from sklearn.gaussian_process.kernels import Matern
+from concurrent.futures import ThreadPoolExecutor
 
 from analyzer.bayesian_optimizer import (UtilityFunction, get_candidate,
                                          get_fitted_gaussian_processor)
@@ -23,7 +24,7 @@ from .util import decode_instance_type, get_all_nodetypes, get_feature_bounds
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
 
-class BayesianOptimizationPoolTest(TestCase):
+class BayesianOptimizerPoolTest(TestCase):
     def setUp(self):
         logger.debug('Creating flask clients')
         self.client = api_service_app.test_client()
@@ -99,14 +100,38 @@ class BayesianOptimizationPoolTest(TestCase):
         logger.debug(candidates)
 
     def testSingleton(self):
-        # TODO: Test if the singleton is thread safe
-        pass
+        pool = ThreadPoolExecutor(40)
+        future_list = [pool.submit(BOP.instance) for i in range(100000)]
+        instances = [f.result() for f in future_list]
+        self.assertEqual(len(set(instances)), 1,
+                         "Only one instance should be created")
+        del pool
+
+    def testUpdateSampleMap(self):
+        bop = BOP.instance()
+        pool = ThreadPoolExecutor(40)
+        app_id = 'hyperpilot'
+
+        future_list, total = [], 0
+        for i in range(1000):
+            df = pd.DataFrame({"instance_type": [i]})
+            future_list.append(pool.submit(
+                bop.update_sample_map, app_id, df))
+            total += i
+
+        while any(f.running() for f in future_list):
+            sleep(1)
+
+        self.assertEqual(
+            sum(bop.sample_map[app_id]['instance_type']), total, "Race condition detected")
+
+        del pool
 
     def testGenerateInitialPoints(self):
         dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
         instance_type_map = {}
 
-        for i, j in dataframe.iterrows():
+        for _, j in dataframe.iterrows():
             instance_type_map[j['name']] = j['instanceFamily']
 
         for i in range(100):
@@ -117,7 +142,7 @@ class BayesianOptimizationPoolTest(TestCase):
                     "Initial point generator points coming from same families")
 
 
-class BayesianOptimizationTest(TestCase):
+class BayesianOptimizerTest(TestCase):
 
     def testGetCandidateEIFlow(self):
         """ Flow dummy data through get_candidate with acquisition = ei
@@ -204,14 +229,12 @@ class PredictionTest(TestCase):
         self.client = api_service_app.test_client()
         self.test_collection = 'test-collection'
 
-    def getTestRequest(self):
-        return {'app1': 'testApp',
-                'app2': 'testApp2',
-                'model': 'LinearRegression1',
-                'collection': self.test_collection}
-
-    def testFlow(self):
+    def testPredictionFlow(self):
         try:
+            request_body = {'app1': 'testApp',
+                            'app2': 'testApp2',
+                            'model': 'LinearRegression1',
+                            'collection': self.test_collection}
             logger.debug(f'Getting database {metricdb.name}')
             db = metricdb._get_database()  # This triggers lazy-loading
             logger.debug('Setting up test documents')
@@ -224,13 +247,13 @@ class PredictionTest(TestCase):
                     db[self.test_collection].insert_one(doc)
             response = self.client.post('/cross-app/predict',
                                         data=json.dumps(
-                                            self.getTestRequest()),
+                                            request_body),
                                         content_type="application/json")
             self.assertEqual(response.status_code, 200, response)
             data = json.loads(response.data)
 
             logger.debug('====Request====\n')
-            logger.debug(self.getTestRequest())
+            logger.debug(request_body)
             logger.debug('\n====Cross-App Interference Score Prediction====')
             logger.debug('\n' + str(pd.read_json(response.data)))
         except Exception as e:

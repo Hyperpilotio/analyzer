@@ -114,18 +114,18 @@ class BayesianOptimizerPool():
             return {"status": "not running"}
 
     def update_sample_map(self, app_id, df):
-        # TODO: thread safe?
-        if self.sample_map.get(app_id) is not None:
-            # check if incoming df contains duplicated instance_type with sample_map:
-            intersection = set(df['instance_type']).intersection(
-                set(self.sample_map[app_id]['instance_type']))
-            if intersection:
-                logger.warning(f"Duplicated sample was sent from client")
-                logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(app_id)}")
-                logger.warning(f"intersection: {intersection}")
+        with self.__singleton_lock:
+            if self.sample_map.get(app_id) is not None:
+                # check if incoming df contains duplicated instance_type with sample_map:
+                intersection = set(df['instance_type']).intersection(
+                    set(self.sample_map[app_id]['instance_type']))
+                if intersection:
+                    logger.warning(f"Duplicated sample was sent from client")
+                    logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(app_id)}")
+                    logger.warning(f"intersection: {intersection}")
 
-        self.sample_map[app_id] = pd.concat(
-            [df, self.sample_map.get(app_id)])
+            self.sample_map[app_id] = pd.concat(
+                [df, self.sample_map.get(app_id)])
 
     def filter_candidates(self, app_id, candidates, max_run=10):
         """ This method determine if candidates should be returned to client.
