@@ -158,13 +158,13 @@ def nodeinfo(nodetype):
   global features
   global cloud
   if nodetype == "none":
-    return "perf %9.2f, price %5.3f, cost %7.2f, perf/cost %8.2f" \
+    return "perf %10.2f, price %5.3f, cost %7.2f, perf/cost %10.2f" \
          %(0.0, 0.0, 0.0, 0.0)
   feat = features[nodetype]
   perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
   price = util.get_price(nodetype)
   cost = util.compute_cost(price, 'throughput', perf)
-  return "perf %9.2f, price %5.3f, cost %7.2f, perf/cost %8.2f" \
+  return "perf %10.2f, price %5.3f, cost %7.2f, perf/cost %10.2f" \
          %(perf, price, cost, perf/cost)
 
 def __main__():
