@@ -19,7 +19,7 @@ from api_service.app import app as api_service_app
 from api_service.db import metricdb
 from logger import get_logger
 
-from .util import decode_nodetype, get_all_nodetypes, get_feature_bounds
+from .util import decode_nodetype, get_all_nodetypes, get_feature_bounds, encode_nodetype
 
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
@@ -221,6 +221,69 @@ class BayesianOptimizerTest(TestCase):
         assert (utility_ref == utility_impl).all(),\
             "utility(x) comparison failed"
 
+    def testReferenceImplementation3D(self):
+        """ Check for numeric correctness against reference implementation
+        """
+        def f(x):  # vector version
+            return np.exp(-(x[0] - 2)**2) + np.exp(-(x[0] - 6)**2 / 10) + \
+                1 / (x[0]**2 + 1) + np.sin(x[1]) + 5 * np.cos(6.42 * x[2])
+
+        def ff(x, y, z):  # variable version
+            return np.exp(-(x - 2)**2) + np.exp(-(x - 6)**2 / 10) + \
+                1 / (x**2 + 1) + np.sin(y) + 5 * np.cos(6.42 * z)
+
+        def posterior(gp, x):
+            mu, sigma = gp.predict(x, return_std=True)
+            return mu, sigma
+        bounds = np.array([[-5, 5]] * 3)
+
+        # Generate trainning data
+        np.random.seed(6)
+        X = np.random.uniform(bounds[:, 0], bounds[:, 1],
+                              size=(1000, bounds.shape[0]))
+        w = [f(x) for x in X]
+
+        np.random.seed(6)
+        X_train = np.random.uniform(bounds[:, 0], bounds[:, 1],
+                                    size=(3, bounds.shape[0]))
+        y_train = [f(x) for x in X_train]
+        rand_seed = 0
+
+        gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 25,
+                     "kernel": Matern(nu=2.5), "random_state": rand_seed}
+
+        # Reference implementation
+        optimizer = BO_ref(
+            ff, {'x': (-5, 5), 'y': (-5, 5), 'z': (-5, 5)}, verbose=0)
+        # append trainning data
+        optimizer.explore(
+            {'x': X_train[:, 0], 'y': X_train[:, 1], 'z': X_train[:, 2]})
+        # fit gaussian process regressor
+        optimizer.maximize(init_points=0, n_iter=0,
+                           acq='ei', xi=1e-4, **gp_params)
+        # get results
+        post = np.array([posterior(optimizer.gp, x.reshape(1, -1)) for x in X])
+        mu_ref, std_ref = post[:, 0], post[:, 1]
+
+        utility_ref = optimizer.util.utility(
+            X, optimizer.gp, optimizer.Y.max())
+
+        # Testing implementation
+        gp = get_fitted_gaussian_processor(
+            np.array(X_train), np.array(y_train), **gp_params)
+        util = UtilityFunction(kind='ei', gp_objective=gp, xi=1e-4)
+
+        post_impl = np.array([posterior(gp, x.reshape(1, -1)) for x in X])
+        mu_impl, std_impl = post_impl[:, 0], post_impl[:, 1]
+        utility_impl = util.utility(X)
+
+        assert (mu_ref == mu_impl).all(),\
+            "mu(x) comparison failed"
+        assert (std_ref == std_impl).all(),\
+            "std(x) comparison failed"
+        assert (utility_ref == utility_impl).all(),\
+            "utility(x) comparison failed"
+
 
 class PredictionTest(TestCase):
 
@@ -265,9 +328,17 @@ class PredictionTest(TestCase):
             logger.debug('Client connection closed')
 
 
-def UtilTest(TestCase):
+class UtilTest(TestCase):
     def testGetBounds(self):
         pass
 
     def testGetFeatureBoundsNorm(self):
         pass
+
+    def testDeEncoder(self):
+        """ decode(encode(x) should be itself)
+        """
+        for n in get_all_nodetypes():
+            logger.debug(f"deeencoded: {decode_nodetype(encode_nodetype(n))}, origin: {n}")
+            if decode_nodetype(encode_nodetype(n)) != n:
+                logger.warning(f"deencoded: {decode_nodetype(encode_nodetype(n))}, origin: {n} not consistent")

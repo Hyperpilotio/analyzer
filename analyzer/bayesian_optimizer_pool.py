@@ -53,7 +53,6 @@ class BayesianOptimizerPool():
             request_body(dict): the request body sent from the client of the analyzer service
         """
 
-        logger.info(f"request_body:\n{request_body}")
         # initialize points if there is no training sample coming
         if not request_body.get('data'):
             self.future_map[app_id] = []
@@ -75,11 +74,12 @@ class BayesianOptimizerPool():
                 dataframe, objective_type=o)
                 for o in ['perf_over_cost',
                           'cost_given_perf', 'perf_given_cost']]
+            # for o in ['perf_over_cost']]
 
             self.future_map[app_id] = []
             for training_data in training_data_list:
-                logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}")
                 acq = 'cei' if training_data.has_constraint() else 'ei'
+                logger.info(f"[{app_id}]Dispatching optimizer:\n{training_data}\nacq:{acq}")
                 future = self.worker_pool.submit(
                     get_candidate,
                     training_data.feature_mat,
@@ -100,19 +100,19 @@ class BayesianOptimizerPool():
             if any([future.running() for future in future_list]):
                 return {"status": "running"}
             elif any([future.cancelled() for future in future_list]):
-                return {"status": "execption", "exception": "task cancelled"}
+                return {"status": "execption", "error": "task cancelled"}
             elif all([future.done() for future in future_list]):
                 try:
                     candidates = [future.result() for future in future_list]
                 except Exception as e:
                     return {"status": "exception",
-                            "data": str(e)}
+                            "error": str(e)}
                 else:
                     logger.info(f"Candidates: {candidates}")
                     return {"status": "done",
                             "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
 
-                return {"status": "unexpected future state"}
+                return {"status": "exception", "error": "unexpected future state"}
         else:
             return {"status": "not running"}
 
@@ -140,8 +140,32 @@ class BayesianOptimizerPool():
 
         if self.sample_map.get(app_id) is None:
             return candidates
-        else:  # remove duplicates with previous run
+        elif len(self.sample_map.get(app_id)) >= max_run:  # remove duplicates with previous run
+            return []
+        else:
             return [c for c in candidates if c not in self.sample_map.get(app_id)['nodetype'].values]
+
+    # def filter_candidates(self, app_id, candidates, max_run=10):
+    #     """ This method determine if candidates should be returned to client. # FORCING SELECT OTHER CANIDATES
+    #     Terminate conditions: 1. if number of run exceed than max_run or,
+    #                           2. if the recommended nodetype is duplicated within this run or with previous runs
+    #     """
+    #     # remove duplicates within this run
+    #     candidates_ = list(set(candidates))
+
+    #     if self.sample_map.get(app_id) is None:
+    #         return candidates
+    #     elif len(self.sample_map.get(app_id)) >= max_run:  # remove duplicates with previous run
+    #         return []
+    #     else:
+    #         results = []
+    #         for c in candidates:
+    #             x = c
+    #             while (x in self.sample_map.get(app_id)['nodetype'].values) or (x in results):
+    #                 x = np.random.choice([i['name'] for i in get_all_nodetypes().values()])
+    #             results.append(x)
+
+    #         return results
 
     @staticmethod
     def generate_initial_points(init_points=3):
