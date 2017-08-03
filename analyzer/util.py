@@ -35,6 +35,7 @@ def get_all_nodetypes(region=my_region):
     if nodetype_list is None:
         raise KeyError(
             'Cannot find nodetype document: filter={}'.format(region_filter))
+
     # creating dictionary for nodetypes
     for nodetype in nodetype_list['data']:
         nodetype_map[nodetype['name']] = nodetype
@@ -48,7 +49,7 @@ def get_feature_bounds(normalized=False):
     if normalized:
         features = [encode_nodetype(k) for k in nodetype_map]
     else:
-        features = np.array([get_raw_features(n) for n in nodetype_map])
+        features = [get_raw_features(k) for k in nodetype_map]
 
     return get_bounds(features)
 
@@ -106,19 +107,23 @@ def encode_nodetype(nodetype):
 
 
 def decode_nodetype(feature_vector):
-    """ convert a candidate solution recommended by the optimizer into an ec2 instance type
+    """ convert a candidate solution recommended by the optimizer into a VM node type
         Args:
             feature_vector: candidate solution in a vector space
         Returns:
-            nodetype: node type closest to the feature vector based on a distance function
+            nodetype: node type closest to the feature vector based on a distance function;
+                if there are multiple node types with the same distance, return the one with the lowest cost
     """
     nodetype_map = get_all_nodetypes()
     nodetypes = list(nodetype_map.keys())
 
-    distance = [feature_distance(encode_nodetype(
-        nodetype), feature_vector) for nodetype in nodetypes]
+    distance = np.array([feature_distance(encode_nodetype(
+        nodetype), feature_vector) for nodetype in nodetypes])
+    min_indices = np.where(distance == distance.min())[0]
+    nodetypes_subset = [nodetypes[x] for x in min_indices]
+    price_subset = [get_price(nodetype) for nodetype in nodetypes_subset]
 
-    return nodetypes[np.argmin(distance)]
+    return nodetypes_subset[np.argmin(price_subset)]
 
 
 def feature_distance(f1, f2):
@@ -190,7 +195,7 @@ def get_budget(app_name):
     try:
         budget = app['budget']['value']
     except KeyError:
-        budget = 500.  # TODO: put an nan
+        budget = 25000.  # all types allowed 
 
     return budget
 
