@@ -39,31 +39,10 @@ class ApplicationItem extends Component{
 }
 
 
-//const ApplicationItem = ({ _id, name, serviceNames }) => (
-//  <article>
-//    <aside><img src={redisLogo} /></aside>
-//    <section>
-//      <header>
-//        <h1>{ name }</h1>
-//        <p>ID: { _id }</p>
-//        <p>Services: { _.join(serviceNames, ", ") }</p>
-//      </header>
-//      <footer><Link to={`/apps/${_id}/`}>Analysis Workflow</Link></footer>
-//    </section>
-//    <mark className="right"><div className="danger badge" /></mark>
-//  </article>
-//)
-
-
 export default class DashboardHome extends Component {
   constructor(props) {
         super(props);
   }
-
-  static contextTypes = {
-    myStore: PropTypes.object,
-    actions: PropTypes.object, 
-  };
 
   render() {
     //const { apps } = this.context.myStore;

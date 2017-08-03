@@ -5,9 +5,7 @@ import { BrowserRouter as Router, Switch, Route, Redirect, hasHistory, Link } fr
 import ReactDOM from "react-dom";
 import HeaderNav from "./components/HeaderNav";
 import AutopilotPage from "./components/AutopilotPage";
-//import AppPage from "./containers/AppPage";
 import UserAuth from "./components/UserAuth";
-//import AppProvider from "./containers/AppProvider";
 import PropTypes from "prop-types";
 import { render } from 'react-dom';
 import { Provider, connect } from 'react-redux';
@@ -26,29 +24,32 @@ class App extends Component {
   constructor(props) {
      super(props);
   }
-    
+
   componentDidMount() {
     if (_.keys(this.props.apps).length === 0){
       this.props.actions.getApps();
     }
   }
+  click(page){
+  }
 
   render() {
+    console.log(this.tranNm);
     return (
-      <Router history={hasHistory}>
+      <Router key="router" history={hasHistory}>
         <Switch>
-          <Route path="/login" component={UserAuth} />
-          <Route path="/" children={({ location }) => (
+          <Route key="route_user_auth" path="/login" component={UserAuth} />
+          <Route key="route_root" path="/" children={({ location }) => (
             <div>
-              <HeaderNav/>
-              <CSSTransitionGroup
-                 transitionName="fade"
-                 transitionEnterTimeout={5000}
-                 transitionLeaveTimeout={5000}>
-                <Switch key={location.key} >
-                  <Route key={location.key + "_one"} path="/dashboard" component={DashboardHome} />
-                  <Route key={location.key + "_two"} path="/autopilot" component={AutopilotPage} />
-                  <Route key={location.key + "_three"} path="/apps/:appId" component={AppPage} />
+              <HeaderNav key="header_nav" onClick={this.click}/>
+              <CSSTransitionGroup key="route_css_transition" 
+                 transitionName="upper"
+                 transitionEnterTimeout={500}
+                 transitionLeaveTimeout={500}>
+                <Switch key={location.key} location={location} >
+                  <Route location={location} key={location.key + "_1"} path="/dashboard" component={DashboardHome}  />
+                  <Route location={location} key={location.key + "_2"} path="/autopilot" component={AutopilotPage} />
+                  <Route location={location} key={location.key + "_0"} path="/apps/:appId" component={AppPage} />
                   <Redirect from="/" to="/dashboard" />
                 </Switch>
               </CSSTransitionGroup>
@@ -73,7 +74,4 @@ ReactDOM.render(
   </Provider>,
   document.getElementById("react-root")
 );
-
-
-//App = connect()(App);
 

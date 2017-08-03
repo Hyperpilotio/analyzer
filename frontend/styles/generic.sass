@@ -69,3 +69,23 @@ h1
 
 body
   background-color: $color-white
+
+.upper-enter
+  opacity: 0;
+  transform: translateY(-100px);
+
+.upper-enter-active
+  opacity: 1;
+  transform: none;
+  transition: opacity .5s, transform .5s;
+
+.upper-leave
+  position: absolute;
+  opacity: 1;
+  transform: none;
+
+.upper-leave-active
+  opacity: 0;
+  transform: translateY(100px);
+  transition: opacity .5s, transform .5s;
+

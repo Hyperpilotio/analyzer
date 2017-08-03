@@ -42,7 +42,7 @@ function reducer(state, action){
     
     case 'SET_INTERFERENCES':
       return Object.assign({}, state, {interferences: action.interferences}); 
-
+    
     default:
       return Object.assign({}, state);
   }
