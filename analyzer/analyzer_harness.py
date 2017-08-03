@@ -18,6 +18,7 @@ import argparse
 import json
 import sys
 import time
+import operator
 from . import util
 from . import bayesian_optimizer_pool
 
@@ -299,54 +300,24 @@ def __main__():
   # evaluate results
   slo = float(util.get_slo_value("redis"))
   budget = float(util.get_budget("redis"))
-  # scan all visited nodetypes
-  v_optPC_i = v_optP_i = v_optC_i = "none"
-  v_optP_perf = v_optC_perf = 0.0
-  v_optP_cost = v_optC_cost = 1.79e+30
-  v_optPC_perfcost = 0.0
-  for key in visited:
-    feat = features[key]
-    perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
-    price = util.get_price(key)
-    cost = util.compute_cost(price, 'throughput', perf)
-    # best perf under budget constraint
-    if cost <= budget and (perf > v_optP_perf or (perf == v_optP_perf and cost < v_optP_cost)):
-      v_optP_i = key
-      v_optP_perf = perf
-      v_optP_cost = cost
-    # best cost under perf constraint
-    if perf >= slo and (cost < v_optC_cost or (cost == v_optC_cost and perf > v_optC_perf)):
-      v_optC_i = key
-      v_optC_cost = cost
-      v_optC_perf = perf
-    # best perf/cost
-    if (perf/cost) > v_optPC_perfcost:
-      v_optPC_i = key
-      v_optPC_perfcost = perf/cost
-  # scan all nodetypes
-  c_optPC_i = c_optP_i = c_optC_i = "none"
-  c_optP_perf = c_optC_perf = 0.0
-  c_optP_cost = c_optC_cost = 1.79e+30
-  c_optPC_perfcost = 0.0
+
+  optPC = {}
+  optP = {}
+  optC = {}
   for key in features:
     feat = features[key]
     perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
     price = util.get_price(key)
     cost = util.compute_cost(price, 'throughput', perf)
-    # best perf under budget constraint
-    if cost <= budget and (perf > c_optP_perf or (perf == c_optP_perf and cost < c_optP_cost)):
-      c_optP_i = key
-      c_optP_perf = perf
-      c_optP_cost = cost
-    # best cost under perf constraint
-    if perf >= slo and (cost < c_optC_cost or (cost == c_optC_cost and perf > c_optC_perf)):
-      c_optC_i = key
-      c_optC_cost = cost
-      c_optC_perf = perf
-    # best perf/cost
-    if (perf/cost) > c_optPC_perfcost:
-      c_optPC_i = key
-      c_optPC_perfcost = perf/cost
+    optPC[key] = perf/cost
+    if cost <= budget:
+      optP[key] = perf
+    if perf >= slo:
+      optC[key] = cost
+
+  sorted_optPC = sorted(optPC.items(), key=operator.itemgetter(1), reverse=True)
+  sorted_optP = sorted(optP.items(), key=operator.itemgetter(1), reverse=True)
+  sorted_optC = sorted(optC.items(), key=operator.itemgetter(1), reverse=False)
 
   # print results
   print("")
@@ -361,15 +332,33 @@ def __main__():
   print("Nodetypes examined: ", len(visited))
   print("")
   print("Performance/cost")
-  print("   Best available: %10s, %s" %(c_optPC_i, nodeinfo(c_optPC_i)))
-  print("   Best found:     %10s, %s" %(v_optPC_i, nodeinfo(v_optPC_i)))
+  i = 0
+  for key, _ in sorted_optPC:
+    if i < 3:
+      print("   Available #%2d: %11s, %s" %(i+1, key, nodeinfo(key)))
+    if key in visited:
+      print("   Found    #%2d:  %11s, %s" %(i+1, key, nodeinfo(key)))
+      break
+    i += 1
   print("")
   print("Cost with performance constraint (%0.2f)" %slo)
-  print("   Best available: %10s, %s" %(c_optC_i, nodeinfo(c_optC_i)))
-  print("   Best found:     %10s, %s" %(v_optC_i, nodeinfo(v_optC_i)))
+  i = 0
+  for key, _ in sorted_optC:
+    if i < 3:
+      print("   Available #%2d: %11s, %s" %(i+1, key, nodeinfo(key)))
+    if key in visited:
+      print("   Found    #%2d:  %11s, %s" %(i+1, key, nodeinfo(key)))
+      break
+    i += 1
   print("")
   print("Performance with cost constraint (%0.2f)" %budget)
-  print("   Best available: %10s, %s" %(c_optP_i, nodeinfo(c_optP_i)))
-  print("   Best found:     %10s, %s" %(v_optP_i, nodeinfo(v_optP_i)))
+  i = 0
+  for key, _ in sorted_optP:
+    if i < 3:
+      print("   Available #%2d: %11s, %s" %(i+1, key, nodeinfo(key)))
+    if key in visited:
+      print("   Found    #%2d:  %11s, %s" %(i+1, key, nodeinfo(key)))
+      break
+    i += 1
 
 __main__()
