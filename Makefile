@@ -8,11 +8,9 @@ PYTHON_VERSION = $(shell $(PYTHON) --version)
 PY_VERSION_OK = $(shell $(PYTHON) -c 'import sys; print(int(sys.version_info >= (3, 6, 1)))')
 PIPENV = $(shell which pipenv)
 
-GUNICORN_ARGS = --access-logfile - --workers 3 -k gevent --bind 0.0.0.0:5000
+GUNICORN_ARGS = api_service.wsgi:app --access-logfile - -k gevent --bind 0.0.0.0:5000
 
-init: init-python init-js
-
-init-python:
+init:
 	@if [ $(PY_VERSION_OK) = 0 ]; then\
 		echo Your Python version is $(PYTHON_VERSION);\
 		echo "Please install Python 3.6.1 or later";\
@@ -28,38 +26,19 @@ init-python:
 		pipenv install --three;\
 	fi
 
-init-js:
-ifneq (, $(shell which yarn))
-	cd frontend && yarn install
-else
-	cd frontend && npm install
-endif
-
-build-js:
-ifneq (, $(shell which yarn))
-	cd frontend && yarn build
-else
-	cd frontend && npm run build
-endif
-
 test:
 	$(PIPENV) check
 	$(PIPENV) run python -m unittest
 
-serve: build-js run-server
+serve:
+	$(PIPENV) run gunicorn $(GUNICORN_ARGS)
 
-run-server:
-	$(PIPENV) run gunicorn main:application $(GUNICORN_ARGS)
+run-server: serve
 
-dev-py:
-	$(PIPENV) run gunicorn main:application $(GUNICORN_ARGS) --reload
+dev:
+	$(PIPENV) run gunicorn $(GUNICORN_ARGS) --reload
 
-dev-js:
-ifneq (, $(shell which yarn))
-	cd frontend && yarn develop
-else
-	cd frontend && npm run develop
-endif
+dev-py: dev
 
 docker-build:
 	docker build -t $(ANALYZER_IMAGE) .
