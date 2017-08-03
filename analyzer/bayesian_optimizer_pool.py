@@ -100,19 +100,19 @@ class BayesianOptimizerPool():
             if any([future.running() for future in future_list]):
                 return {"status": "running"}
             elif any([future.cancelled() for future in future_list]):
-                return {"status": "execption", "exception": "task cancelled"}
+                return {"status": "execption", "error": "task cancelled"}
             elif all([future.done() for future in future_list]):
                 try:
                     candidates = [future.result() for future in future_list]
                 except Exception as e:
                     return {"status": "exception",
-                            "data": str(e)}
+                            "error": str(e)}
                 else:
                     logger.info(f"Candidates: {candidates}")
                     return {"status": "done",
                             "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
 
-                return {"status": "unexpected future state"}
+                return {"status": "exception", "error": "unexpected future state"}
         else:
             return {"status": "not running"}
 
