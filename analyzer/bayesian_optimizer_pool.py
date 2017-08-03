@@ -14,7 +14,7 @@ from .util import (compute_cost, decode_nodetype, encode_nodetype,
                    get_all_nodetypes, get_budget, get_feature_bounds,
                    get_price, get_slo_type, get_slo_value)
 
-pd.set_option('display.width', 1000)  # wider the display
+pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
 logger = get_logger(__name__, log_level=(
     "BAYESIAN_OPTIMIZER_POOL", "LOGLEVEL"))
@@ -22,7 +22,7 @@ logger = get_logger(__name__, log_level=(
 
 class BayesianOptimizerPool():
     """ This class manages the training samples for each app_id,
-        dispatches the optimization jobs, and tracks the status of each job.
+        dispatches jobs to the worker pool, and tracks the status of each job.
     """
 
     # TODO: Thread safe?
@@ -39,25 +39,26 @@ class BayesianOptimizerPool():
         return cls.__singleton_instance
 
     def __init__(self):
-        # Place for storing samples of each app_id.
+        # Map for storing samples for each app_id.
         self.sample_map = {}
-        # Place for storing python concurrent object.
+        # Map for storing python concurrent object.
         self.future_map = {}
-        # Pool of worker processes
+        # Pool of worker processes for handling jobs
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
 
     def get_candidates(self, app_id, request_body):
         """ The public method to dispatch optimizers asychronously.
         Args:
-            app_id(str): unique key to identify the application
+            app_id(str): unique key to identify the analyzer session for each app
             request_body(dict): the request body sent from the client of the analyzer service
         """
 
-        # initialize points if there is no training sample coming
+        # Generate initial samples if the input request body is empty
+        # TODO: add a try-catch block to handle failure in the submit process;
         if not request_body.get('data'):
             self.future_map[app_id] = []
-            init_points = BayesianOptimizerPool.generate_initial_points()
-            for i in init_points:
+            init_samples = BayesianOptimizerPool.generate_initial_samples()
+            for i in init_samples:
                 future = self.worker_pool.submit(encode_nodetype, i)
                 self.future_map[app_id].append(future)
         # Else dispatch the optimizers
@@ -90,31 +91,34 @@ class BayesianOptimizerPool():
                     constraint_upper=training_data.constraint_upper
                 )
                 self.future_map[app_id].append(future)
-            return {"status": "submitted"}
+
+        return {"status": "submitted"}
 
     def get_status(self, app_id):
-        """ The public method to get the running state of each worker.
+        """ The public method to get the running state of the optimization job.
         """
         future_list = self.future_map.get(app_id)
         if future_list:
             if any([future.running() for future in future_list]):
                 return {"status": "running"}
             elif any([future.cancelled() for future in future_list]):
-                return {"status": "execption", "error": "task cancelled"}
+                return {"status": "server error", "error": "task cancelled"}
             elif all([future.done() for future in future_list]):
                 try:
                     candidates = [future.result() for future in future_list]
                 except Exception as e:
-                    return {"status": "exception",
+                    return {"status": "server error",
                             "error": str(e)}
                 else:
                     logger.info(f"Candidates: {candidates}")
                     return {"status": "done",
                             "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
-
-                return {"status": "exception", "error": "unexpected future state"}
+            else:
+                return {"status": "server error",
+                        "error": "unexpected future state"}
         else:
-            return {"status": "not running"}
+            return {"status": "bad request",
+                    "error": "app_id not found"}
 
     def update_sample_map(self, app_id, df):
         with self.__singleton_lock:
@@ -168,7 +172,7 @@ class BayesianOptimizerPool():
     #         return results
 
     @staticmethod
-    def generate_initial_points(init_points=3):
+    def generate_initial_samples(init_samples=3):
         """ This method randomly select a 'instanceFamily',
             and randomly select a 'nodetype' from that family repeatly
         """
@@ -179,27 +183,27 @@ class BayesianOptimizerPool():
         assert '' not in instance_families, "instanceFamily shouldn't be empty"
         result = []
 
-        logger.debug("Generating random initial points")
-        while init_points > 0:
+        logger.debug("Generating random initial samples")
+        while init_samples > 0:
             family = np.random.choice(instance_families, 1)[0]
             if family in available:
                 nodetype = np.random.choice(
                     dataframe[dataframe['instanceFamily'] == family]['name'], 1)[0]
                 result.append(nodetype)
-                init_points -= 1
+                init_samples -= 1
                 available.remove(family)
 
             # reset available when all families are visited
             if not available:
                 available = list(instance_families)
 
-        logger.debug(f"initial points:\n{result}")
+        logger.debug(f"initial samples:\n{result}")
         return result
 
     # @staticmethod
-    # def generate_initial_points(init_points=3):
+    # def generate_initial_samples(init_samples=3):
     #     dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
-    #     result = np.random.choice(dataframe['name'], init_points)
+    #     result = np.random.choice(dataframe['name'], init_samples)
     #     return result
 
     @staticmethod

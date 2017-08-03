@@ -135,11 +135,11 @@ class BayesianOptimizerPoolTest(TestCase):
             nodetype_map[j['name']] = j['instanceFamily']
 
         for i in range(100):
-            points = BOP.generate_initial_points(
+            samples = BOP.generate_initial_samples(
                 len(set(dataframe['instanceFamily'])))
-            if len(points) != len(set([nodetype_map[i] for i in points])):
+            if len(samples) != len(set([nodetype_map[i] for i in samples])):
                 raise AssertionError(
-                    "Initial point generator points coming from same families")
+                    "Initial samples coming from same instance families")
 
 
 class BayesianOptimizerTest(TestCase):
