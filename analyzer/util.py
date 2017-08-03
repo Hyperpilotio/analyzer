@@ -62,12 +62,12 @@ def get_bounds(vectors):
 
 
 @lru_cache(maxsize=16)
-def get_raw_features(nodetype):
+def get_raw_features(nodetype_name):
     """ for each instance type, get a vector of raw feature values from the database
         TODO: improve query efficiency by precomputing & caching all feature vectors
     """
     nodetype_map = get_all_nodetypes()
-    nodetype = nodetype_map.get(nodetype)
+    nodetype = nodetype_map.get(nodetype_name)
     if nodetype is None:
         raise KeyError(f'Cannot find instance type in the database: name={nodetype}')
 
@@ -132,9 +132,9 @@ def feature_distance(f1, f2):
 
 # TODO: improve query efficiency
 # get from configdb the price (hourly cost) of an nodetype
-def get_price(nodetype):
+def get_price(nodetype_name):
     nodetype_map = get_all_nodetypes()
-    nodetype = nodetype_map.get(nodetype)
+    nodetype = nodetype_map.get(nodetype_name)
     if nodetype is None:
         raise KeyError(f'Cannot find instance type in the database: name={nodetype}')
 
