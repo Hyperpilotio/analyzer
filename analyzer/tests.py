@@ -338,7 +338,7 @@ class UtilTest(TestCase):
     def testDeEncoder(self):
         """ decode(encode(x) should be itself)
         """
-        for n in get_all_nodetypes:
+        for n in get_all_nodetypes():
             logger.debug(f"deeencoded: {decode_nodetype(encode_nodetype(n))}, origin: {n}")
             if decode_nodetype(encode_nodetype(n)) != n:
                 logger.warning(f"deencoded: {decode_nodetype(encode_nodetype(n))}, origin: {n} not consistent")
