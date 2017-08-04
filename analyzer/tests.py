@@ -84,7 +84,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
         df = BOP.create_sample_dataframe(request_body)
         training_data_list = [BOP.make_optimizer_training_data(df, objective_type=o)
-                              for o in ['perf_over_cost', 'cost_given_perf', 'perf_given_cost']]
+                              for o in ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']]
 
         bounds = get_feature_bounds(normalized=True)
         outputs = []
