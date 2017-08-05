@@ -106,22 +106,23 @@ class BayesianOptimizerPool():
             if any([future.running() for future in future_list]):
                 return {"status": "running"}
             elif any([future.cancelled() for future in future_list]):
-                return {"status": "server error", "error": "task cancelled"}
+                return {"status": "server_error", "error": "task cancelled"}
             elif all([future.done() for future in future_list]):
                 try:
                     candidates = [future.result() for future in future_list]
                 except Exception as e:
-                    return {"status": "server error",
+                    return {"status": "server_error",
                             "error": str(e)}
                 else:
                     logger.info(f"Candidates: {candidates}")
                     return {"status": "done",
                             "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
             else:
-                return {"status": "server error",
+                logger.info(f"Futures in unexpected state: {future_list}")
+                return {"status": "server_error",
                         "error": "unexpected task state"}
         else:
-            return {"status": "bad request",
+            return {"status": "bad_request",
                     "error": f"app_id {app_id} is not found"}
 
     def update_sample_map(self, app_id, df):
