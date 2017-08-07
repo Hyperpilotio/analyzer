@@ -253,7 +253,7 @@ class BayesianOptimizerPool():
         feature_mat = np.array(df['feature'].tolist())
         slo_type = df['slo_type'].iloc[0]
         budget = df['budget'].iloc[0]
-        perf_constraint = df['slo'].iloc[0]
+        perf_constraint = df['slo_value'].iloc[0]
         perf_arr = df['qos_value']
 
         # Convert metric so we always try to maximize performance
@@ -302,7 +302,7 @@ class BayesianOptimizerPool():
                                'nodetype': [nodetype],
                                'feature': [encode_nodetype(nodetype)],
                                'cost': [compute_cost(get_price(nodetype), slo_type, qos_value)],
-                               'slo': [get_slo_value(app_name)],
+                               'slo_value': [get_slo_value(app_name)],
                                'budget': [get_budget(app_name)]
                                })
             dfs.append(df)
