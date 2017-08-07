@@ -102,28 +102,26 @@ class BayesianOptimizerPool():
         # TODO: check if complete, if so call best_candidates=compute_optimum() and return the best_candidates
 
         future_list = self.future_map.get(app_id)
-        if future_list:
-            if any([future.running() for future in future_list]):
-                return {"status": "running"}
-            elif any([future.cancelled() for future in future_list]):
-                return {"status": "server_error", "error": "task cancelled"}
-            elif all([future.done() for future in future_list]):
-                try:
-                    candidates = [future.result() for future in future_list]
-                except Exception as e:
-                    return {"status": "server_error",
-                            "error": str(e)}
-                else:
-                    logger.info(f"Candidates: {candidates}")
-                    return {"status": "done",
-                            "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
-            else:
-                logger.info(f"Futures in unexpected state: {future_list}")
-                return {"status": "server_error",
-                        "error": "unexpected task state"}
-        else:
+        if not future_list:
             return {"status": "bad_request",
                     "error": f"app_id {app_id} is not found"}
+
+        if all([future.done() for future in future_list]):
+            try:
+                candidates = [future.result() for future in future_list]
+            except Exception as e:
+                return {"status": "server_error",
+                        "error": str(e)}
+            else:
+                logger.info(f"Candidates: {candidates}")
+                return {"status": "done",
+                        "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
+
+        elif any([future.cancelled() for future in future_list]):
+            return {"status": "server_error", "error": "task cancelled"}
+        else:
+            # Running or pending
+            return {"status": "running"}
 
     def update_sample_map(self, app_id, df):
         with self.__singleton_lock:
