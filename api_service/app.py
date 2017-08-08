@@ -10,6 +10,7 @@ from analyzer.linear_regression import LinearRegression1
 from analyzer.util import (get_calibration_dataframe, get_profiling_dataframe,
                            get_radar_dataframe)
 from config import get_config
+from logger import get_logger
 
 from .db import configdb, metricdb
 from .util import (JSONEncoderWithMongo, ObjectIdConverter,
@@ -20,6 +21,8 @@ app = Flask(__name__)
 app.config.update(get_config())
 app.json_encoder = JSONEncoderWithMongo
 app.url_map.converters["objectid"] = ObjectIdConverter
+
+logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BO = BayesianOptimizerPool.instance()
 
@@ -156,17 +159,23 @@ def get_next_instance_types(app_id):
     try:
         response = BO.get_candidates(app_id, request_body)
     except Exception as e:
-        response = {"status": "server_error",
-                    "error": print_exception()}
-    return jsonify(response)
+        logger.error(print_exception())
+        response = jsonify({"status": "server_error",
+                            "error": str(e)})
+    return response
 
 # TODO: change back to uuid
 
 
 @app.route("/apps/<string:app_id>/get-optimizer-status")
 def get_task_status(app_id):
-    
-    response = jsonify(BO.get_status(app_id))
+    try:
+        response = jsonify(BO.get_status(app_id))
+    except Exception as e:
+        logger.error(print_exception())
+        response = jsonify({"status": "server_error",
+                            "error": str(e)})
+
     return response
 
 
