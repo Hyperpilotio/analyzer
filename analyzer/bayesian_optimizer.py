@@ -6,6 +6,7 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern
+from sklearn.preprocessing import scale
 
 logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
@@ -97,11 +98,11 @@ def acq_max(utility, bounds):
 
     # Warm up with random points
     x_tries = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(100000, bounds.shape[0]))
+                                size=(1000000, bounds.shape[0]))
     ys = utility(x_tries)
     x_max = x_tries[ys.argmax()]
     max_acq = ys.max()
-
+    logger.info(f'nonzeros: {np.count_nonzero(ys)}')
     # Explore the parameter space more throughly
     x_seeds = np.random.uniform(bounds[:, 0], bounds[:, 1],
                                 size=(250, bounds.shape[0]))
@@ -146,11 +147,15 @@ def get_fitted_gaussian_processor(X_train, y_train, **gp_params):
     gp = GaussianProcessRegressor()
     gp.set_params(**gp_params)
     logger.debug('Instantiated gaussian processor for objective function:\n' + f'{gp}')
-    # Find unique rows of X to avoid GP from breaking
-    ur = unique_rows(X_train)
     logger.debug(f"Fitting gaussian processor")
-    gp.fit(X_train[ur], y_train[ur])
-    logger.debug('Fitted')
+
+    y_train = scale(y_train)
+    if gp_params is None or gp_params.get('alpha') is None:
+        # Find unique rows of X to avoid GP from breaking
+        ur = unique_rows(X_train)
+        gp.fit(X_train[ur], y_train[ur])
+    else:
+        gp.fit(X_train, y_train)
     return gp
 
 
@@ -170,7 +175,7 @@ def get_candidate(feature_mat, objective_arr, bounds, acq,
     """
     # TODO: Put these into config file
     seed = 6
-    gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 25,
+    gp_params = {"alpha": 1e-10, "n_restarts_optimizer": 25,
                  "kernel": Matern(nu=2.5), "random_state": seed}
     # Set boundary
     bounds = np.asarray(bounds)
