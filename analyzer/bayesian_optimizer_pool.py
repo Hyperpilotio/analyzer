@@ -78,7 +78,7 @@ class BayesianOptimizerPool():
             if self.check_termination(app_id):
                 logger.info(f"[{app_id}]Sizing analysis is done; store final result in database")
                 future = self.worker_pool.submit(
-                    BayesianOptimizerPool.store_final_result, app_id)
+                    BayesianOptimizerPool.store_final_result, app_id, self.sample_map.get(app_id))
                 self.future_map[app_id].append(future)
                 return {"status": "success"}
 
@@ -147,6 +147,7 @@ class BayesianOptimizerPool():
                 [self.sample_map.get(app_id), df])
 
             # TODO: store the latest samples (df) to the database
+            # TODO: is mongodb database threadsafe?
 
     def check_termination(self, app_id):
         """ This method determines if the optimization process for a given app can terminate.
@@ -167,11 +168,10 @@ class BayesianOptimizerPool():
         else:
             return True
 
-    def store_final_result(self, app_id):
+    @staticmethod
+    def store_final_result(app_id, df):
         """ This method stores the final result of the optimization process to the database.
         """
-
-        df = self.sample_map.get(app_id)
         recommendations = BayesianOptimizerPool.compute_recommendations(df)
         logger.info(f"[{app_id}]Final recommendations:\n{recommendations}")
 
