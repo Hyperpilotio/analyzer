@@ -147,7 +147,6 @@ class BayesianOptimizerPool():
                 [self.sample_map.get(app_id), df])
 
             # TODO: store the latest samples (df) to the database
-            # TODO: is mongodb database threadsafe?
 
     def check_termination(self, app_id):
         """ This method determines if the optimization process for a given app can terminate.
@@ -176,6 +175,8 @@ class BayesianOptimizerPool():
         logger.info(f"[{app_id}]Final recommendations:\n{recommendations}")
 
         # TODO: update_sizing_in_metricdb with the final recommendations
+        # TODO: check if mongodb is thread safe?
+        return recommendations
 
     def filter_candidates(self, app_id, candidates):
         """ This method filters the recommended candidates before returning to the client
@@ -370,9 +371,9 @@ class BayesianOptimizerPool():
 
         recommendations = []
 
-        perf_arr = df['qos_value']
-        cost_arr = df['cost']
-        nodetype_arr = df['nodetype']
+        perf_arr = df['qos_value'].values
+        cost_arr = df['cost'].values
+        nodetype_arr = df['nodetype'].values
         slo_type = df['slo_type'].iloc[0]
         budget = df['budget'].iloc[0]
         perf_constraint = df['slo_value'].iloc[0]
@@ -382,7 +383,7 @@ class BayesianOptimizerPool():
             perf_arr = 1. / perf_arr
             perf_constraint = 1. / perf_constraint
 
-        perf_over_cost_arr = perf_arr / cost_arr
+        perf_over_cost_arr = (perf_arr / cost_arr)
         nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(
             perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
         recommendations.append(nodetype_best_ratio)
@@ -402,5 +403,4 @@ class BayesianOptimizerPool():
         nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(
             perf_subset)], "objective": "MaxPerfWithCostLimit"}
         recommendations.append(nodetype_max_perf)
-
         return recommendations
