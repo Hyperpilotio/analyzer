@@ -1,27 +1,28 @@
-from flask import Flask, jsonify, request
-from config import get_config
-from pymongo import DESCENDING
-from .util import (
-    JSONEncoderWithMongo,
-    ObjectIdConverter,
-    ensure_document_found,
-    shape_service_placement,
-)
-from .db import configdb, metricdb
-from analyzer.linear_regression import LinearRegression1
-from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
-from analyzer.util import (
-    get_calibration_dataframe,
-    get_profiling_dataframe,
-    get_radar_dataframe,
-)
 import json
+import linecache
+import sys
+
+from flask import Flask, jsonify, request
+from pymongo import DESCENDING
+
+from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
+from analyzer.linear_regression import LinearRegression1
+from analyzer.util import (get_calibration_dataframe, get_profiling_dataframe,
+                           get_radar_dataframe)
+from config import get_config
+from logger import get_logger
+
+from .db import configdb, metricdb
+from .util import (JSONEncoderWithMongo, ObjectIdConverter,
+                   ensure_document_found, shape_service_placement)
 
 app = Flask(__name__)
 
 app.config.update(get_config())
 app.json_encoder = JSONEncoderWithMongo
 app.url_map.converters["objectid"] = ObjectIdConverter
+
+logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BO = BayesianOptimizerPool.instance()
 
@@ -155,7 +156,12 @@ def get_next_instance_types(app_id):
         response.status_code = 400
         return response
     request_body = request.get_json()
-    response = jsonify(BO.get_candidates(app_id, request_body))
+    try:
+        response = jsonify(BO.get_candidates(app_id, request_body))
+    except Exception as e:
+        logger.error(print_exception())
+        response = jsonify({"status": "server_error",
+                            "error": str(e)})
     return response
 
 # TODO: change back to uuid
@@ -163,5 +169,21 @@ def get_next_instance_types(app_id):
 
 @app.route("/apps/<string:app_id>/get-optimizer-status")
 def get_task_status(app_id):
-    response = jsonify(BO.get_status(app_id))
+    try:
+        response = jsonify(BO.get_status(app_id))
+    except Exception as e:
+        logger.error(print_exception())
+        response = jsonify({"status": "server_error",
+                            "error": str(e)})
+
     return response
+
+
+def print_exception():
+    exc_type, exc_obj, tb = sys.exc_info()
+    f = tb.tb_frame
+    lineno = tb.tb_lineno
+    filename = f.f_code.co_filename
+    linecache.checkcache(filename)
+    line = linecache.getline(filename, lineno, f.f_globals)
+    return 'exception in ({}, line {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)

@@ -142,14 +142,15 @@ def unique_rows(a):
     return ui[reorder]
 
 
-def get_fitted_gaussian_processor(X_train, y_train, **gp_params):
+def get_fitted_gaussian_processor(X_train, y_train, standardize_y=True, **gp_params):
     # Initialize gaussian process regressor
     gp = GaussianProcessRegressor()
     gp.set_params(**gp_params)
     logger.debug('Instantiated gaussian processor for objective function:\n' + f'{gp}')
     logger.debug(f"Fitting gaussian processor")
 
-    y_train = scale(y_train)
+    if standardize_y:
+        y_train = scale(y_train)
     if gp_params is None or gp_params.get('alpha') is None:
         # Find unique rows of X to avoid GP from breaking
         ur = unique_rows(X_train)
@@ -161,7 +162,7 @@ def get_fitted_gaussian_processor(X_train, y_train, **gp_params):
 
 def get_candidate(feature_mat, objective_arr, bounds, acq,
                   constraint_arr=None, constraint_upper=None,
-                  kappa=5, xi=0.0, **gp_params):
+                  kappa=5, xi=0.0, standardize_y=True, **gp_params):
     """ Compute the next candidate based on Bayesian Optimization
     Args:
         feature_mat(numpy 2d array): feature vectors
@@ -181,10 +182,10 @@ def get_candidate(feature_mat, objective_arr, bounds, acq,
     bounds = np.asarray(bounds)
 
     gp_objective = get_fitted_gaussian_processor(
-        feature_mat, objective_arr, **gp_params)
+        feature_mat, objective_arr, standardize_y=standardize_y, **gp_params)
     if (constraint_arr is not None) and (constraint_upper is not None):
         gp_constraint = get_fitted_gaussian_processor(
-            feature_mat, constraint_arr, **gp_params)
+            feature_mat, constraint_arr, standardize_y=standardize_y, **gp_params)
     else:
         gp_constraint, constraint_upper = None, None
 

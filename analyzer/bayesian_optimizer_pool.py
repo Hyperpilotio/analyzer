@@ -7,12 +7,17 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 
+from config import get_config
 from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_nodetype, encode_nodetype,
                    get_all_nodetypes, get_budget, get_feature_bounds,
                    get_price, get_slo_type, get_slo_value)
+
+config = get_config()
+max_samples = int(config.get("ANALYZER", "MAX_SAMPLES"))
+min_improvement = float(config.get("ANALYZER", "MIN_IMPROVEMENT"))
 
 pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
@@ -24,8 +29,6 @@ class BayesianOptimizerPool():
     """ This class manages the training samples for each app_id,
         dispatches jobs to the worker pool, and tracks the status of each job.
     """
-
-    # TODO: Thread safe?
     __singleton_lock = threading.Lock()
     __singleton_instance = None
 
@@ -45,10 +48,10 @@ class BayesianOptimizerPool():
         self.future_map = {}
         # Pool of worker processes for handling jobs
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
-        # TODO: add a self.completion_map to track whether the optimization process is complete
+        # Optimal perf_over_cost value from all samples evaluted
+        self.optimal_poc = {}
 
-    # TODO: Add workflow to handle the termination when the length of the sample_map exceeds the max_samples limit
-    def get_candidates(self, app_id, request_body):
+    def get_candidates(self, app_id, request_body, **kwargs):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
             app_id(str): unique key to identify the optimization session for each app
@@ -56,7 +59,6 @@ class BayesianOptimizerPool():
         """
 
         # Generate initial samples if the input request body is empty
-        # TODO: add a try-catch block to handle failure in the submit process
         if not request_body.get('data'):
             self.future_map[app_id] = []
             init_samples = BayesianOptimizerPool.generate_initial_samples()
@@ -69,16 +71,24 @@ class BayesianOptimizerPool():
             df = BayesianOptimizerPool.create_sample_dataframe(request_body)
             # update the shared sample map
             self.update_sample_map(app_id, df)
-            logger.info(f"Training data:\n{self.sample_map}")
+            logger.info(f"[{app_id}]All training samples evaluted:\n{self.sample_map}")
+
+            self.future_map[app_id] = []
+
+            if self.check_termination(app_id):
+                logger.info(f"[{app_id}]Sizing analysis is done; store final result in database")
+                future = self.worker_pool.submit(
+                    BayesianOptimizerPool.store_final_result, app_id)
+                self.future_map[app_id].append(future)
+                return {"status": "success"}
+
             # fetch the latest sample_map
             dataframe = self.sample_map[app_id]
-            # create the training data to Bayesian optimizer
+            # create the training data for Bayesian optimizer
             training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
                 dataframe, objective_type=o)
                 for o in ['perf_over_cost',
                           'cost_given_perf_limit', 'perf_given_cost_limit']]
-
-            self.future_map[app_id] = []
             feature_bounds = get_feature_bounds(normalized=True)
             for training_data in training_data_list:
                 acq = 'cei' if training_data.has_constraint() else 'ei'
@@ -90,16 +100,17 @@ class BayesianOptimizerPool():
                     feature_bounds,
                     acq=acq,
                     constraint_arr=training_data.constraint_arr,
-                    constraint_upper=training_data.constraint_upper
+                    constraint_upper=training_data.constraint_upper,
+                    **kwargs
                 )
+
                 self.future_map[app_id].append(future)
 
-        return {"status": "submitted"}
+        return {"status": "success"}
 
     def get_status(self, app_id):
         """ The public method to get the running state of current optimization jobs for an app.
         """
-        # TODO: check if complete, if so call best_candidates=compute_optimum() and return the best_candidates
 
         future_list = self.future_map.get(app_id)
         if not future_list:
@@ -107,16 +118,14 @@ class BayesianOptimizerPool():
                     "error": f"app_id {app_id} is not found"}
 
         if all([future.done() for future in future_list]):
-            try:
-                candidates = [future.result() for future in future_list]
-            except Exception as e:
-                return {"status": "server_error",
-                        "error": str(e)}
+            candidates = [future.result() for future in future_list]
+            if not candidates:
+                logger.info(f"[{app_id}]No more candidates suggested.")
+                return {"status": "done", "data": []}
             else:
-                logger.info(f"Candidates: {candidates}")
+                logger.info(f"[{app_id}]New candidates suggested:\n{candidates}")
                 return {"status": "done",
                         "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
-
         elif any([future.cancelled() for future in future_list]):
             return {"status": "server_error", "error": "task cancelled"}
         else:
@@ -130,26 +139,53 @@ class BayesianOptimizerPool():
                 intersection = set(df['nodetype']).intersection(
                     set(self.sample_map[app_id]['nodetype']))
                 if intersection:
-                    logger.warning(f"Duplicated sample was sent from the client")
+                    logger.warning(f"Duplicated samples were sent from the client")
                     logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(app_id)}")
                     logger.warning(f"intersection: {intersection}")
 
             self.sample_map[app_id] = pd.concat(
                 [self.sample_map.get(app_id), df])
 
-    def filter_candidates(self, app_id, candidates, max_samples=15):
-        """ This method determines if the recommended candidates should be returned to the client.
-        Terminate conditions: 1. if number of samples evaluated exceeds max_samples or,
-                              2. if all the candidates are duplicates within this run or with previous runs
+            # TODO: store the latest samples (df) to the database
+
+    def check_termination(self, app_id):
+        """ This method determines if the optimization process for a given app can terminate.
+        Termination conditions: 1. if total number of samples evaluated exceeds max_samples or,
+                                2. if incremental improvement in the objective over previous runs is within min_improvement.
+        """
+
+        df = self.sample_map.get(app_id)
+        if (df is not None) and (len(df) > max_samples):
+            return True
+
+        opt_poc = BayesianOptimizerPool.compute_optimum(df)
+        prev_opt_poc = self.optimal_poc.get(app_id)
+        if (prev_opt_poc is None) or (opt_poc - prev_opt_poc > min_improvement * prev_opt_poc):
+            self.optimal_poc[app_id] = opt_poc
+            return False
+        # if incremental improvement from the last batch is too small to continue
+        else:
+            return True
+
+    def store_final_result(self, app_id):
+        """ This method stores the final result of the optimization process to the database.
+        """
+
+        df = self.sample_map.get(app_id)
+        recommendations = BayesianOptimizerPool.compute_recommendations(df)
+        logger.info(f"[{app_id}]Final recommendations:\n{recommendations}")
+
+        # TODO: update_sizing_in_metricdb with the final recommendations
+
+    def filter_candidates(self, app_id, candidates):
+        """ This method filters the recommended candidates before returning to the client
+            and removes the duplicates within this run or with previous runs.
         """
         # remove duplicates within this run
         candidates = list(set(candidates))
 
         if self.sample_map.get(app_id) is None:
             return candidates
-        # TODO: move this termination check into get_candidates()
-        elif len(self.sample_map.get(app_id)) > max_samples:
-            return []
         else:
             # return candidates while removing duplicates with previous runs
             return [c for c in candidates if c not in self.sample_map.get(app_id)['nodetype'].values]
@@ -307,3 +343,64 @@ class BayesianOptimizerPool():
         if not dfs:
             raise AssertionError(f'dataframe is not created\nrequest_body:\n{request_body}')
         return pd.concat(dfs)
+
+    @staticmethod
+    def compute_optimum(df):
+        """ Compute the optimal perf_over_cost value among all given samples
+        """
+        assert df is not None and len(df) > 0
+
+        slo_type = df['slo_type'].iloc[0]
+        if slo_type == 'latency':
+            perf_arr = 1. / df['qos_value']
+        else:
+            perf_arr = df['qos_value']
+
+        perf_over_cost = perf_arr / df['cost']
+        return np.max(perf_over_cost)
+
+    @staticmethod
+    def compute_recommendations(df):
+        """ Compute the final recommendations from the optimizer -
+            optimal node types among all samples based on three different objective functions:
+            1. MaxPerfOverCost
+            2. MinCostWithPerfLimit
+            3. MaxPerfWithCostLimit
+        """
+
+        recommendations = []
+
+        perf_arr = df['qos_value']
+        cost_arr = df['cost']
+        nodetype_arr = df['nodetype']
+        slo_type = df['slo_type'].iloc[0]
+        budget = df['budget'].iloc[0]
+        perf_constraint = df['slo_value'].iloc[0]
+
+        # Convert qos value so we always maximize performance
+        if slo_type == 'latency':
+            perf_arr = 1. / perf_arr
+            perf_constraint = 1. / perf_constraint
+
+        perf_over_cost_arr = perf_arr / cost_arr
+        nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(
+            perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
+        recommendations.append(nodetype_best_ratio)
+
+        nodetype_subset = [nodetype for nodetype, perf in zip(
+            nodetype_arr, perf_arr) if perf >= perf_constraint]
+        cost_subset = [cost for cost, perf in zip(
+            cost_arr, perf_arr) if perf >= perf_constraint]
+        nodetype_min_cost = {"nodetype": nodetype_subset[np.argmin(
+            cost_subset)], "objective": "MinCostWithPerfLimit"}
+        recommendations.append(nodetype_min_cost)
+
+        nodetype_subset = [nodetype for nodetype, cost in zip(
+            nodetype_arr, cost_arr) if cost <= budget]
+        perf_subset = [perf for perf, cost in zip(
+            perf_arr, cost_arr) if cost <= budget]
+        nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(
+            perf_subset)], "objective": "MaxPerfWithCostLimit"}
+        recommendations.append(nodetype_max_perf)
+
+        return recommendations

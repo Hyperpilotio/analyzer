@@ -50,6 +50,7 @@ class BayesianOptimizerPoolTest(TestCase):
                                                content_type="application/json").data)
 
         logger.debug(f"Response:\n{response}")
+        self.assertEqual(response['status'], 'success', response)
 
         # Polling from workload profiler
         while True:
@@ -63,7 +64,7 @@ class BayesianOptimizerPoolTest(TestCase):
             else:
                 break
 
-        self.assertEqual(response['status'], "done")
+        self.assertEqual(response['status'], "done", response)
 
     def testCherryPickWorkFlow(self):
         """ Test Cherry pick workflow without testing multiprocrss pool functionality.
@@ -92,7 +93,8 @@ class BayesianOptimizerPoolTest(TestCase):
             logger.debug(f"Dispatching training data: {t}")
             acq = 'cei' if t.has_constraint() else 'ei'
             output = get_candidate(t.feature_mat, t.objective_arr, bounds,
-                                   acq=acq, constraint_arr=t.constraint_arr, constraint_upper=t.constraint_upper)
+                                   acq=acq, constraint_arr=t.constraint_arr,
+                                   constraint_upper=t.constraint_upper, **{'standardize_y': False})
             outputs.append(output)
 
         # The final result of nodetype (i.e. [x2.large, x2.xlarge, t2.xlarge])
@@ -208,7 +210,7 @@ class BayesianOptimizerTest(TestCase):
 
         # Testing implementation
         gp = get_fitted_gaussian_processor(
-            X_train.reshape(2, -1), y_train, **gp_params)
+            X_train.reshape(2, -1), y_train, standardize_y=False, **gp_params)
         util = UtilityFunction(kind='ei', gp_objective=gp, xi=1e-4)
 
         mu_impl, std_impl = posterior(gp, x)
@@ -270,7 +272,7 @@ class BayesianOptimizerTest(TestCase):
 
         # Testing implementation
         gp = get_fitted_gaussian_processor(
-            np.array(X_train), np.array(y_train), **gp_params)
+            np.array(X_train), np.array(y_train), standardize_y=False, **gp_params)
         util = UtilityFunction(kind='ei', gp_objective=gp, xi=1e-4)
 
         post_impl = np.array([posterior(gp, x.reshape(1, -1)) for x in X])
@@ -339,7 +341,7 @@ class UtilTest(TestCase):
         """ decode(encode(x) should be itself)
         """
         # TODO: Have a better way to test the decoder as the decoded types is expected to not match the encoded.
-        #for n in get_all_nodetypes():
+        # for n in get_all_nodetypes():
         #    logger.debug(f"deeencoded: {decode_nodetype(encode_nodetype(n))}, origin: {n}")
         #    if decode_nodetype(encode_nodetype(n)) != n:
         #        logger.warning(f"deencoded: {decode_nodetype(encode_nodetype(n))}, origin: {n} not consistent")
