@@ -51,7 +51,7 @@ class BayesianOptimizerPool():
         # Optimal perf_over_cost value from all samples evaluted
         self.optimal_poc = {}
 
-    def get_candidates(self, app_id, request_body):
+    def get_candidates(self, app_id, request_body, **kwargs):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
             app_id(str): unique key to identify the optimization session for each app
@@ -100,7 +100,8 @@ class BayesianOptimizerPool():
                     feature_bounds,
                     acq=acq,
                     constraint_arr=training_data.constraint_arr,
-                    constraint_upper=training_data.constraint_upper
+                    constraint_upper=training_data.constraint_upper,
+                    **kwargs
                 )
 
                 self.future_map[app_id].append(future)
