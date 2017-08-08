@@ -49,7 +49,7 @@ class BayesianOptimizerPool():
         # Pool of worker processes for handling jobs
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
         # Optimal perf_over_cost value from all samples evaluted
-        self.optimal_poc = 0.0
+        self.optimal_poc = {}
 
     def get_candidates(self, app_id, request_body):
         """ The public method to asychronously start the jobs for generating candidates.
@@ -117,19 +117,14 @@ class BayesianOptimizerPool():
                     "error": f"app_id {app_id} is not found"}
 
         if all([future.done() for future in future_list]):
-            try:
-                candidates = [future.result() for future in future_list]
-            except Exception as e:
-                return {"status": "server_error",
-                        "error": str(e)}
+            candidates = [future.result() for future in future_list]
+            if not candidates:
+                logger.info(f"[{app_id}]No more candidates suggested.")
+                return {"status": "done", "data": []}
             else:
-                if len(candidates) == 0:
-                    logger.info(f"[{app_id}]No more candidates suggested.")
-                    return {"status": "done", "data": []}
-                else:
-                    logger.info(f"[{app_id}] New candidates suggested:\n{candidates}")
-                    return {"status": "done",
-                            "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
+                logger.info(f"[{app_id}]New candidates suggested:\n{candidates}")
+                return {"status": "done",
+                        "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
         elif any([future.cancelled() for future in future_list]):
             return {"status": "server_error", "error": "task cancelled"}
         else:
@@ -159,12 +154,13 @@ class BayesianOptimizerPool():
         """
 
         df = self.sample_map.get(app_id)
-        if len(df) > max_samples:
+        if (df is not None) and (len(df) > max_samples):
             return True
 
         opt_poc = BayesianOptimizerPool.compute_optimum(df)
-        if self.optimal_poc == 0 or opt_poc - self.optimal_poc > min_improvement * self.optimal_poc:
-            self.optimal_poc = opt_poc
+        prev_opt_poc = self.optimal_poc.get(app_id)
+        if (prev_opt_poc is None) or (opt_poc - prev_opt_poc > min_improvement * prev_opt_poc):
+            self.optimal_poc[app_id] = opt_poc
             return False
         # if incremental improvement from the last batch is too small to continue
         else:
@@ -351,6 +347,7 @@ class BayesianOptimizerPool():
     def compute_optimum(df):
         """ Compute the optimal perf_over_cost value among all given samples
         """
+        assert df is not None and len(df) > 0
 
         slo_type = df['slo_type'].iloc[0]
         if slo_type == 'latency':
@@ -397,7 +394,7 @@ class BayesianOptimizerPool():
             cost_subset)], "objective": "MinCostWithPerfLimit"}
         recommendations.append(nodetype_min_cost)
 
-        nodetype_subset = [nodetype for nodetype, perf in zip(
+        nodetype_subset = [nodetype for nodetype, cost in zip(
             nodetype_arr, cost_arr) if cost <= budget]
         perf_subset = [perf for perf, cost in zip(
             perf_arr, cost_arr) if cost <= budget]
