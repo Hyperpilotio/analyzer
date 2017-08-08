@@ -29,8 +29,6 @@ class BayesianOptimizerPool():
     """ This class manages the training samples for each app_id,
         dispatches jobs to the worker pool, and tracks the status of each job.
     """
-
-    # TODO: Thread safe?
     __singleton_lock = threading.Lock()
     __singleton_instance = None
 
@@ -65,13 +63,8 @@ class BayesianOptimizerPool():
             self.future_map[app_id] = []
             init_samples = BayesianOptimizerPool.generate_initial_samples()
             for i in init_samples:
-                try:
-                    future = self.worker_pool.submit(encode_nodetype, i)
-                except Exception as e:
-                    return {"status": "server_error",
-                            "error": str(e)}
-                else:
-                    self.future_map[app_id].append(future)
+                future = self.worker_pool.submit(encode_nodetype, i)
+                self.future_map[app_id].append(future)
         # Else dispatch the optimizers
         else:
             # create datafame
@@ -84,14 +77,10 @@ class BayesianOptimizerPool():
 
             if self.check_termination(app_id):
                 logger.info(f"[{app_id}]Sizing analysis is done; store final result in database")
-                try:
-                    future = self.worker_pool.submit(store_final_result, app_id)
-                except Exception as e:
-                    return {"status": "server_error",
-                            "error": str(e)}
-                else:
-                    self.future_map[app_id].append(future)
-                    return {"status": "success"}
+                future = self.worker_pool.submit(
+                    BayesianOptimizerPool.store_final_result, app_id)
+                self.future_map[app_id].append(future)
+                return {"status": "success"}
 
             # fetch the latest sample_map
             dataframe = self.sample_map[app_id]
@@ -104,24 +93,19 @@ class BayesianOptimizerPool():
             for training_data in training_data_list:
                 acq = 'cei' if training_data.has_constraint() else 'ei'
                 logger.info(f"[{app_id}]Dispatching optimizer with acquisition function: {acq}:\n{training_data}")
-                try:
-                    future = self.worker_pool.submit(
-                        get_candidate,
-                        training_data.feature_mat,
-                        training_data.objective_arr,
-                        feature_bounds,
-                        acq=acq,
-                        constraint_arr=training_data.constraint_arr,
-                        constraint_upper=training_data.constraint_upper
-                    )
-                except Exception as e:
-                    return {"status": "server_error",
-                            "error": str(e)}
-                else:
-                    self.future_map[app_id].append(future)
+                future = self.worker_pool.submit(
+                    get_candidate,
+                    training_data.feature_mat,
+                    training_data.objective_arr,
+                    feature_bounds,
+                    acq=acq,
+                    constraint_arr=training_data.constraint_arr,
+                    constraint_upper=training_data.constraint_upper
+                )
+
+                self.future_map[app_id].append(future)
 
         return {"status": "success"}
-
 
     def get_status(self, app_id):
         """ The public method to get the running state of current optimization jobs for an app.
@@ -143,7 +127,7 @@ class BayesianOptimizerPool():
                     logger.info(f"[{app_id}]No more candidates suggested.")
                     return {"status": "done", "data": []}
                 else:
-                    logger.info(f"[{app_id}]New candidates suggested: {candidates}")
+                    logger.info(f"[{app_id}] New candidates suggested:\n{candidates}")
                     return {"status": "done",
                             "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
         elif any([future.cancelled() for future in future_list]):
@@ -151,7 +135,6 @@ class BayesianOptimizerPool():
         else:
             # Running or pending
             return {"status": "running"}
-
 
     def update_sample_map(self, app_id, df):
         with self.__singleton_lock:
@@ -164,10 +147,10 @@ class BayesianOptimizerPool():
                     logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(app_id)}")
                     logger.warning(f"intersection: {intersection}")
 
-            self.sample_map[app_id] = pd.concat([self.sample_map.get(app_id), df])
+            self.sample_map[app_id] = pd.concat(
+                [self.sample_map.get(app_id), df])
 
             # TODO: store the latest samples (df) to the database
-
 
     def check_termination(self, app_id):
         """ This method determines if the optimization process for a given app can terminate.
@@ -187,7 +170,6 @@ class BayesianOptimizerPool():
         else:
             return True
 
-
     def store_final_result(self, app_id):
         """ This method stores the final result of the optimization process to the database.
         """
@@ -197,7 +179,6 @@ class BayesianOptimizerPool():
         logger.info(f"[{app_id}]Final recommendations:\n{recommendations}")
 
         # TODO: update_sizing_in_metricdb with the final recommendations
-
 
     def filter_candidates(self, app_id, candidates):
         """ This method filters the recommended candidates before returning to the client
@@ -334,7 +315,6 @@ class BayesianOptimizerPool():
         else:
             raise UserWarning("Unexpected error")
 
-
     @staticmethod
     def create_sample_dataframe(request_body):
         """ Convert request_body to dataframe of training samples.
@@ -367,7 +347,6 @@ class BayesianOptimizerPool():
             raise AssertionError(f'dataframe is not created\nrequest_body:\n{request_body}')
         return pd.concat(dfs)
 
-
     @staticmethod
     def compute_optimum(df):
         """ Compute the optimal perf_over_cost value among all given samples
@@ -381,7 +360,6 @@ class BayesianOptimizerPool():
 
         perf_over_cost = perf_arr / df['cost']
         return np.max(perf_over_cost)
-
 
     @staticmethod
     def compute_recommendations(df):
@@ -407,17 +385,24 @@ class BayesianOptimizerPool():
             perf_constraint = 1. / perf_constraint
 
         perf_over_cost_arr = perf_arr / cost_arr
-        nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
+        nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(
+            perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
         recommendations.append(nodetype_best_ratio)
 
-        nodetype_subset = [nodetype for nodetype, perf in zip(nodetype_arr, perf_arr) if perf >= perf_constraint]
-        cost_subset = [cost for cost, perf in zip(cost_arr, perf_arr) if perf >= perf_constraint]
-        nodetype_min_cost = {"nodetype": nodetype_subset[np.argmin(cost_subset)], "objective": "MinCostWithPerfLimit"}
+        nodetype_subset = [nodetype for nodetype, perf in zip(
+            nodetype_arr, perf_arr) if perf >= perf_constraint]
+        cost_subset = [cost for cost, perf in zip(
+            cost_arr, perf_arr) if perf >= perf_constraint]
+        nodetype_min_cost = {"nodetype": nodetype_subset[np.argmin(
+            cost_subset)], "objective": "MinCostWithPerfLimit"}
         recommendations.append(nodetype_min_cost)
 
-        nodetype_subset = [nodetype for nodetype, perf in zip(nodetype_arr, cost_arr) if cost <= budget]
-        perf_subset = [perf for perf, cost in zip(perf_arr, cost_arr) if cost <= budget]
-        nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(perf_subset)], "objective": "MaxPerfWithCostLimit"}
+        nodetype_subset = [nodetype for nodetype, perf in zip(
+            nodetype_arr, cost_arr) if cost <= budget]
+        perf_subset = [perf for perf, cost in zip(
+            perf_arr, cost_arr) if cost <= budget]
+        nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(
+            perf_subset)], "objective": "MaxPerfWithCostLimit"}
         recommendations.append(nodetype_max_perf)
 
         return recommendations

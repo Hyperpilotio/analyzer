@@ -155,8 +155,12 @@ def get_next_instance_types(app_id):
         response.status_code = 400
         return response
     request_body = request.get_json()
-    response = jsonify(BO.get_candidates(app_id, request_body))
-    return response
+    try:
+        response = BO.get_candidates(app_id, request_body)
+    except Exception as e:
+        response = {"status": "server_error",
+                    "error": str(e)}
+    return jsonify(response)
 
 # TODO: change back to uuid
 
