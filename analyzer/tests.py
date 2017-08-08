@@ -50,6 +50,7 @@ class BayesianOptimizerPoolTest(TestCase):
                                                content_type="application/json").data)
 
         logger.debug(f"Response:\n{response}")
+        self.assertEqual(response['status'], 'success', response)
 
         # Polling from workload profiler
         while True:
@@ -63,7 +64,7 @@ class BayesianOptimizerPoolTest(TestCase):
             else:
                 break
 
-        self.assertEqual(response['status'], "done")
+        self.assertEqual(response['status'], "done", response)
 
     def testCherryPickWorkFlow(self):
         """ Test Cherry pick workflow without testing multiprocrss pool functionality.
