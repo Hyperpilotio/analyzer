@@ -157,7 +157,7 @@ def get_next_instance_types(app_id):
         return response
     request_body = request.get_json()
     try:
-        response = BO.get_candidates(app_id, request_body)
+        response = jsonify(BO.get_candidates(app_id, request_body))
     except Exception as e:
         logger.error(print_exception())
         response = jsonify({"status": "server_error",
@@ -186,4 +186,4 @@ def print_exception():
     filename = f.f_code.co_filename
     linecache.checkcache(filename)
     line = linecache.getline(filename, lineno, f.f_globals)
-    return 'exception in ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
+    return 'exception in ({}, line {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
