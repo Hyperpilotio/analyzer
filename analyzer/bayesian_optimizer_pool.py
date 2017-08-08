@@ -125,7 +125,8 @@ class BayesianOptimizerPool():
             else:
                 logger.info(f"[{app_id}]New candidates suggested:\n{candidates}")
                 return {"status": "done",
-                        "data": self.filter_candidates(app_id, [decode_nodetype(c) for c in candidates])}
+                        "data": self.filter_candidates(app_id,
+                                                       [decode_nodetype(c) for c in candidates if c is not None])}
         elif any([future.cancelled() for future in future_list]):
             return {"status": "server_error", "error": "task cancelled"}
         else:
@@ -170,13 +171,15 @@ class BayesianOptimizerPool():
     @staticmethod
     def store_final_result(app_id, df):
         """ This method stores the final result of the optimization process to the database.
+            This method is called only when the analysis is completed
         """
         recommendations = BayesianOptimizerPool.compute_recommendations(df)
         logger.info(f"[{app_id}]Final recommendations:\n{recommendations}")
 
         # TODO: update_sizing_in_metricdb with the final recommendations
         # TODO: check if mongodb is thread safe?
-        return recommendations
+        # TODO: if return in the data format the client will take
+        return None
 
     def filter_candidates(self, app_id, candidates):
         """ This method filters the recommended candidates before returning to the client
