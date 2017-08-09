@@ -73,7 +73,7 @@ class BayesianOptimizerPool():
         print(request_body)
         unavailable_nodetypes = [
             d for d in request_body['data'] if d['qosValue'] == 0.]
-    
+
         self.update_unavailable_map(app_id, unavailable_nodetypes)
 
         request_body['data'] = list(filter(
@@ -82,10 +82,10 @@ class BayesianOptimizerPool():
         all_nodetype = list(get_all_nodetypes().keys())
         samples = BayesianOptimizerPool.psudo_random_generator(
             all_nodetype, self.sample_map, self.unavailable_map, len(unavailable_nodetypes))
-        
-        # for s in samples:
-        #     future = self.worker_pool.submit(encode_nodetype, s)
-        #     self.future_map[app_id].append(future)
+
+        for s in samples:
+            future = self.worker_pool.submit(encode_nodetype, s)
+            self.future_map[app_id].append(future)
 
         print(request_body)
 
@@ -430,8 +430,7 @@ class BayesianOptimizerPool():
         if slo_type == 'latency':
             perf_arr = 1. / perf_arr
             perf_constraint = 1. / perf_constraint
-
-        perf_over_cost_arr = (perf_arr / cost_arr)
+        perf_over_cost_arr = list(perf_arr / cost_arr)
         if perf_over_cost_arr:
             nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(
                 perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
