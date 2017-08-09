@@ -387,23 +387,30 @@ class BayesianOptimizerPool():
             perf_constraint = 1. / perf_constraint
 
         perf_over_cost_arr = (perf_arr / cost_arr)
-        nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(
-            perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
-        recommendations.append(nodetype_best_ratio)
+        if perf_over_cost_arr:
+            nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(
+                perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
+            recommendations.append(nodetype_best_ratio)
 
         nodetype_subset = [nodetype for nodetype, perf in zip(
             nodetype_arr, perf_arr) if perf >= perf_constraint]
         cost_subset = [cost for cost, perf in zip(
             cost_arr, perf_arr) if perf >= perf_constraint]
-        nodetype_min_cost = {"nodetype": nodetype_subset[np.argmin(
-            cost_subset)], "objective": "MinCostWithPerfLimit"}
-        recommendations.append(nodetype_min_cost)
+        if nodetype_subset and cost_subset:
+            assert len(nodetype_subset) == len(cost_subset)
+            nodetype_min_cost = {"nodetype": nodetype_subset[np.argmin(
+                cost_subset)], "objective": "MinCostWithPerfLimit"}
+            recommendations.append(nodetype_min_cost)
 
         nodetype_subset = [nodetype for nodetype, cost in zip(
             nodetype_arr, cost_arr) if cost <= budget]
         perf_subset = [perf for perf, cost in zip(
             perf_arr, cost_arr) if cost <= budget]
-        nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(
-            perf_subset)], "objective": "MaxPerfWithCostLimit"}
-        recommendations.append(nodetype_max_perf)
+
+        if nodetype_subset and perf_subset:
+            assert len(nodetype_subset) == len(perf_subset)
+            nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(
+                perf_subset)], "objective": "MaxPerfWithCostLimit"}
+            recommendations.append(nodetype_max_perf)
+
         return recommendations
