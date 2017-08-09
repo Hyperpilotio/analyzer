@@ -50,8 +50,8 @@ class BayesianOptimizerPool():
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
         # Optimal perf_over_cost value from all samples evaluted
         self.optimal_poc = {}
-        # record unavailable nodetypes
-        self.unavailable_map = {}
+        # Record the avaialbe
+        self.available_nodetype_map = {}
 
     def get_candidates(self, app_id, request_body, **kwargs):
         """ The public method to asychronously start the jobs for generating candidates.
@@ -60,81 +60,77 @@ class BayesianOptimizerPool():
             request_body(dict): the request body sent from the client of the analyzer service
         """
 
-        # Generate initial samples if the input request body is empty
+        # Generate initial samples if the data field of request_body is empty (special case)
         if not request_body.get('data'):
-            self.future_map[app_id] = []
+            assert self.available_nodetype_map.get(
+                app_id) is None, 'This block should only be executed once at the first beginning of a session'
+
+            # initialize with all available nodetype
+            self.available_nodetype_map[app_id] = get_all_nodetypes()
+            # draw inital samples
             init_samples = BayesianOptimizerPool.generate_initial_samples()
-            for i in init_samples:
-                future = self.worker_pool.submit(encode_nodetype, i)
-                self.future_map[app_id].append(future)
+            self.future_map[app_id] = [self.worker_pool.submit(
+                encode_nodetype, i) for i in init_samples]
             return {"status": "success"}
 
-        # filter out unavailable nodetypes from request_body
+        # Pre-process request
+        unavailable_nodetypes = [i['instanceType'] for i in
+                                 filter(lambda d: d['qosValue'] == 0., request_body['data'])]
+        self.update_available_nodetype_map(app_id, unavailable_nodetypes)
+
+        # remove and record unavailable nodetypes
+        print('before')
         print(request_body)
-        unavailable_nodetypes = [
-            d for d in request_body['data'] if d['qosValue'] == 0.]
-
-        self.update_unavailable_map(app_id, unavailable_nodetypes)
-
-        request_body['data'] = list(filter(
-            lambda d: d['qosValue'] != 0., request_body['data']))
-
-        all_nodetype = list(get_all_nodetypes().keys())
-        samples = BayesianOptimizerPool.psudo_random_generator(
-            all_nodetype, self.sample_map, self.unavailable_map, len(unavailable_nodetypes))
-
-        for s in samples:
-            future = self.worker_pool.submit(encode_nodetype, s)
-            self.future_map[app_id].append(future)
-
+        request_body['data'] = list(
+            filter(lambda d: d['qosValue'] != 0., request_body['data']))
+        print('after')
         print(request_body)
+        if not request_body['data']:
+            random_samples = BayesianOptimizerPool.generate_initial_samples()
+            self.future_map[app_id] = [self.worker_pool.submit(
+                encode_nodetype, i) for i in random_samples]
+            return {"status": "success"}
+        assert request_body['data'], 'The data field of filtered request_body should not be empty'
 
-        # Dispatch the optimizers
-        # create datafame
-        df = BayesianOptimizerPool.create_sample_dataframe(request_body)
-        # update the shared sample map
-        self.update_sample_map(app_id, df)
+        # Update sample map and check termination
+        self.update_sample_map(
+            app_id, BayesianOptimizerPool.create_sample_dataframe(request_body))
         logger.info(f"[{app_id}]All training samples evaluted:\n{self.sample_map}")
-
-        self.future_map[app_id] = []
 
         if self.check_termination(app_id):
             logger.info(f"[{app_id}]Sizing analysis is done; store final result in database")
-            future = self.worker_pool.submit(
-                BayesianOptimizerPool.store_final_result, app_id, self.sample_map.get(app_id))
-            self.future_map[app_id].append(future)
+            self.future_map[app_id] = [self.worker_pool.submit(
+                BayesianOptimizerPool.store_final_result, app_id, self.sample_map.get(app_id))]
             return {"status": "success"}
 
-        # fetch the latest sample_map
-        dataframe = self.sample_map[app_id]
-        # create the training data for Bayesian optimizer
+        # Dispatch the optimizers
+        assert self.sample_map.get(
+            app_id) is not None, 'sample map should not be empty'
         training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
-            dataframe, objective_type=o)
-            for o in ['perf_over_cost',
-                      'cost_given_perf_limit', 'perf_given_cost_limit']]
-        feature_bounds = get_feature_bounds(normalized=True)
+            self.sample_map[app_id], objective_type=o) for o in ['perf_over_cost',
+                                                                 'cost_given_perf_limit',
+                                                                 'perf_given_cost_limit']]
+        self.future_map[app_id] = []
         for training_data in training_data_list:
-            acq = 'cei' if training_data.has_constraint() else 'ei'
-            logger.info(f"[{app_id}]Dispatching optimizer with acquisition function: {acq}:\n{training_data}")
+            logger.info(
+                f"[{app_id}]Dispatching optimizer with training data:\n{training_data}")
             future = self.worker_pool.submit(
                 get_candidate,
                 training_data.feature_mat,
                 training_data.objective_arr,
-                feature_bounds,
-                acq=acq,
+                get_feature_bounds(normalized=True),
+                acq='cei' if training_data.has_constraint() else 'ei',
                 constraint_arr=training_data.constraint_arr,
                 constraint_upper=training_data.constraint_upper,
                 **kwargs
             )
-
             self.future_map[app_id].append(future)
 
         return {"status": "success"}
 
     def get_status(self, app_id):
-        """ The public method to get the running state of current optimization jobs for an app.
+        """ The public method to get the state of current optimization jobs of a session.
         """
-
         future_list = self.future_map.get(app_id)
         if not future_list:
             return {"status": "bad_request",
@@ -156,6 +152,14 @@ class BayesianOptimizerPool():
             # Running or pending
             return {"status": "running"}
 
+    def update_available_nodetype_map(self, app_id, exclude_keys):
+        with self.__singleton_lock:
+            assert self.available_nodetype_map.get(
+                app_id) is not None, 'This method should only be called after the a session was initialized'
+
+            for k in exclude_keys:
+                self.available_nodetype_map[app_id].pop(k, None)
+
     def update_sample_map(self, app_id, df):
         with self.__singleton_lock:
             if self.sample_map.get(app_id) is not None:
@@ -172,26 +176,19 @@ class BayesianOptimizerPool():
 
             # TODO: store the latest samples (df) to the database
 
-    def update_unavailable_map(self, app_id, unavailable_nodetypes):
-        with self.__singleton_lock:
-            if self.unavailable_map.get(app_id):
-                self.unavailable_map[app_id] += unavailable_nodetypes
-            else:
-                self.unavailable_map[app_id] = unavailable_nodetypes
-
     def check_termination(self, app_id):
         """ This method determines if the optimization process for a given app can terminate.
-        Termination conditions: 1. if total number of samples evaluated exceeds max_samples or,
-                                2. if incremental improvement in the objective over previous runs is within min_improvement.
+        Termination conditions:
+            1. if total number of samples evaluated exceeds max_samples or,
+            2. if incremental improvement in the objective over previous runs is within min_improvement.
         """
-
         df = self.sample_map.get(app_id)
         if (df is not None) and (len(df) > max_samples):
             return True
 
         opt_poc = BayesianOptimizerPool.compute_optimum(df)
-        prev_opt_poc = self.optimal_poc.get(app_id)
-        if (prev_opt_poc is None) or (opt_poc - prev_opt_poc > min_improvement * prev_opt_poc):
+        optimal_poc = self.optimal_poc.get(app_id)
+        if (optimal_poc is None) or (opt_poc - optimal_poc > min_improvement * optimal_poc):
             self.optimal_poc[app_id] = opt_poc
             return False
         # if incremental improvement from the last batch is too small to continue
@@ -201,7 +198,7 @@ class BayesianOptimizerPool():
     @staticmethod
     def store_final_result(app_id, df):
         """ This method stores the final result of the optimization process to the database.
-            This method is called only when the analysis is completed
+            This method is called only after the analysis is completed
         """
         recommendations = BayesianOptimizerPool.compute_recommendations(df)
         logger.info(f"[{app_id}]Final recommendations:\n{recommendations}")
@@ -377,6 +374,7 @@ class BayesianOptimizerPool():
         dfs = []
         for data in request_body['data']:
             nodetype = data['instanceType']
+            print(nodetype)
             qos_value = data['qosValue']
 
             df = pd.DataFrame({'app_name': [app_name],
@@ -389,8 +387,7 @@ class BayesianOptimizerPool():
                                'budget': [get_budget(app_name)]
                                })
             dfs.append(df)
-        if not dfs:
-            raise AssertionError(f'dataframe is not created\nrequest_body:\n{request_body}')
+        assert dfs, f'dataframe is not created\nrequest_body:\n{request_body}'
         return pd.concat(dfs)
 
     @staticmethod
@@ -415,6 +412,7 @@ class BayesianOptimizerPool():
             1. MaxPerfOverCost
             2. MinCostWithPerfLimit
             3. MaxPerfWithCostLimit
+            This method is called only after the analysis is completed.
         """
 
         recommendations = []
@@ -450,7 +448,6 @@ class BayesianOptimizerPool():
             nodetype_arr, cost_arr) if cost <= budget]
         perf_subset = [perf for perf, cost in zip(
             perf_arr, cost_arr) if cost <= budget]
-
         if nodetype_subset and perf_subset:
             assert len(nodetype_subset) == len(perf_subset)
             nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(
