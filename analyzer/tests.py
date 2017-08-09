@@ -40,7 +40,7 @@ class BayesianOptimizerPoolTest(TestCase):
                  "qosValue": 200.
                  },
                 {"instanceType": "m4.large",
-                 "qosValue": 100.
+                 "qosValue": 0.
                  }
             ]}
         # Sending request
@@ -65,6 +65,7 @@ class BayesianOptimizerPoolTest(TestCase):
                 break
 
         self.assertEqual(response['status'], "done", response)
+        self.assertEqual(len(response['data']), 2)
 
     def testBayesianOptimizerPoolFlowInit(self):
         """ Initialization signal (empty data) send from client.
@@ -184,15 +185,19 @@ class BayesianOptimizerPoolTest(TestCase):
         # draw 100 times s
         for i in range(100):
             assert BOP.psudo_random_generator(
-                all_nodetype, df) in all_nodetype[-2:]
+                all_nodetype, df, []) in all_nodetype[-2:]
 
         # draw 100 times s
         for i in range(100):
             assert BOP.psudo_random_generator(
-                all_nodetype, df) not in all_nodetype[:-2]
+                all_nodetype, df, []) not in all_nodetype[:-2]
         for i in range(100):
-            samples = BOP.psudo_random_generator(all_nodetype, df, num=2) 
+            samples = BOP.psudo_random_generator(
+                all_nodetype, df, ['g'], num=2)
             assert len(samples) == len(set(samples))
+
+        samples = BOP.psudo_random_generator(all_nodetype, df, ['e'], num=1)
+        assert 'd' in samples
 
 
 class BayesianOptimizerTest(TestCase):

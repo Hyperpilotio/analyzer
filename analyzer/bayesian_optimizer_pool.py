@@ -50,6 +50,8 @@ class BayesianOptimizerPool():
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
         # Optimal perf_over_cost value from all samples evaluted
         self.optimal_poc = {}
+        # record unavailable nodetypes
+        self.unavailable_map = {}
 
     def get_candidates(self, app_id, request_body, **kwargs):
         """ The public method to asychronously start the jobs for generating candidates.
@@ -65,49 +67,67 @@ class BayesianOptimizerPool():
             for i in init_samples:
                 future = self.worker_pool.submit(encode_nodetype, i)
                 self.future_map[app_id].append(future)
+            return {"status": "success"}
 
-        # Else dispatch the optimizers
-        elif [i for i in request_body.get('data') if i['qosValue'] == 0.]:
-            pass
-        else:
-            # create datafame
-            df = BayesianOptimizerPool.create_sample_dataframe(request_body)
-            # update the shared sample map
-            self.update_sample_map(app_id, df)
-            logger.info(f"[{app_id}]All training samples evaluted:\n{self.sample_map}")
+        # filter out unavailable nodetypes from request_body
+        print(request_body)
+        unavailable_nodetypes = [
+            d for d in request_body['data'] if d['qosValue'] == 0.]
+    
+        self.update_unavailable_map(app_id, unavailable_nodetypes)
 
-            self.future_map[app_id] = []
+        request_body['data'] = list(filter(
+            lambda d: d['qosValue'] != 0., request_body['data']))
 
-            if self.check_termination(app_id):
-                logger.info(f"[{app_id}]Sizing analysis is done; store final result in database")
-                future = self.worker_pool.submit(
-                    BayesianOptimizerPool.store_final_result, app_id, self.sample_map.get(app_id))
-                self.future_map[app_id].append(future)
-                return {"status": "success"}
+        all_nodetype = list(get_all_nodetypes().keys())
+        samples = BayesianOptimizerPool.psudo_random_generator(
+            all_nodetype, self.sample_map, self.unavailable_map, len(unavailable_nodetypes))
+        
+        # for s in samples:
+        #     future = self.worker_pool.submit(encode_nodetype, s)
+        #     self.future_map[app_id].append(future)
 
-            # fetch the latest sample_map
-            dataframe = self.sample_map[app_id]
-            # create the training data for Bayesian optimizer
-            training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
-                dataframe, objective_type=o)
-                for o in ['perf_over_cost',
-                          'cost_given_perf_limit', 'perf_given_cost_limit']]
-            feature_bounds = get_feature_bounds(normalized=True)
-            for training_data in training_data_list:
-                acq = 'cei' if training_data.has_constraint() else 'ei'
-                logger.info(f"[{app_id}]Dispatching optimizer with acquisition function: {acq}:\n{training_data}")
-                future = self.worker_pool.submit(
-                    get_candidate,
-                    training_data.feature_mat,
-                    training_data.objective_arr,
-                    feature_bounds,
-                    acq=acq,
-                    constraint_arr=training_data.constraint_arr,
-                    constraint_upper=training_data.constraint_upper,
-                    **kwargs
-                )
+        print(request_body)
 
-                self.future_map[app_id].append(future)
+        # Dispatch the optimizers
+        # create datafame
+        df = BayesianOptimizerPool.create_sample_dataframe(request_body)
+        # update the shared sample map
+        self.update_sample_map(app_id, df)
+        logger.info(f"[{app_id}]All training samples evaluted:\n{self.sample_map}")
+
+        self.future_map[app_id] = []
+
+        if self.check_termination(app_id):
+            logger.info(f"[{app_id}]Sizing analysis is done; store final result in database")
+            future = self.worker_pool.submit(
+                BayesianOptimizerPool.store_final_result, app_id, self.sample_map.get(app_id))
+            self.future_map[app_id].append(future)
+            return {"status": "success"}
+
+        # fetch the latest sample_map
+        dataframe = self.sample_map[app_id]
+        # create the training data for Bayesian optimizer
+        training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
+            dataframe, objective_type=o)
+            for o in ['perf_over_cost',
+                      'cost_given_perf_limit', 'perf_given_cost_limit']]
+        feature_bounds = get_feature_bounds(normalized=True)
+        for training_data in training_data_list:
+            acq = 'cei' if training_data.has_constraint() else 'ei'
+            logger.info(f"[{app_id}]Dispatching optimizer with acquisition function: {acq}:\n{training_data}")
+            future = self.worker_pool.submit(
+                get_candidate,
+                training_data.feature_mat,
+                training_data.objective_arr,
+                feature_bounds,
+                acq=acq,
+                constraint_arr=training_data.constraint_arr,
+                constraint_upper=training_data.constraint_upper,
+                **kwargs
+            )
+
+            self.future_map[app_id].append(future)
 
         return {"status": "success"}
 
@@ -151,6 +171,13 @@ class BayesianOptimizerPool():
                 [self.sample_map.get(app_id), df])
 
             # TODO: store the latest samples (df) to the database
+
+    def update_unavailable_map(self, app_id, unavailable_nodetypes):
+        with self.__singleton_lock:
+            if self.unavailable_map.get(app_id):
+                self.unavailable_map[app_id] += unavailable_nodetypes
+            else:
+                self.unavailable_map[app_id] = unavailable_nodetypes
 
     def check_termination(self, app_id):
         """ This method determines if the optimization process for a given app can terminate.
@@ -249,10 +276,15 @@ class BayesianOptimizerPool():
         return result
 
     @staticmethod
-    def psudo_random_generator(all_nodetype, sample_map, num=1):
+    def psudo_random_generator(all_nodetype, sample_map, unavailable_nodetypes, num=1):
         """ Draw a nodetype that doesn't existed in sample_map
         """
-        for i in sample_map['nodetype']:
+        if sample_map.get('nodetype') is not None:
+            for i in sample_map.get('nodetype'):
+                if i in all_nodetype:
+                    all_nodetype.remove(i)
+
+        for i in unavailable_nodetypes:
             if i in all_nodetype:
                 all_nodetype.remove(i)
 
