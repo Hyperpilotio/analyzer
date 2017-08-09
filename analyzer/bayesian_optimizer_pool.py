@@ -65,7 +65,10 @@ class BayesianOptimizerPool():
             for i in init_samples:
                 future = self.worker_pool.submit(encode_nodetype, i)
                 self.future_map[app_id].append(future)
+
         # Else dispatch the optimizers
+        elif [i for i in request_body.get('data') if i['qosValue'] == 0.]:
+            pass
         else:
             # create datafame
             df = BayesianOptimizerPool.create_sample_dataframe(request_body)
@@ -246,14 +249,14 @@ class BayesianOptimizerPool():
         return result
 
     @staticmethod
-    def psudo_random_generator(all_nodetype, sample_map):
+    def psudo_random_generator(all_nodetype, sample_map, num=1):
         """ Draw a nodetype that doesn't existed in sample_map
         """
         for i in sample_map['nodetype']:
             if i in all_nodetype:
                 all_nodetype.remove(i)
 
-        return np.random.choice(all_nodetype) if all_nodetype else None
+        return np.random.choice(all_nodetype, num, replace=False) if all_nodetype else None
 
     # @staticmethod
     # def generate_initial_samples(init_samples=3):

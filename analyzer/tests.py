@@ -190,6 +190,9 @@ class BayesianOptimizerPoolTest(TestCase):
         for i in range(100):
             assert BOP.psudo_random_generator(
                 all_nodetype, df) not in all_nodetype[:-2]
+        for i in range(100):
+            samples = BOP.psudo_random_generator(all_nodetype, df, num=2) 
+            assert len(samples) == len(set(samples))
 
 
 class BayesianOptimizerTest(TestCase):
