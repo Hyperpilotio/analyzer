@@ -120,7 +120,7 @@ class BayesianOptimizerPool():
         if all([future.done() for future in future_list]):
             candidates = [future.result() for future in future_list]
             if not candidates:
-                logger.info(f"[{app_id}]No more candidates suggested.")
+                logger.info(f"[{app_id}]No more candidate suggested.")
                 return {"status": "done", "data": []}
             else:
                 logger.info(f"[{app_id}]New candidates suggested:\n{candidates}")
