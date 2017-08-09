@@ -29,45 +29,7 @@ class BayesianOptimizerPoolTest(TestCase):
         logger.debug('Creating flask clients')
         self.client = api_service_app.test_client()
 
-    def testBayesianOptimizerPoolFlowRegular(self):
-        """ 2 sample was submitted by client through API
-        """
-        uuid = "hyperpilot-sizing-demo-1234-horray"
-        request_body = {
-            "appName": "redis",
-            "data": [
-                {"instanceType": "t2.large",
-                 "qosValue": 200.
-                 },
-                {"instanceType": "m4.large",
-                 "qosValue": 0.
-                 }
-            ]}
-        # Sending request
-        logger.debug(f'Sending request to API service:\n{request_body}')
-        response = json.loads(self.client.post(f'/apps/{uuid}/suggest-instance-types',
-                                               data=json.dumps(request_body),
-                                               content_type="application/json").data)
-
-        logger.debug(f"Response:\n{response}")
-        self.assertEqual(response['status'], 'success', response)
-
-        # Polling from workload profiler
-        while True:
-            logger.debug('Polling status from API service')
-            response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
-            logger.debug(f'Response:\n{response}')
-
-            if response['status'] == 'running':
-                logger.debug("Waiting for 1 sec")
-                sleep(1)
-            else:
-                break
-
-        self.assertEqual(response['status'], "done", response)
-        self.assertEqual(len(response['data']), 2)
-
-    def testBayesianOptimizerPoolFlowInit(self):
+    def testBayesianOptimizerPoolFlow(self):
         """ Initialization signal (empty data) send from client.
         """
         uuid = "hyperpilot-sizing-demo-1234-horray"
@@ -99,6 +61,43 @@ class BayesianOptimizerPoolTest(TestCase):
         self.assertEqual(response['status'], "done", response)
         # hardcoded number of init now
         self.assertEqual(len(response['data']), 3, response)
+
+        uuid = "hyperpilot-sizing-demo-1234-horray"
+        request_body = {
+            "appName": "redis",
+            "data": [
+                {"instanceType": "t2.large",
+                 "qosValue": 200.
+                 },
+                {"instanceType": "m4.large",
+                 "qosValue": 100.
+                 },
+                {"instanceType": "t2.xlarge",
+                 "qosValue": 400.
+                 }
+            ]}
+        # Sending request
+        logger.debug(f'Sending request to API service:\n{request_body}')
+        response = json.loads(self.client.post(f'/apps/{uuid}/suggest-instance-types',
+                                               data=json.dumps(request_body),
+                                               content_type="application/json").data)
+
+        logger.debug(f"Response:\n{response}")
+        self.assertEqual(response['status'], 'success', response)
+
+        # Polling from workload profiler
+        while True:
+            logger.debug('Polling status from API service')
+            response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
+            logger.debug(f'Response:\n{response}')
+
+            if response['status'] == 'running':
+                logger.debug("Waiting for 1 sec")
+                sleep(1)
+            else:
+                break
+
+        self.assertEqual(response['status'], "done", response)
 
     def testCherryPickWorkFlow(self):
         """ Test Cherry pick workflow without testing multiprocrss pool functionality.
