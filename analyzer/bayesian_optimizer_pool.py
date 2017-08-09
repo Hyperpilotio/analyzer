@@ -26,7 +26,7 @@ logger = get_logger(__name__, log_level=(
 
 
 class BayesianOptimizerPool():
-    """ This class manages the training samples for each app_id,
+    """ This class manages the training samples for each session_id,
         dispatches jobs to the worker pool, and tracks the status of each job.
     """
     __singleton_lock = threading.Lock()
@@ -42,7 +42,7 @@ class BayesianOptimizerPool():
         return cls.__singleton_instance
 
     def __init__(self):
-        # Map for sharing data samples throughout the optimization session for each app_id
+        # Map for sharing data samples throughout the optimization session for each session_id
         self.sample_map = {}
         # Map for storing the future objects for python concurrent tasks
         self.future_map = {}
@@ -53,30 +53,30 @@ class BayesianOptimizerPool():
         # Record the avaialbe
         self.available_nodetype_map = {}
 
-    def get_candidates(self, app_id, request_body, **kwargs):
+    def get_candidates(self, session_id, request_body, **kwargs):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
-            app_id(str): unique key to identify the optimization session for each app
+            session_id(str): unique key to identify the optimization session for each session_id
             request_body(dict): the request body sent from the client of the analyzer service
         """
 
         # Generate initial samples if the data field of request_body is empty (special case)
         if not request_body.get('data'):
             assert self.available_nodetype_map.get(
-                app_id) is None, 'This block should only be executed once at the first beginning of a session'
+                session_id) is None, 'This block should only be executed once at the first beginning of a session'
 
             # initialize with all available nodetype
-            self.available_nodetype_map[app_id] = get_all_nodetypes()
+            self.available_nodetype_map[session_id] = get_all_nodetypes()
             # draw inital samples
             init_samples = BayesianOptimizerPool.generate_initial_samples()
-            self.future_map[app_id] = [self.worker_pool.submit(
+            self.future_map[session_id] = [self.worker_pool.submit(
                 encode_nodetype, i) for i in init_samples]
             return {"status": "success"}
 
         # Pre-process request
         unavailable_nodetypes = [i['instanceType'] for i in
                                  filter(lambda d: d['qosValue'] == 0., request_body['data'])]
-        self.update_available_nodetype_map(app_id, unavailable_nodetypes)
+        self.update_available_nodetype_map(session_id, unavailable_nodetypes)
 
         # remove and record unavailable nodetypes
         print('before')
@@ -87,33 +87,33 @@ class BayesianOptimizerPool():
         print(request_body)
         if not request_body['data']:
             random_samples = BayesianOptimizerPool.generate_initial_samples()
-            self.future_map[app_id] = [self.worker_pool.submit(
+            self.future_map[session_id] = [self.worker_pool.submit(
                 encode_nodetype, i) for i in random_samples]
             return {"status": "success"}
         assert request_body['data'], 'The data field of filtered request_body should not be empty'
 
         # Update sample map and check termination
         self.update_sample_map(
-            app_id, BayesianOptimizerPool.create_sample_dataframe(request_body))
-        logger.info(f"[{app_id}]All training samples evaluted:\n{self.sample_map}")
+            session_id, BayesianOptimizerPool.create_sample_dataframe(request_body))
+        logger.info(f"[{session_id}]All training samples evaluted:\n{self.sample_map}")
 
-        if self.check_termination(app_id):
-            logger.info(f"[{app_id}]Sizing analysis is done; store final result in database")
-            self.future_map[app_id] = [self.worker_pool.submit(
-                BayesianOptimizerPool.store_final_result, app_id, self.sample_map.get(app_id))]
+        if self.check_termination(session_id):
+            logger.info(f"[{session_id}]Sizing analysis is done; store final result in database")
+            self.future_map[session_id] = [self.worker_pool.submit(
+                BayesianOptimizerPool.store_final_result, session_id, self.sample_map.get(session_id))]
             return {"status": "success"}
 
         # Dispatch the optimizers
         assert self.sample_map.get(
-            app_id) is not None, 'sample map should not be empty'
+            session_id) is not None, 'sample map should not be empty'
         training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
-            self.sample_map[app_id], objective_type=o) for o in ['perf_over_cost',
+            self.sample_map[session_id], objective_type=o) for o in ['perf_over_cost',
                                                                  'cost_given_perf_limit',
                                                                  'perf_given_cost_limit']]
-        self.future_map[app_id] = []
+        self.future_map[session_id] = []
         for training_data in training_data_list:
             logger.info(
-                f"[{app_id}]Dispatching optimizer with training data:\n{training_data}")
+                f"[{session_id}]Dispatching optimizer with training data:\n{training_data}")
             future = self.worker_pool.submit(
                 get_candidate,
                 training_data.feature_mat,
@@ -124,27 +124,27 @@ class BayesianOptimizerPool():
                 constraint_upper=training_data.constraint_upper,
                 **kwargs
             )
-            self.future_map[app_id].append(future)
+            self.future_map[session_id].append(future)
 
         return {"status": "success"}
 
-    def get_status(self, app_id):
+    def get_status(self, session_id):
         """ The public method to get the state of current optimization jobs of a session.
         """
-        future_list = self.future_map.get(app_id)
+        future_list = self.future_map.get(session_id)
         if not future_list:
             return {"status": "bad_request",
-                    "error": f"app_id {app_id} is not found"}
+                    "error": f"session_id {session_id} is not found"}
 
         if all([future.done() for future in future_list]):
             candidates = [future.result() for future in future_list]
             if not candidates:
-                logger.info(f"[{app_id}]No more candidate suggested.")
+                logger.info(f"[{session_id}]No more candidate suggested.")
                 return {"status": "done", "data": []}
             else:
-                logger.info(f"[{app_id}]New candidates suggested:\n{candidates}")
+                logger.info(f"[{session_id}]New candidates suggested:\n{candidates}")
                 return {"status": "done",
-                        "data": self.filter_candidates(app_id,
+                        "data": self.filter_candidates(session_id,
                                                        [decode_nodetype(c) for c in candidates if c is not None])}
         elif any([future.cancelled() for future in future_list]):
             return {"status": "server_error", "error": "task cancelled"}
@@ -152,76 +152,76 @@ class BayesianOptimizerPool():
             # Running or pending
             return {"status": "running"}
 
-    def update_available_nodetype_map(self, app_id, exclude_keys):
+    def update_available_nodetype_map(self, session_id, exclude_keys):
         with self.__singleton_lock:
             assert self.available_nodetype_map.get(
-                app_id) is not None, 'This method should only be called after the a session was initialized'
+                session_id) is not None, 'This method should only be called after the a session was initialized'
 
             for k in exclude_keys:
-                self.available_nodetype_map[app_id].pop(k, None)
+                self.available_nodetype_map[session_id].pop(k, None)
 
-    def update_sample_map(self, app_id, df):
+    def update_sample_map(self, session_id, df):
         with self.__singleton_lock:
-            if self.sample_map.get(app_id) is not None:
+            if self.sample_map.get(session_id) is not None:
                 # check if incoming df contains duplicated nodetypes with existing sample_map
                 intersection = set(df['nodetype']).intersection(
-                    set(self.sample_map[app_id]['nodetype']))
+                    set(self.sample_map[session_id]['nodetype']))
                 if intersection:
                     logger.warning(f"Duplicated samples were sent from the client")
-                    logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(app_id)}")
+                    logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(session_id)}")
                     logger.warning(f"intersection: {intersection}")
 
-            self.sample_map[app_id] = pd.concat(
-                [self.sample_map.get(app_id), df])
+            self.sample_map[session_id] = pd.concat(
+                [self.sample_map.get(session_id), df])
 
             # TODO: store the latest samples (df) to the database
 
-    def check_termination(self, app_id):
-        """ This method determines if the optimization process for a given app can terminate.
+    def check_termination(self, session_id):
+        """ This method determines if the optimization process for a given session_id can terminate.
         Termination conditions:
             1. if total number of samples evaluated exceeds max_samples or,
             2. if incremental improvement in the objective over previous runs is within min_improvement.
         """
-        df = self.sample_map.get(app_id)
+        df = self.sample_map.get(session_id)
         if (df is not None) and (len(df) > max_samples):
             return True
 
         opt_poc = BayesianOptimizerPool.compute_optimum(df)
-        optimal_poc = self.optimal_poc.get(app_id)
+        optimal_poc = self.optimal_poc.get(session_id)
         if (optimal_poc is None) or (opt_poc - optimal_poc > min_improvement * optimal_poc):
-            self.optimal_poc[app_id] = opt_poc
+            self.optimal_poc[session_id] = opt_poc
             return False
         # if incremental improvement from the last batch is too small to continue
         else:
             return True
 
     @staticmethod
-    def store_final_result(app_id, df):
+    def store_final_result(session_id, df):
         """ This method stores the final result of the optimization process to the database.
             This method is called only after the analysis is completed
         """
         recommendations = BayesianOptimizerPool.compute_recommendations(df)
-        logger.info(f"[{app_id}]Final recommendations:\n{recommendations}")
+        logger.info(f"[{session_id}]Final recommendations:\n{recommendations}")
 
         # TODO: update_sizing_in_metricdb with the final recommendations
         # TODO: check if mongodb is thread safe?
         # TODO: if return in the data format the client will take
         return None
 
-    def filter_candidates(self, app_id, candidates):
+    def filter_candidates(self, session_id, candidates):
         """ This method filters the recommended candidates before returning to the client
             and removes the duplicates within this run or with previous runs.
         """
         # remove duplicates within this run
         candidates = list(set(candidates))
 
-        if self.sample_map.get(app_id) is None:
+        if self.sample_map.get(session_id) is None:
             return candidates
         else:
             # return candidates while removing duplicates with previous runs
-            return [c for c in candidates if c not in self.sample_map.get(app_id)['nodetype'].values]
+            return [c for c in candidates if c not in self.sample_map.get(session_id)['nodetype'].values]
 
-    # def filter_candidates(self, app_id, candidates, max_run=10):
+    # def filter_candidates(self, session_id, candidates, max_run=10):
     #     """ This method determine if candidates should be returned to client. # FORCING SELECT OTHER CANIDATES
     #     Terminate conditions: 1. if number of run exceed than max_run or,
     #                           2. if the recommended nodetype is duplicated within this run or with previous runs
@@ -229,15 +229,15 @@ class BayesianOptimizerPool():
     #     # remove duplicates within this run
     #     candidates_ = list(set(candidates))
 
-    #     if self.sample_map.get(app_id) is None:
+    #     if self.sample_map.get(session_id) is None:
     #         return candidates
-    #     elif len(self.sample_map.get(app_id)) >= max_run:  # remove duplicates with previous run
+    #     elif len(self.sample_map.get(session_id)) >= max_run:  # remove duplicates with previous run
     #         return []
     #     else:
     #         results = []
     #         for c in candidates:
     #             x = c
-    #             while (x in self.sample_map.get(app_id)['nodetype'].values) or (x in results):
+    #             while (x in self.sample_map.get(session_id)['nodetype'].values) or (x in results):
     #                 x = np.random.choice([i['name'] for i in get_all_nodetypes().values()])
     #             results.append(x)
 
