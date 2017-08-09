@@ -1,7 +1,6 @@
 import json
-import linecache
 import sys
-
+import traceback
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
 
@@ -159,7 +158,7 @@ def get_next_instance_types(app_id):
     try:
         response = jsonify(BO.get_candidates(app_id, request_body))
     except Exception as e:
-        logger.error(print_exception())
+        logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
                             "error": str(e)})
     return response
@@ -172,18 +171,8 @@ def get_task_status(app_id):
     try:
         response = jsonify(BO.get_status(app_id))
     except Exception as e:
-        logger.error(print_exception())
+        logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
                             "error": str(e)})
 
     return response
-
-
-def print_exception():
-    exc_type, exc_obj, tb = sys.exc_info()
-    f = tb.tb_frame
-    lineno = tb.tb_lineno
-    filename = f.f_code.co_filename
-    linecache.checkcache(filename)
-    line = linecache.getline(filename, lineno, f.f_globals)
-    return 'exception in ({}, line {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
