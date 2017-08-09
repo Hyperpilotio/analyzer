@@ -143,6 +143,21 @@ class BayesianOptimizerPoolTest(TestCase):
                 raise AssertionError(
                     "Initial samples coming from same instance families")
 
+    def testPsudoGenerator(self):
+        all_nodetype = ['a', 'b', 'c', 'd', 'e']
+        dfs = [pd.DataFrame({'nodetype': [f'{i}']}) for i in all_nodetype[:-2]]
+        df = pd.concat(dfs)
+
+        # draw 100 times s
+        for i in range(100):
+            assert BOP.psudo_random_generator(
+                all_nodetype, df) in all_nodetype[-2:]
+        
+        # draw 100 times s
+        for i in range(100):
+            assert BOP.psudo_random_generator(
+                all_nodetype, df) not in all_nodetype[:-2]
+
 
 class BayesianOptimizerTest(TestCase):
 

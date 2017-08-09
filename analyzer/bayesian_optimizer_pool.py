@@ -245,6 +245,16 @@ class BayesianOptimizerPool():
         logger.debug(f"initial samples:\n{result}")
         return result
 
+    @staticmethod
+    def psudo_random_generator(all_nodetype, sample_map):
+        """ Draw a nodetype that doesn't existed in sample_map
+        """
+        for i in sample_map['nodetype']:
+            if i in all_nodetype:
+                all_nodetype.remove(i)
+
+        return np.random.choice(all_nodetype) if all_nodetype else None
+
     # @staticmethod
     # def generate_initial_samples(init_samples=3):
     #     dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
