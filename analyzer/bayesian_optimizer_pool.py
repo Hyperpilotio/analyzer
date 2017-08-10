@@ -72,11 +72,12 @@ class BayesianOptimizerPool():
             # create initial sizing document in the database
             app_name = request_body['appName']
             try:
-                BayesianOptimizerPool.initialize_sizing_doc(session_id, app_name)
+                BayesianOptimizerPool.initialize_sizing_doc(
+                    session_id, app_name)
                 logger.info(f"Initial sizing document created for session {session_id}")
             except Exception as e:
                 return {"status": "server_error",
-                        "message":"Failed to create initial sizing document: " + str(e)}
+                        "message": "Failed to create initial sizing document: " + str(e)}
 
             # initialize with all available nodetype
             self.available_nodetype_map[session_id] = copy.deepcopy(
@@ -103,7 +104,8 @@ class BayesianOptimizerPool():
             return {"status": "success"}
 
         # Update sample map and check termination
-        new_samples = BayesianOptimizerPool.create_sample_dataframe(request_body)
+        new_samples = BayesianOptimizerPool.create_sample_dataframe(
+            request_body)
         self.update_available_nodetype_map(session_id, new_samples['nodetype'])
         self.update_sample_map(session_id, new_samples)
         all_samples = self.sample_map.get(session_id)
@@ -111,7 +113,8 @@ class BayesianOptimizerPool():
         logger.debug(f"[{session_id}]All training samples evaluted:\n{all_samples}")
 
         if self.check_termination(session_id):
-            recommendations = BayesianOptimizerPool.compute_recommendations(all_samples)
+            recommendations = BayesianOptimizerPool.compute_recommendations(
+                all_samples)
             logger.info(f"[{session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
             self.future_map[session_id] = [self.worker_pool.submit(
                 BayesianOptimizerPool.store_final_result, session_id, recommendations)]
@@ -149,12 +152,15 @@ class BayesianOptimizerPool():
                     "data": f"session_id {session_id} is not found"}
 
         if all([future.done() for future in future_list]):
+
             candidates = [future.result() for future in future_list]
             if not candidates:
                 logger.debug(f"[{session_id}]No more candidate suggested.")
                 return {"status": "done", "data": []}
             else:
                 logger.debug(f"[{session_id}]New candidates suggested:\n{candidates}")
+                # Flush this run
+                self.future_map[session_id] = []
                 return {"status": "done",
                         "data": self.filter_candidates(session_id, [
                             decode_nodetype(
@@ -211,7 +217,7 @@ class BayesianOptimizerPool():
         new_opt_poc = BayesianOptimizerPool.compute_optimum(all_samples)
         optimal_poc = self.optimal_poc.get(session_id)
         if (optimal_poc is None) or (len(all_samples) < min_samples) or\
-            (new_opt_poc - optimal_poc >= min_improvement * optimal_poc):
+                (new_opt_poc - optimal_poc >= min_improvement * optimal_poc):
             self.optimal_poc[session_id] = new_opt_poc
             return False
         else:
@@ -241,10 +247,11 @@ class BayesianOptimizerPool():
         for l in candidate_rank_list:
             for row in l:
                 nodetype = row[1]
-                if (nodetype in self.available_nodetype_map.get(session_id)) or (nodetype not in result):
+                if nodetype not in result:
                     result.append(nodetype)
                     self.update_available_nodetype_map(session_id, [nodetype])
                     break
+                logger.debug("nodetype collision detected")
 
         logger.debug(f"filtered candidates: {result}")
         assert len(set(result)) == len(result)
@@ -468,7 +475,8 @@ class BayesianOptimizerPool():
                       'sloValue': app['slo']['value'], 'budget': app['budget']['value'], 'sizingRuns': []}
 
         session_filter = {"sessionId": session_id}
-        result = metricdb[sizing_collection].replace_one(session_filter, sizing_doc, True)
+        result = metricdb[sizing_collection].replace_one(
+            session_filter, sizing_doc, True)
         if result.matched_count > 0:
             logger.warning(f"Sizing document for session {session_id} already exists; overwritten")
 

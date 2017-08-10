@@ -98,14 +98,14 @@ def acq_max(utility, bounds):
 
     # Warm up with random points
     x_tries = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(1000000, bounds.shape[0]))
+                                size=(10000000, bounds.shape[0]))
     ys = utility(x_tries)
     x_max = x_tries[ys.argmax()]
     max_acq = ys.max()
-    logger.info(f'nonzeros: {np.count_nonzero(ys)}')
+    logger.info(f'nonzeros of utility: {np.count_nonzero(ys)}')
     # Explore the parameter space more throughly
     x_seeds = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(250, bounds.shape[0]))
+                                size=(1000, bounds.shape[0]))
     for x_try in x_seeds:
         # Find the minimum of minus the acquisition function
         res = minimize(lambda x: -utility(x.reshape(1, -1)), x_try.reshape(1, -1),
@@ -191,7 +191,7 @@ def get_candidate(feature_mat, objective_arr, bounds, acq,
     if gp_params is None:
         seed = 6
         gp_params = {"alpha": 1e-10, "n_restarts_optimizer": 25,
-                    "kernel": Matern(nu=2.5), "random_state": seed}
+                     "kernel": Matern(nu=2.5), "random_state": seed}
     # Set boundary
     bounds = np.asarray(bounds)
 
