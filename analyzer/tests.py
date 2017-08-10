@@ -63,7 +63,6 @@ class BayesianOptimizerPoolTest(TestCase):
         self.assertEqual(len(response['data']), 3, response)
 
         # Passing the candidates suggested from the last call back to the analyzer
-        #uuid = "hyperpilot-sizing-demo-1-horray"
         returned_types = response['data']
         request_body = {
             "appName": "redis",
@@ -72,7 +71,7 @@ class BayesianOptimizerPoolTest(TestCase):
                  "qosValue": 20000.
                  },
                 {"instanceType": returned_types[1],
-                 "qosValue": 10000.
+                 "qosValue": 0.
                  },
                 {"instanceType": returned_types[2],
                  "qosValue": 60000.
