@@ -7,6 +7,7 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 
+from api_service.db import metricdb
 from config import get_config
 from logger import get_logger
 
@@ -18,6 +19,7 @@ from .util import (compute_cost, decode_nodetype, encode_nodetype,
 config = get_config()
 max_samples = int(config.get("ANALYZER", "MAX_SAMPLES"))
 min_improvement = float(config.get("ANALYZER", "MIN_IMPROVEMENT"))
+sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
 
 pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
@@ -62,8 +64,8 @@ class BayesianOptimizerPool():
 
         # Generate initial samples if the data field of request_body is empty (special case)
         if not request_body.get('data'):
-            assert self.available_nodetype_map.get(
-                session_id) is None, 'This block should only be executed once at the beginning of a session'
+            assert self.available_nodetype_map.get(session_id) is None,\
+                "The data field of the request_body can only be empty at the beginning of a session"
 
             # initialize with all available nodetype
             self.available_nodetype_map[session_id] = get_all_nodetypes()
@@ -74,6 +76,7 @@ class BayesianOptimizerPool():
             return {"status": "success"}
 
         # Pre-process request body and remove unavailable nodetypes
+        logger.debug(f"[{session_id}]Received non-empty request_body; preprocessing...")
         unavailable_nodetypes = [i['instanceType'] for i in
                                  filter(lambda d: d['qosValue'] == 0., request_body['data'])]
         self.update_available_nodetype_map(session_id, unavailable_nodetypes)
@@ -81,11 +84,11 @@ class BayesianOptimizerPool():
         request_body['data'] = list(
             filter(lambda d: d['qosValue'] != 0., request_body['data']))
         if not request_body['data']:
+            logger.debug(f"[{session_id}]All nodetypes suggested last time are unavailable; regenerating...")
             random_samples = BayesianOptimizerPool.generate_initial_samples()
             self.future_map[session_id] = [self.worker_pool.submit(
                 encode_nodetype, i) for i in random_samples]
             return {"status": "success"}
-        assert request_body['data'], 'The data field of filtered request_body should not be empty'
 
         # Update sample map and check termination
         self.update_sample_map(
@@ -99,8 +102,8 @@ class BayesianOptimizerPool():
             return {"status": "success"}
 
         # Dispatch the optimizers
-        assert self.sample_map.get(
-            session_id) is not None, 'sample map should not be empty'
+        assert self.sample_map.get(session_id) is not None,\
+            "sample map should not be empty"
         training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
             self.sample_map[session_id], objective_type=o) for o in ['perf_over_cost',
                                                                      'cost_given_perf_limit',
@@ -149,8 +152,8 @@ class BayesianOptimizerPool():
 
     def update_available_nodetype_map(self, session_id, exclude_keys):
         with self.__singleton_lock:
-            assert self.available_nodetype_map.get(
-                session_id) is not None, 'This method should only be called after the a session was initialized'
+            assert self.available_nodetype_map.get(session_id) is not None,\
+                "This method should only be called after the a session was initialized"
 
             for k in exclude_keys:
                 self.available_nodetype_map[session_id].pop(k, None)
@@ -198,9 +201,20 @@ class BayesianOptimizerPool():
         recommendations = BayesianOptimizerPool.compute_recommendations(df)
         logger.info(f"[{session_id}]Final recommendations:\n{recommendations}")
 
-        # TODO: update_sizing_in_metricdb with the final recommendations
         # TODO: check if mongodb is thread safe?
         # TODO: if return in the data format the client will take
+        session_filter = {"sessionId": session_id}
+        sizing_doc = metricdb[sizing_collection].find_one(session_filter)
+        if sizing_doc is None:
+            logger.error(f"[{session_id}]Target sizing document cannot be found")
+            raise KeyError(
+                'Cannot find sizing document: filter={}'.format(session_filter))
+
+        sizing_doc['status'] = "complete"
+        sizing_doc['recommendations'] = recommendations
+        metricdb[sizing_collection].replace_one(session_filter, sizing_doc)
+        logger.info(f"[{session_id}]Storing final recommendations in the database")
+
         return None
 
     def filter_candidates(self, session_id, candidates):
@@ -369,7 +383,6 @@ class BayesianOptimizerPool():
         dfs = []
         for data in request_body['data']:
             nodetype = data['instanceType']
-            print(nodetype)
             qos_value = data['qosValue']
 
             df = pd.DataFrame({'app_name': [app_name],

@@ -167,7 +167,7 @@ def get_next_instance_types(session_id):
 
     # check if this API is being called for the first time
     sizing_doc = metricdb[sizing_collection].find_one(
-        {"session_id": session_id}
+        {"sessionId": session_id}
     )
     if sizing_doc is None:
         logger.info(f"Starting a new sizing session {session_id} for app {app_name}")
@@ -177,9 +177,10 @@ def get_next_instance_types(session_id):
         except Exception as e:
             logger.error(print_exception())
             response = jsonify({"status": "server_error",
-                                "data":"Failed to create initial sizing document: " + str(e)})
+                                "message":"Failed to create initial sizing document: " + str(e)})
             return response
 
+    # TODO: This causes the candidate list to be filtered twice - needs improvement
     if BO.get_status(session_id)['status'] == "running":
         response = jsonify({"status": "bad_request",
                             "data": "Optimization process still running"})
@@ -202,13 +203,13 @@ def get_task_status(session_id):
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
-                            "error": str(e)})
+                            "message": str(e)})
 
     return response
 
 
 def initialize_sizing_doc(session_id, app):
-    sizing_doc = {'session_id': session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
-                  'sloValue': app['slo']['value'], 'budget': app['budget']['value']}
+    sizing_doc = {'sessionId': session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
+                  'sloValue': app['slo']['value'], 'budget': app['budget']['value'], 'sizingRuns': []}
 
     metricdb[sizing_collection].insert_one(sizing_doc)
