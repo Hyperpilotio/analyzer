@@ -142,7 +142,7 @@ def unique_rows(a):
     return ui[reorder]
 
 
-def get_fitted_gaussian_processor(X_train, y_train, standardize_y=True, **gp_params):
+def get_fitted_gaussian_processor(X_train, y_train, constraint_upper, standardize_y=True, **gp_params):
     # Initialize gaussian process regressor
     gp = GaussianProcessRegressor()
     gp.set_params(**gp_params)
@@ -150,7 +150,20 @@ def get_fitted_gaussian_processor(X_train, y_train, standardize_y=True, **gp_par
     logger.debug(f"Fitting gaussian processor")
 
     if standardize_y:
-        y_train = scale(y_train)
+        if constraint_upper is not None:
+            y_train = scale(np.hstack((y_train, constraint_upper)))
+            scaled_constraint_upper = y_train[-1]
+            y_train = y_train[:-1]
+        else:
+            y_train = scale(y_train)
+            scaled_constraint_upper = None
+        gp.constraint_upper = scaled_constraint_upper
+    else:
+        gp.constraint_upper = constraint_upper
+
+    logger.debug(f'X_train:\n{X_train}')
+    logger.debug(f'y_train\n{y_train}')
+    logger.debug(f'constraint_upper: {scaled_constraint_upper}')
     if gp_params is None or gp_params.get('alpha') is None:
         # Find unique rows of X to avoid GP from breaking
         ur = unique_rows(X_train)
@@ -182,16 +195,17 @@ def get_candidate(feature_mat, objective_arr, bounds, acq,
     bounds = np.asarray(bounds)
 
     gp_objective = get_fitted_gaussian_processor(
-        feature_mat, objective_arr, standardize_y=standardize_y, **gp_params)
+        feature_mat, objective_arr, constraint_upper, standardize_y=standardize_y, **gp_params)
     if (constraint_arr is not None) and (constraint_upper is not None):
         gp_constraint = get_fitted_gaussian_processor(
-            feature_mat, constraint_arr, standardize_y=standardize_y, **gp_params)
+            feature_mat, constraint_arr, constraint_upper, standardize_y=standardize_y, **gp_params)
     else:
         gp_constraint, constraint_upper = None, None
 
     # Initialize utiliy function
     util = UtilityFunction(kind=acq, gp_objective=gp_objective, gp_constraint=gp_constraint,
-                           constraint_upper=constraint_upper, xi=xi, kappa=kappa)
+                           constraint_upper=gp_constraint.constraint_upper if gp_constraint else None,
+                           xi=xi, kappa=kappa)
 
     # Finding argmax of the acquisition function.
     logger.debug("Computing argmax of acquisition function")

@@ -29,10 +29,11 @@ class BayesianOptimizerPoolTest(TestCase):
         logger.debug('Creating flask clients')
         self.client = api_service_app.test_client()
 
-    def testBayesianOptimizerPoolFlow(self):
+    def testBayesianOptimizerPoolClientFlow(self):
         """ Initialization signal (empty data) send from client.
         """
-        uuid = "hyperpilot-sizing-demo-1234-horray"
+        # Initialize
+        uuid = "hyperpilot-sizing-demo-1-horray"
         request_body = {
             "appName": "redis",
             "data": []}
@@ -59,10 +60,10 @@ class BayesianOptimizerPoolTest(TestCase):
                 break
 
         self.assertEqual(response['status'], "done", response)
-        # hardcoded number of init now
+        # hardcoded the number of returning sample now
         self.assertEqual(len(response['data']), 3, response)
 
-        uuid = "hyperpilot-sizing-demo-1234-horray"
+        uuid = "hyperpilot-sizing-demo-1-horray"
         request_body = {
             "appName": "redis",
             "data": [
@@ -265,7 +266,7 @@ class BayesianOptimizerTest(TestCase):
 
         # Testing implementation
         gp = get_fitted_gaussian_processor(
-            X_train.reshape(2, -1), y_train, standardize_y=False, **gp_params)
+            X_train.reshape(2, -1), y_train, None, standardize_y=False, **gp_params)
         util = UtilityFunction(kind='ei', gp_objective=gp, xi=1e-4)
 
         mu_impl, std_impl = posterior(gp, x)
@@ -327,7 +328,7 @@ class BayesianOptimizerTest(TestCase):
 
         # Testing implementation
         gp = get_fitted_gaussian_processor(
-            np.array(X_train), np.array(y_train), standardize_y=False, **gp_params)
+            np.array(X_train), np.array(y_train), None, standardize_y=False, **gp_params)
         util = UtilityFunction(kind='ei', gp_objective=gp, xi=1e-4)
 
         post_impl = np.array([posterior(gp, x.reshape(1, -1)) for x in X])

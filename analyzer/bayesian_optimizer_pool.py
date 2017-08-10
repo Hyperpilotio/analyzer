@@ -79,12 +79,8 @@ class BayesianOptimizerPool():
         self.update_available_nodetype_map(session_id, unavailable_nodetypes)
 
         # remove and record unavailable nodetypes
-        print('before')
-        print(request_body)
         request_body['data'] = list(
             filter(lambda d: d['qosValue'] != 0., request_body['data']))
-        print('after')
-        print(request_body)
         if not request_body['data']:
             random_samples = BayesianOptimizerPool.generate_initial_samples()
             self.future_map[session_id] = [self.worker_pool.submit(
@@ -108,8 +104,8 @@ class BayesianOptimizerPool():
             session_id) is not None, 'sample map should not be empty'
         training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
             self.sample_map[session_id], objective_type=o) for o in ['perf_over_cost',
-                                                                 'cost_given_perf_limit',
-                                                                 'perf_given_cost_limit']]
+                                                                     'cost_given_perf_limit',
+                                                                     'perf_given_cost_limit']]
         self.future_map[session_id] = []
         for training_data in training_data_list:
             logger.info(
