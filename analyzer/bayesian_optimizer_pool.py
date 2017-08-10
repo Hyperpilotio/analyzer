@@ -15,9 +15,10 @@ from logger import get_logger
 from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_nodetype, encode_nodetype,
                    get_all_nodetypes, get_budget, get_feature_bounds,
-                   get_price, get_slo_type, get_slo_value)
+                   get_app_info, get_price, get_slo_type, get_slo_value)
 
 config = get_config()
+min_samples = int(config.get("ANALYZER", "MIN_SAMPLES"))
 max_samples = int(config.get("ANALYZER", "MAX_SAMPLES"))
 min_improvement = float(config.get("ANALYZER", "MIN_IMPROVEMENT"))
 sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
@@ -68,6 +69,15 @@ class BayesianOptimizerPool():
             assert self.available_nodetype_map.get(session_id) is None,\
                 "The data field of the request_body can only be empty at the beginning of a session"
 
+            # create initial sizing document in the database
+            app_name = request_body['appName']
+            try:
+                BayesianOptimizerPool.initialize_sizing_doc(session_id, app_name)
+                logger.info(f"Initial sizing document created for session {session_id}")
+            except Exception as e:
+                return {"status": "server_error",
+                        "message":"Failed to create initial sizing document: " + str(e)}
+
             # initialize with all available nodetype
             self.available_nodetype_map[session_id] = copy.deepcopy(
                 get_all_nodetypes())  # defensive copy here
@@ -93,22 +103,21 @@ class BayesianOptimizerPool():
             return {"status": "success"}
 
         # Update sample map and check termination
-        new_samples = BayesianOptimizerPool.create_sample_dataframe(
-            request_body)
+        new_samples = BayesianOptimizerPool.create_sample_dataframe(request_body)
         self.update_available_nodetype_map(session_id, new_samples['nodetype'])
-        self.update_sample_map(
-            session_id, new_samples)
-        logger.debug(f"[{session_id}]All training samples evaluted:\n{self.sample_map}")
+        self.update_sample_map(session_id, new_samples)
+        all_samples = self.sample_map.get(session_id)
+        assert all_samples is not None, "sample map should not be empty"
+        logger.debug(f"[{session_id}]All training samples evaluted:\n{all_samples}")
 
         if self.check_termination(session_id):
-            logger.debug(f"[{session_id}]Sizing analysis is done; store final result in database")
+            recommendations = BayesianOptimizerPool.compute_recommendations(all_samples)
+            logger.info(f"[{session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
             self.future_map[session_id] = [self.worker_pool.submit(
-                BayesianOptimizerPool.store_final_result, session_id, self.sample_map.get(session_id))]
+                BayesianOptimizerPool.store_final_result, session_id, recommendations)]
             return {"status": "success"}
 
         # Dispatch the optimizers
-        assert self.sample_map.get(session_id) is not None,\
-            "sample map should not be empty"
         training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
             self.sample_map[session_id], objective_type=o) for o in ['perf_over_cost',
                                                                      'cost_given_perf_limit',
@@ -137,7 +146,7 @@ class BayesianOptimizerPool():
         future_list = self.future_map.get(session_id)
         if not future_list:
             return {"status": "bad_request",
-                    "error": f"session_id {session_id} is not found"}
+                    "data": f"session_id {session_id} is not found"}
 
         if all([future.done() for future in future_list]):
             candidates = [future.result() for future in future_list]
@@ -185,57 +194,41 @@ class BayesianOptimizerPool():
     def check_termination(self, session_id):
         """ This method determines if the optimization process for a given session_id can terminate.
         Termination conditions:
-            1. if total number of samples evaluated exceeds max_samples or,
-            2. if incremental improvement in the objective over previous runs is within min_improvement.
+            1. if total number of samples evaluated exceeds max_samples, or
+            2. if total number of samples evaluated exceeds min_samples && incremental improvement 
+                in the objective over previous runs is within min_improvement, or
             3. if available nodetype map is empty
         """
-        df = self.sample_map.get(session_id)
-        if (df is not None) and (len(df) > max_samples) or (not self.available_nodetype_map.get(session_id)):
+        all_samples = self.sample_map.get(session_id)
+        if (all_samples is not None) and (len(all_samples) > max_samples):
+            logger.debug(f"[session_id]:Termination condition is met due to enough number of samples = {len(df)}")
             return True
 
-        new_opt_poc = BayesianOptimizerPool.compute_optimum(df)
+        if not self.available_nodetype_map.get(session_id):
+            logger.debug(f"[session_id]:Termination condition is met due running out of available nodetypes")
+            return True
+
+        new_opt_poc = BayesianOptimizerPool.compute_optimum(all_samples)
         optimal_poc = self.optimal_poc.get(session_id)
-        if (optimal_poc is None) or (new_opt_poc - optimal_poc > min_improvement * optimal_poc):
+        if (optimal_poc is None) or (len(all_samples) < min_samples) or\
+            (new_opt_poc - optimal_poc >= min_improvement * optimal_poc):
             self.optimal_poc[session_id] = new_opt_poc
             return False
-        # if incremental improvement from the last batch is too small to continue
         else:
+            logger.debug(f"[session_id]:Termination condition is met due to small incremental improvement.\n\
+                old_opt_poc = {optimal_poc}, new_opt_poc = {new_opt_poc}")
             return True
-
-    @staticmethod
-    def store_final_result(session_id, df):
-        """ This method stores the final result of the optimization process to the database.
-            This method is called only after the analysis is completed
-        """
-        recommendations = BayesianOptimizerPool.compute_recommendations(df)
-        logger.debug(f"[{session_id}]Final recommendations:\n{recommendations}")
-
-        # TODO: check if mongodb is thread safe?
-        # TODO: if return in the data format the client will take
-        session_filter = {"sessionId": session_id}
-        sizing_doc = metricdb[sizing_collection].find_one(session_filter)
-        if sizing_doc is None:
-            logger.error(f"[{session_id}]Target sizing document cannot be found")
-            raise KeyError(
-                'Cannot find sizing document: filter={}'.format(session_filter))
-
-        sizing_doc['status'] = "complete"
-        sizing_doc['recommendations'] = recommendations
-        metricdb[sizing_collection].replace_one(session_filter, sizing_doc)
-        logger.info(f"[{session_id}]Storing final recommendations in the database")
-
-        return None
 
     def filter_candidates(self, session_id, candidate_rank_list):
         """ This method filters the recommended candidates before returning to the client
             and avoid returning duplicate result by greedily select the closest solutions as possible
         Args:
-            candidate_rank_list: list of candidate_rank
+            candidate_rank_list: list of rank-ordered candidates
         Return:
-            result (list): list of nodetypes
+            result (list): list of suggested nodetypes
         """
-        # double check the candidate_rank_list doesn't consist of any nodetype in sample_map
-        # if the sample map is None BO is in initialization state
+        # double check the candidate_rank_list does not consist of any nodetype in sample_map
+        # if the samplei_map is None, BO is in initialization state
         if self.sample_map.get(session_id) is not None:
             for l in candidate_rank_list:
                 for row in l:
@@ -467,3 +460,33 @@ class BayesianOptimizerPool():
             recommendations.append(nodetype_max_perf)
 
         return recommendations
+
+    @staticmethod
+    def initialize_sizing_doc(session_id, app_name):
+        app = get_app_info(app_name)
+        sizing_doc = {'sessionId': session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
+                      'sloValue': app['slo']['value'], 'budget': app['budget']['value'], 'sizingRuns': []}
+
+        session_filter = {"sessionId": session_id}
+        result = metricdb[sizing_collection].replace_one(session_filter, sizing_doc, True)
+        if result.matched_count > 0:
+            logger.warning(f"Sizing document for session {session_id} already exists; overwritten")
+
+    @staticmethod
+    def store_final_result(session_id, recommendations):
+        """ This method stores the final recommendations from the sizing session to the database.
+            This method is called only after the analysis is completed
+        """
+
+        # TODO: check if mongodb is thread safe?
+        session_filter = {'sessionId': session_id}
+        matching_doc = metricdb[sizing_collection].find_one_and_update(
+            session_filter, {'$set': {"status": "complete", 'recommendations': recommendations}})
+
+        if matching_doc is None:
+            logger.error(f"[{session_id}]Target sizing document cannot be found")
+            raise KeyError(
+                'Cannot find sizing document: filter={}'.format(session_filter))
+        logger.info(f"[{session_id}]Final recommendations have been stored in the database")
+
+        return None

@@ -96,7 +96,7 @@ def get_raw_features(nodetype_name):
 
 @lru_cache(maxsize=16)
 def encode_nodetype(nodetype):
-    """ convert each instance type to a normalized feature vector
+    """ convert each node type to a normalized feature vector
     """
     raw_features = get_raw_features(nodetype)
     raw_feature_bounds = np.array(get_feature_bounds(normalized=False))
@@ -150,38 +150,42 @@ def compute_cost(price, slo_type, qos_value):
     return cost
 
 
-# get from configdb the type of an application ("long-running" or "batch")
-def get_app_type(app_name):
+# get from configdb the application json
+def get_app_info(app_name, app_collection='applications'):
     app_filter = {'name': app_name}
     app = configdb[app_collection].find_one(app_filter)
-    app_type = app['type']
 
-    return app_type
+    return app
+
+
+# get from configdb the type of an application ("long-running" or "batch")
+def get_app_type(app_name):
+    app = get_app_info(app_name)
+
+    return app['type']
 
 
 # get from configdb the slo metric type of an application
 def get_slo_type(app_name):
-    app_filter = {'name': app_name}
-    app = configdb[app_collection].find_one(app_filter)
-    slo_type = app['slo']['type']
+    app = get_app_info(app_name)
 
-    return slo_type
+    return app['slo']['type']
 
 
 def get_slo_value(app_name):
-    app_filter = {'name': app_name}
-    app = configdb[app_collection].find_one(app_filter)
-    try:
-        slo_type = app['slo']['value']
-    except KeyError:
-        slo_type = 500.  # TODO: put an nan
+    app = get_app_info(app_name)
 
-    return slo_type
+    try:
+        slo_value = app['slo']['value']
+    except KeyError:
+        slo_value = 500.  # TODO: put an nan
+
+    return slo_value
 
 
 def get_budget(app_name):
-    app_filter = {'name': app_name}
-    app = configdb[app_collection].find_one(app_filter)
+    app = get_app_info(app_name)
+
     try:
         budget = app['budget']['value']
     except KeyError:
