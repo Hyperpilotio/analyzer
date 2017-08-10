@@ -21,6 +21,12 @@ app.config.update(get_config())
 app.json_encoder = JSONEncoderWithMongo
 app.url_map.converters["objectid"] = ObjectIdConverter
 
+my_config = get_config()
+app_collection = my_config.get("ANALYZER", "APP_COLLECTION")
+calibration_collection = my_config.get("ANALYZER", "CALIBRATION_COLLECTION")
+profiling_collection = my_config.get("ANALYZER", "PROFILING_COLLECTION")
+sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
+
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BO = BayesianOptimizerPool.instance()
@@ -57,7 +63,7 @@ def get_all_apps():
         for task in deploy_json["kubernetes"]["taskDefinitions"]
         if task["deployment"]["metadata"].get("namespace") != "hyperpilot"
     ]
-    for application in configdb.applications.find(
+    for application in configdb[app_collection].find(
         {"serviceNames": {"$in": service_names}},
         {"name": 1, "serviceNames": 1}
     ):
@@ -68,17 +74,17 @@ def get_all_apps():
 
 @app.route("/apps/<objectid:app_id>")
 def get_app_info(app_id):
-    application = configdb.applications.find_one(app_id, {"_id": 0})
+    application = configdb[app_collection].find_one(app_id, {"_id": 0})
     return ensure_document_found(application)
 
 
 @app.route("/apps/<objectid:app_id>/calibration")
 def app_calibration(app_id):
-    application = configdb.applications.find_one(app_id)
+    application = configdb[app_collection].find_one(app_id)
     if app is None:
         return ensure_document_found(None)
 
-    cursor = metricdb.calibration.find(
+    cursor = metricdb[calibration_collection].find(
         {"appName": application["name"]},
         {"appName": 0, "_id": 0},
     ).sort("_id", DESCENDING).limit(1)
@@ -94,11 +100,11 @@ def app_calibration(app_id):
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/profiling")
 def service_profiling(app_id, service_name):
-    application = configdb.applications.find_one(app_id)
+    application = configdb[app_collection].find_one(app_id)
     if app is None:
         return ensure_document_found(None)
 
-    cursor = metricdb.profiling.find(
+    cursor = metricdb[profiling_collection].find(
         {"appName": application["name"], "serviceInTest": service_name},
         {"appName": 0, "_id": 0},
     ).sort("_id", DESCENDING).limit(1)
@@ -114,11 +120,11 @@ def service_profiling(app_id, service_name):
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/interference")
 def interference_scores(app_id, service_name):
-    application = configdb.applications.find_one(app_id)
+    application = configdb[app_collection].find_one(app_id)
     if application is None:
         return ensure_document_found(None)
 
-    cursor = metricdb.profiling.find(
+    cursor = metricdb[profiling_collection].find(
         {"appName": application["name"], "serviceInTest": service_name}
     ).sort("_id", DESCENDING).limit(1)
     try:
@@ -147,32 +153,62 @@ def predict():
         return response
 
 
-# TODO: change back to uuid
-@app.route("/apps/<string:app_id>/suggest-instance-types", methods=["POST"])
-def get_next_instance_types(app_id):
-    if BO.get_status(app_id)['status'] == "running":
-        response = jsonify(error="Optimization process still running")
-        response.status_code = 400
-        return response
+@app.route("/apps/<string:session_id>/suggest-instance-types", methods=["POST"])
+def get_next_instance_types(session_id):
     request_body = request.get_json()
+    app_name = request_body['appName']
+
+    # check if the target app exists in the configdb
+    application = configdb[app_collection].find_one({"name": app_name})
+    if application is None:
+        response = jsonify({"status": "bad_request",
+                            "data": "Target application not found"})
+        return response
+
+    # check if this API is being called for the first time
+    sizing_doc = metricdb[sizing_collection].find_one(
+        {"session_id": session_id}
+    )
+    if sizing_doc is None:
+        logger.info(f"Starting a new sizing session {session_id} for app {app_name}")
+        try:
+            initialize_sizing_doc(session_id, application)
+            logger.info(f"Initial sizing document created for session {session_id}")
+        except Exception as e:
+            logger.error(print_exception())
+            response = jsonify({"status": "server_error",
+                                "data":"Failed to create initial sizing document: " + str(e)})
+            return response
+
+    if BO.get_status(session_id)['status'] == "running":
+        response = jsonify({"status": "bad_request",
+                            "data": "Optimization process still running"})
+        return response
+
     try:
-        response = jsonify(BO.get_candidates(app_id, request_body))
+        response = jsonify(BO.get_candidates(session_id, request_body))
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        response = jsonify({"status": "server_error",
+                            "message":"Error in getting candidates from the analyzer: " + str(e)})
+
+    return response
+
+
+@app.route("/apps/<string:session_id>/get-optimizer-status")
+def get_task_status(session_id):
+    try:
+        response = jsonify(BO.get_status(session_id))
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
                             "error": str(e)})
-    return response
-
-# TODO: change back to uuid
-
-
-@app.route("/apps/<string:app_id>/get-optimizer-status")
-def get_task_status(app_id):
-    try:
-        response = jsonify(BO.get_status(app_id))
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        response = jsonify({"status": "server_error",
-                            "error": str(e)})
 
     return response
+
+
+def initialize_sizing_doc(session_id, app):
+    sizing_doc = {'session_id': session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
+                  'sloValue': app['slo']['value'], 'budget': app['budget']['value']}
+
+    metricdb[sizing_collection].insert_one(sizing_doc)
