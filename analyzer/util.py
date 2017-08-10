@@ -2,6 +2,7 @@ from functools import lru_cache
 
 import numpy as np
 import pandas as pd
+from scipy.spatial.distance import euclidean
 
 from api_service.db import configdb, metricdb
 from config import get_config
@@ -106,31 +107,19 @@ def encode_nodetype(nodetype):
     return normalized_feature
 
 
-def decode_nodetype(feature_vector):
-    """ convert a candidate solution recommended by the optimizer into a VM node type
+def decode_nodetype(feature_vector, available_nodetypes):
+    """ convert a candidate solution recommended by the optimizer into a list VM node type sorted by distance
         Args:
             feature_vector: candidate solution in a vector space
         Returns:
-            nodetype: node type closest to the feature vector based on a distance function;
-                if there are multiple node types with the same distance, return the one with the lowest cost
+            candidate_rank (list of tuples): sorted list of (euclidean distance, available nodetypes)
+                i.e. [(0.353, 'nodetype1'), (0.526, 'nodetype2), ...]
     """
-    nodetype_map = get_all_nodetypes()
-    nodetypes = list(nodetype_map.keys())
 
-    distance = np.array([feature_distance(encode_nodetype(
-        nodetype), feature_vector) for nodetype in nodetypes])
-    min_indices = np.where(distance == distance.min())[0]
-    nodetypes_subset = [nodetypes[x] for x in min_indices]
-    price_subset = [get_price(nodetype) for nodetype in nodetypes_subset]
-
-    return nodetypes_subset[np.argmin(price_subset)]
+    return sorted([(euclidean(encode_nodetype(nodetype), feature_vector), nodetype)
+                   for nodetype in available_nodetypes])
 
 
-def feature_distance(f1, f2):
-    return np.linalg.norm(f1 - f2)
-
-
-# TODO: improve query efficiency
 # get from configdb the price (hourly cost) of an nodetype
 def get_price(nodetype_name):
     nodetype_map = get_all_nodetypes()
@@ -195,7 +184,7 @@ def get_budget(app_name):
     try:
         budget = app['budget']['value']
     except KeyError:
-        budget = 25000.  # all types allowed 
+        budget = 25000.  # all types allowed
 
     return budget
 
