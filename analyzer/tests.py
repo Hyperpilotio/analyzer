@@ -62,18 +62,16 @@ class BayesianOptimizerPoolTest(TestCase):
         self.assertEqual(response['status'], "done", response)
         # hardcoded the number of returning sample now
         self.assertEqual(len(response['data']), 3, response)
-
-        uuid = "hyperpilot-sizing-demo-1-horray"
         request_body = {
             "appName": "redis",
             "data": [
-                {"instanceType": "t2.large",
+                {"instanceType": response['data'][0],
                  "qosValue": 200.
                  },
-                {"instanceType": "m4.large",
-                 "qosValue": 100.
+                {"instanceType": response['data'][1],
+                 "qosValue": 0.
                  },
-                {"instanceType": "t2.xlarge",
+                {"instanceType": response['data'][2],
                  "qosValue": 400.
                  }
             ]}
@@ -109,10 +107,10 @@ class BayesianOptimizerPoolTest(TestCase):
         request_body = {
             "appName": "redis",
             "data": [
-                {"instanceType": "t2.large",
+                {"instanceType": "p2.xlarge",
                  "qosValue": 200.
                  },
-                {"instanceType": "m4.large",
+                {"instanceType": "p2.8xlarge",
                  "qosValue": 100.
                  }
             ]}
@@ -132,7 +130,8 @@ class BayesianOptimizerPoolTest(TestCase):
             outputs.append(output)
 
         # The final result of nodetype (i.e. [x2.large, x2.xlarge, t2.xlarge])
-        candidates = [decode_nodetype(output) for output in outputs]
+        candidates = [decode_nodetype(output, list(
+            get_all_nodetypes().keys())) for output in outputs]
         logger.debug(candidates)
 
     def testSingleton(self):
