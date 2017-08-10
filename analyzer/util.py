@@ -70,7 +70,7 @@ def get_raw_features(nodetype_name):
     nodetype_map = get_all_nodetypes()
     nodetype = nodetype_map.get(nodetype_name)
     if nodetype is None:
-        raise KeyError(f'Cannot find instance type in the database: name={nodetype}')
+        raise KeyError(f'Cannot find instance type in the database: name={nodetype_name}')
 
     vcpu = nodetype['cpuConfig']['vCPU']
     clock_speed = nodetype['cpuConfig']['clockSpeed']['value']
@@ -124,8 +124,9 @@ def decode_nodetype(feature_vector, available_nodetypes):
 def get_price(nodetype_name):
     nodetype_map = get_all_nodetypes()
     nodetype = nodetype_map.get(nodetype_name)
+
     if nodetype is None:
-        raise KeyError(f'Cannot find instance type in the database: name={nodetype}')
+        raise KeyError(f'Cannot find instance type in the database: name={nodetype_name}')
 
     try:
         price = nodetype['hourlyCost'][cost_type]['value']
