@@ -163,7 +163,7 @@ def get_fitted_gaussian_processor(X_train, y_train, constraint_upper, standardiz
 
     logger.debug(f'X_train:\n{X_train}')
     logger.debug(f'y_train\n{y_train}')
-    logger.debug(f'constraint_upper: {scaled_constraint_upper}')
+    logger.debug(f'constraint_upper: {gp.constraint_upper}')
     if gp_params is None or gp_params.get('alpha') is None:
         # Find unique rows of X to avoid GP from breaking
         ur = unique_rows(X_train)
@@ -188,9 +188,10 @@ def get_candidate(feature_mat, objective_arr, bounds, acq,
         argmax(vector): argmax of acquisition function
     """
     # TODO: Put these into config file
-    seed = 6
-    gp_params = {"alpha": 1e-10, "n_restarts_optimizer": 25,
-                 "kernel": Matern(nu=2.5), "random_state": seed}
+    if gp_params is None:
+        seed = 6
+        gp_params = {"alpha": 1e-10, "n_restarts_optimizer": 25,
+                    "kernel": Matern(nu=2.5), "random_state": seed}
     # Set boundary
     bounds = np.asarray(bounds)
 
