@@ -105,7 +105,7 @@ def acq_max(utility, bounds):
     logger.info(f'nonzeros of utility: {np.count_nonzero(ys)}')
     # Explore the parameter space more throughly
     x_seeds = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(1000, bounds.shape[0]))
+                                size=(500, bounds.shape[0]))
     for x_try in x_seeds:
         # Find the minimum of minus the acquisition function
         res = minimize(lambda x: -utility(x.reshape(1, -1)), x_try.reshape(1, -1),
