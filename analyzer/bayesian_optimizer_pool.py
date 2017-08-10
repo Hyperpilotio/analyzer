@@ -89,8 +89,11 @@ class BayesianOptimizerPool():
         assert request_body['data'], 'The data field of filtered request_body should not be empty'
 
         # Update sample map and check termination
+        new_samples = BayesianOptimizerPool.create_sample_dataframe(
+            request_body)
+        self.update_available_nodetype_map(session_id, new_samples['nodetype']) 
         self.update_sample_map(
-            session_id, BayesianOptimizerPool.create_sample_dataframe(request_body))
+            session_id, new_samples)
         logger.debug(f"[{session_id}]All training samples evaluted:\n{self.sample_map}")
 
         if self.check_termination(session_id):
@@ -180,7 +183,7 @@ class BayesianOptimizerPool():
             3. if available nodetype map is empty 
         """
         df = self.sample_map.get(session_id)
-        if (df is not None) and (len(df) > max_samples) or not self.available_nodetype_map.get(session_id):
+        if (df is not None) and (len(df) > max_samples) or (not self.available_nodetype_map.get(session_id)):
             return True
 
         opt_poc = BayesianOptimizerPool.compute_optimum(df)
