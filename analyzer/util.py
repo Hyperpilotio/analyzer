@@ -20,10 +20,10 @@ DEFAULT_CLOCK_SPEED = 2.3
 DEFAULT_NET_PERF = 'Low'
 DEFAULT_IO_THPT = 125
 DEFAULT_COST = {'LinuxOnDemand': 2.1, 'LinuxReserved': 1.14,
-                "WindowsOnDemand": 2.6, "WindowsReserved": 1.35}
+                'WindowsOnDemand': 2.6, 'WindowsReserved': 1.35}
 
-NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, "High": 1000,
-                "10 Gigabit": 10000, "Up to 10 Gigabit": 10000, "20 Gigabit": 20000}
+NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 500, 'High': 1000,
+                '10 Gigabit': 10000, 'Up to 10 Gigabit': 10000, '20 Gigabit': 20000}
 
 
 @lru_cache(maxsize=1)

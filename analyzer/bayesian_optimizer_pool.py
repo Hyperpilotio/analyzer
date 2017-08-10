@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import copy
 
+from api_service.db import metricdb
 from config import get_config
 from logger import get_logger
 
@@ -19,6 +20,7 @@ from .util import (compute_cost, decode_nodetype, encode_nodetype,
 config = get_config()
 max_samples = int(config.get("ANALYZER", "MAX_SAMPLES"))
 min_improvement = float(config.get("ANALYZER", "MIN_IMPROVEMENT"))
+sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
 
 pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
@@ -27,7 +29,7 @@ logger = get_logger(__name__, log_level=(
 
 
 class BayesianOptimizerPool():
-    """ This class manages the training samples for each session_id,
+    """ This class manages the training samples for each sizing session,
         dispatches jobs to the worker pool, and tracks the status of each job.
     """
     __singleton_lock = threading.Lock()
@@ -43,28 +45,28 @@ class BayesianOptimizerPool():
         return cls.__singleton_instance
 
     def __init__(self):
-        # Map for sharing data samples throughout the optimization session for each session_id
+        # Map for sharing data samples throughout each sizing session with session_id
         self.sample_map = {}
         # Map for storing the future objects for python concurrent tasks
         self.future_map = {}
         # Pool of worker processes for handling jobs
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
-        # Optimal perf_over_cost value from all samples evaluted
+        # Map for optimal perf_over_cost value from all samples evaluted
         self.optimal_poc = {}
-        # Record the available
+        # Map for storing all the avaialbe nodetypes
         self.available_nodetype_map = {}
 
     def get_candidates(self, session_id, request_body, **kwargs):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
-            session_id(str): unique key to identify the optimization session for each session_id
+            session_id(str): unique key to identify each sizing session
             request_body(dict): the request body sent from the client of the analyzer service
         """
 
         # Generate initial samples if the data field of request_body is empty (special case)
         if not request_body.get('data'):
-            assert self.available_nodetype_map.get(
-                session_id) is None, 'This block should only be executed once at the first beginning of a session'
+            assert self.available_nodetype_map.get(session_id) is None,\
+                "The data field of the request_body can only be empty at the beginning of a session"
 
             # initialize with all available nodetype
             self.available_nodetype_map[session_id] = copy.deepcopy(
@@ -75,20 +77,20 @@ class BayesianOptimizerPool():
                 encode_nodetype, i) for i in init_samples]
             return {"status": "success"}
 
-        # Pre-process request
+        # Pre-process request body and remove unavailable nodetypes
+        logger.debug(f"[{session_id}]Received non-empty request_body; preprocessing...")
         unavailable_nodetypes = [i['instanceType'] for i in
                                  filter(lambda d: d['qosValue'] == 0., request_body['data'])]
         self.update_available_nodetype_map(session_id, unavailable_nodetypes)
 
-        # remove and record unavailable nodetypes
         request_body['data'] = list(
             filter(lambda d: d['qosValue'] != 0., request_body['data']))
         if not request_body['data']:
+            logger.debug(f"[{session_id}]All nodetypes suggested last time are unavailable; regenerating...")
             random_samples = BayesianOptimizerPool.generate_initial_samples()
             self.future_map[session_id] = [self.worker_pool.submit(
                 encode_nodetype, i) for i in random_samples]
             return {"status": "success"}
-        assert request_body['data'], 'The data field of filtered request_body should not be empty'
 
         # Update sample map and check termination
         new_samples = BayesianOptimizerPool.create_sample_dataframe(
@@ -105,8 +107,8 @@ class BayesianOptimizerPool():
             return {"status": "success"}
 
         # Dispatch the optimizers
-        assert self.sample_map.get(
-            session_id) is not None, 'sample map should not be empty'
+        assert self.sample_map.get(session_id) is not None,\
+            "sample map should not be empty"
         training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
             self.sample_map[session_id], objective_type=o) for o in ['perf_over_cost',
                                                                      'cost_given_perf_limit',
@@ -158,8 +160,8 @@ class BayesianOptimizerPool():
 
     def update_available_nodetype_map(self, session_id, exclude_keys):
         with self.__singleton_lock:
-            assert self.available_nodetype_map.get(
-                session_id) is not None, 'This method should only be called after the a session was initialized'
+            assert self.available_nodetype_map.get(session_id) is not None,\
+                "This method should only be called after the a session was initialized"
 
             for k in exclude_keys:
                 self.available_nodetype_map[session_id].pop(k, None)
@@ -191,10 +193,10 @@ class BayesianOptimizerPool():
         if (df is not None) and (len(df) > max_samples) or (not self.available_nodetype_map.get(session_id)):
             return True
 
-        opt_poc = BayesianOptimizerPool.compute_optimum(df)
+        new_opt_poc = BayesianOptimizerPool.compute_optimum(df)
         optimal_poc = self.optimal_poc.get(session_id)
-        if (optimal_poc is None) or (opt_poc - optimal_poc > min_improvement * optimal_poc):
-            self.optimal_poc[session_id] = opt_poc
+        if (optimal_poc is None) or (new_opt_poc - optimal_poc > min_improvement * optimal_poc):
+            self.optimal_poc[session_id] = new_opt_poc
             return False
         # if incremental improvement from the last batch is too small to continue
         else:
@@ -208,9 +210,20 @@ class BayesianOptimizerPool():
         recommendations = BayesianOptimizerPool.compute_recommendations(df)
         logger.debug(f"[{session_id}]Final recommendations:\n{recommendations}")
 
-        # TODO: update_sizing_in_metricdb with the final recommendations
         # TODO: check if mongodb is thread safe?
         # TODO: if return in the data format the client will take
+        session_filter = {"sessionId": session_id}
+        sizing_doc = metricdb[sizing_collection].find_one(session_filter)
+        if sizing_doc is None:
+            logger.error(f"[{session_id}]Target sizing document cannot be found")
+            raise KeyError(
+                'Cannot find sizing document: filter={}'.format(session_filter))
+
+        sizing_doc['status'] = "complete"
+        sizing_doc['recommendations'] = recommendations
+        metricdb[sizing_collection].replace_one(session_filter, sizing_doc)
+        logger.info(f"[{session_id}]Storing final recommendations in the database")
+
         return None
 
     def filter_candidates(self, session_id, candidate_rank_list):
@@ -274,19 +287,19 @@ class BayesianOptimizerPool():
         return result
 
     @staticmethod
-    def psudo_random_generator(all_nodetype, sample_map, unavailable_nodetypes, num=1):
-        """ Draw a nodetype that doesn't existed in sample_map
+    def psudo_random_generator(all_nodetypes, sample_map, unavailable_nodetypes, num=1):
+        """ Randomly draw a nodetype that does not exist in the sample_map or unavailable_nodetypes
         """
         if sample_map.get('nodetype') is not None:
             for i in sample_map.get('nodetype'):
-                if i in all_nodetype:
-                    all_nodetype.remove(i)
+                if i in all_nodetypes:
+                    all_nodetypes.remove(i)
 
         for i in unavailable_nodetypes:
-            if i in all_nodetype:
-                all_nodetype.remove(i)
+            if i in all_nodetypes:
+                all_nodetypes.remove(i)
 
-        return np.random.choice(all_nodetype, num, replace=False) if all_nodetype else None
+        return np.random.choice(all_nodetypes, num, replace=False) if all_nodetypes else None
 
     # @staticmethod
     # def generate_initial_samples(init_samples=3):

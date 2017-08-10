@@ -39,7 +39,7 @@ class BayesianOptimizerPoolTest(TestCase):
             "data": []}
 
         # Sending request
-        logger.debug(f'Sending request to API service:\n{request_body}')
+        logger.debug(f'Sending request to analyzer service API:\n{request_body}')
         response = json.loads(self.client.post(f'/apps/{uuid}/suggest-instance-types',
                                                data=json.dumps(request_body),
                                                content_type="application/json").data)
@@ -49,7 +49,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
         # Polling from workload profiler
         while True:
-            logger.debug('Polling status from API service')
+            logger.debug('Polling status from analyzer service API')
             response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
             logger.debug(f'Response:\n{response}')
 
@@ -60,23 +60,27 @@ class BayesianOptimizerPoolTest(TestCase):
                 break
 
         self.assertEqual(response['status'], "done", response)
-        # hardcoded the number of returning sample now
         self.assertEqual(len(response['data']), 3, response)
+
+        # Passing the candidates suggested from the last call back to the analyzer
+        #uuid = "hyperpilot-sizing-demo-1-horray"
+        returned_types = response['data']
         request_body = {
             "appName": "redis",
             "data": [
-                {"instanceType": response['data'][0],
-                 "qosValue": 200.
+                {"instanceType": returned_types[0],
+                 "qosValue": 20000.
                  },
-                {"instanceType": response['data'][1],
-                 "qosValue": 0.
+                {"instanceType": returned_types[1],
+                 "qosValue": 10000.
                  },
-                {"instanceType": response['data'][2],
-                 "qosValue": 400.
+                {"instanceType": returned_types[2],
+                 "qosValue": 60000.
                  }
             ]}
+
         # Sending request
-        logger.debug(f'Sending request to API service:\n{request_body}')
+        logger.debug(f'Sending request to analyzer service API:\n{request_body}')
         response = json.loads(self.client.post(f'/apps/{uuid}/suggest-instance-types',
                                                data=json.dumps(request_body),
                                                content_type="application/json").data)
@@ -86,7 +90,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
         # Polling from workload profiler
         while True:
-            logger.debug('Polling status from API service')
+            logger.debug('Polling status from analyzer service API')
             response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
             logger.debug(f'Response:\n{response}')
 
