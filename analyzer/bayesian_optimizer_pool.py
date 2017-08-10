@@ -6,6 +6,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 import pandas as pd
+import copy
 
 from config import get_config
 from logger import get_logger
@@ -50,7 +51,7 @@ class BayesianOptimizerPool():
         self.worker_pool = ProcessPoolExecutor(max_workers=16)
         # Optimal perf_over_cost value from all samples evaluted
         self.optimal_poc = {}
-        # Record the avaialbe
+        # Record the available
         self.available_nodetype_map = {}
 
     def get_candidates(self, session_id, request_body, **kwargs):
@@ -66,7 +67,8 @@ class BayesianOptimizerPool():
                 session_id) is None, 'This block should only be executed once at the first beginning of a session'
 
             # initialize with all available nodetype
-            self.available_nodetype_map[session_id] = get_all_nodetypes()
+            self.available_nodetype_map[session_id] = copy.deepcopy(
+                get_all_nodetypes())  # defensive copy here
             # draw inital samples
             init_samples = BayesianOptimizerPool.generate_initial_samples()
             self.future_map[session_id] = [self.worker_pool.submit(
@@ -91,7 +93,7 @@ class BayesianOptimizerPool():
         # Update sample map and check termination
         new_samples = BayesianOptimizerPool.create_sample_dataframe(
             request_body)
-        self.update_available_nodetype_map(session_id, new_samples['nodetype']) 
+        self.update_available_nodetype_map(session_id, new_samples['nodetype'])
         self.update_sample_map(
             session_id, new_samples)
         logger.debug(f"[{session_id}]All training samples evaluted:\n{self.sample_map}")
@@ -143,8 +145,11 @@ class BayesianOptimizerPool():
             else:
                 logger.debug(f"[{session_id}]New candidates suggested:\n{candidates}")
                 return {"status": "done",
-                        "data": self.filter_candidates(session_id,
-                                                       [decode_nodetype(c) for c in candidates if c is not None])}
+                        "data": self.filter_candidates(session_id, [
+                            decode_nodetype(
+                                c, list(self.available_nodetype_map[session_id].keys()))
+                            for c in candidates if c is not None]
+                        )}
         elif any([future.cancelled() for future in future_list]):
             return {"status": "server_error", "error": "task cancelled"}
         else:
@@ -180,7 +185,7 @@ class BayesianOptimizerPool():
         Termination conditions:
             1. if total number of samples evaluated exceeds max_samples or,
             2. if incremental improvement in the objective over previous runs is within min_improvement.
-            3. if available nodetype map is empty 
+            3. if available nodetype map is empty
         """
         df = self.sample_map.get(session_id)
         if (df is not None) and (len(df) > max_samples) or (not self.available_nodetype_map.get(session_id)):
@@ -208,40 +213,36 @@ class BayesianOptimizerPool():
         # TODO: if return in the data format the client will take
         return None
 
-    def filter_candidates(self, session_id, candidates):
+    def filter_candidates(self, session_id, candidate_rank_list):
         """ This method filters the recommended candidates before returning to the client
-            and removes the duplicates within this run or with previous runs.
+            and avoid returning duplicate result by greedily select the closest solutions as possible
+        Args:
+            candidate_rank_list: list of candidate_rank
+        Return:
+            result (list): list of nodetypes
         """
-        # remove duplicates within this run
-        candidates = list(set(candidates))
+        # double check the candidate_rank_list doesn't consist of any nodetype in sample_map
+        # if the sample map is None BO is in initialization state
+        if self.sample_map.get(session_id) is not None:
+            for l in candidate_rank_list:
+                for row in l:
+                    nodetype = row[1]
+                    assert nodetype not in self.sample_map.get(session_id)['nodetype'].values, \
+                        f"{nodetype} shouldn't exist in sample map at this point"
 
-        if self.sample_map.get(session_id) is None:
-            return candidates
-        else:
-            # return candidates while removing duplicates with previous runs
-            return [c for c in candidates if c not in self.sample_map.get(session_id)['nodetype'].values]
+        # Get the closest candidate greedily
+        result = []
+        for l in candidate_rank_list:
+            for row in l:
+                nodetype = row[1]
+                if (nodetype in self.available_nodetype_map.get(session_id)) or (nodetype not in result):
+                    result.append(nodetype)
+                    self.update_available_nodetype_map(session_id, [nodetype])
+                    break
 
-    # def filter_candidates(self, session_id, candidates, max_run=10):
-    #     """ This method determine if candidates should be returned to client. # FORCING SELECT OTHER CANIDATES
-    #     Terminate conditions: 1. if number of run exceed than max_run or,
-    #                           2. if the recommended nodetype is duplicated within this run or with previous runs
-    #     """
-    #     # remove duplicates within this run
-    #     candidates_ = list(set(candidates))
-
-    #     if self.sample_map.get(session_id) is None:
-    #         return candidates
-    #     elif len(self.sample_map.get(session_id)) >= max_run:  # remove duplicates with previous run
-    #         return []
-    #     else:
-    #         results = []
-    #         for c in candidates:
-    #             x = c
-    #             while (x in self.sample_map.get(session_id)['nodetype'].values) or (x in results):
-    #                 x = np.random.choice([i['name'] for i in get_all_nodetypes().values()])
-    #             results.append(x)
-
-    #         return results
+        logger.debug(f"filtered candidates: {result}")
+        assert len(set(result)) == len(result)
+        return result
 
     @staticmethod
     def generate_initial_samples(init_samples=3):
@@ -368,14 +369,13 @@ class BayesianOptimizerPool():
         """
         app_name = request_body['appName']
         slo_type = get_slo_type(app_name)
-        assert slo_type in ['throughput', 'latency'],\
+        assert slo_type in ['throughput', 'latency'], \
             f'slo type should be either throughput or latency, but got {slo_type}'
 
         dfs = []
         for data in request_body['data']:
             nodetype = data['instanceType']
             qos_value = data['qosValue']
-
             df = pd.DataFrame({'app_name': [app_name],
                                'qos_value': [qos_value],
                                'slo_type': [slo_type],
