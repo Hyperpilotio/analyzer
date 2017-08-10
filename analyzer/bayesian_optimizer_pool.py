@@ -91,10 +91,10 @@ class BayesianOptimizerPool():
         # Update sample map and check termination
         self.update_sample_map(
             session_id, BayesianOptimizerPool.create_sample_dataframe(request_body))
-        logger.info(f"[{session_id}]All training samples evaluted:\n{self.sample_map}")
+        logger.debug(f"[{session_id}]All training samples evaluted:\n{self.sample_map}")
 
         if self.check_termination(session_id):
-            logger.info(f"[{session_id}]Sizing analysis is done; store final result in database")
+            logger.debug(f"[{session_id}]Sizing analysis is done; store final result in database")
             self.future_map[session_id] = [self.worker_pool.submit(
                 BayesianOptimizerPool.store_final_result, session_id, self.sample_map.get(session_id))]
             return {"status": "success"}
@@ -108,7 +108,7 @@ class BayesianOptimizerPool():
                                                                      'perf_given_cost_limit']]
         self.future_map[session_id] = []
         for training_data in training_data_list:
-            logger.info(
+            logger.debug(
                 f"[{session_id}]Dispatching optimizer with training data:\n{training_data}")
             future = self.worker_pool.submit(
                 get_candidate,
@@ -135,10 +135,10 @@ class BayesianOptimizerPool():
         if all([future.done() for future in future_list]):
             candidates = [future.result() for future in future_list]
             if not candidates:
-                logger.info(f"[{session_id}]No more candidate suggested.")
+                logger.debug(f"[{session_id}]No more candidate suggested.")
                 return {"status": "done", "data": []}
             else:
-                logger.info(f"[{session_id}]New candidates suggested:\n{candidates}")
+                logger.debug(f"[{session_id}]New candidates suggested:\n{candidates}")
                 return {"status": "done",
                         "data": self.filter_candidates(session_id,
                                                        [decode_nodetype(c) for c in candidates if c is not None])}
@@ -177,9 +177,10 @@ class BayesianOptimizerPool():
         Termination conditions:
             1. if total number of samples evaluated exceeds max_samples or,
             2. if incremental improvement in the objective over previous runs is within min_improvement.
+            3. if available nodetype map is empty 
         """
         df = self.sample_map.get(session_id)
-        if (df is not None) and (len(df) > max_samples):
+        if (df is not None) and (len(df) > max_samples) or not self.available_nodetype_map.get(session_id):
             return True
 
         opt_poc = BayesianOptimizerPool.compute_optimum(df)
@@ -197,7 +198,7 @@ class BayesianOptimizerPool():
             This method is called only after the analysis is completed
         """
         recommendations = BayesianOptimizerPool.compute_recommendations(df)
-        logger.info(f"[{session_id}]Final recommendations:\n{recommendations}")
+        logger.debug(f"[{session_id}]Final recommendations:\n{recommendations}")
 
         # TODO: update_sizing_in_metricdb with the final recommendations
         # TODO: check if mongodb is thread safe?
@@ -370,7 +371,6 @@ class BayesianOptimizerPool():
         dfs = []
         for data in request_body['data']:
             nodetype = data['instanceType']
-            print(nodetype)
             qos_value = data['qosValue']
 
             df = pd.DataFrame({'app_name': [app_name],
