@@ -207,7 +207,7 @@ def __main__():
   analyzer = bayesian_optimizer_pool.BayesianOptimizerPool.instance()
   request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
   request_dict = json.loads(request_str)
-  session_id = "hyperpilot-sizing-demo-1-horray"
+  session_id = "hyperpilot-sizing-demo-3-horray"
   analyzer.get_candidates(session_id, request_dict)
   print("...Initialized analyzer")
   bounds = util.get_feature_bounds(normalized=False)

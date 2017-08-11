@@ -33,7 +33,7 @@ class BayesianOptimizerPoolTest(TestCase):
         """ Initialization signal (empty data) send from client.
         """
         # Initialize
-        uuid = "hyperpilot-sizing-demo-1-horray"
+        uuid = "hyperpilot-sizing-demo-4-horray"
         request_body = {
             "appName": "redis",
             "data": []}
@@ -114,11 +114,12 @@ class BayesianOptimizerPoolTest(TestCase):
                  "qosValue": 200.
                  },
                 {"instanceType": "p2.8xlarge",
-                 "qosValue": 100.
+                 "qosValue": 800.
                  }
             ]}
 
-        df = BOP.create_sample_dataframe(request_body)
+        session_id = "hyperpilot-sizing-demo-4-horray"
+        df = BOP.create_sample_dataframe(session_id, request_body)
         training_data_list = [BOP.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']]
 

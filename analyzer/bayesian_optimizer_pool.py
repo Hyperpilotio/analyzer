@@ -72,8 +72,7 @@ class BayesianOptimizerPool():
             # create initial sizing document in the database
             app_name = request_body['appName']
             try:
-                BayesianOptimizerPool.initialize_sizing_doc(
-                    session_id, app_name)
+                BayesianOptimizerPool.initialize_sizing_doc(session_id, app_name)
                 logger.info(f"Initial sizing document created for session {session_id}")
             except Exception as e:
                 return {"status": "server_error",
@@ -104,8 +103,7 @@ class BayesianOptimizerPool():
             return {"status": "success"}
 
         # Update sample map and check termination
-        new_samples = BayesianOptimizerPool.create_sample_dataframe(
-            request_body)
+        new_samples = BayesianOptimizerPool.create_sample_dataframe(session_id, request_body)
         self.update_available_nodetype_map(session_id, new_samples['nodetype'])
         self.update_sample_map(session_id, new_samples)
         all_samples = self.sample_map.get(session_id)
@@ -113,8 +111,7 @@ class BayesianOptimizerPool():
         logger.debug(f"[{session_id}]All training samples evaluted:\n{all_samples}")
 
         if self.check_termination(session_id):
-            recommendations = BayesianOptimizerPool.compute_recommendations(
-                all_samples)
+            recommendations = BayesianOptimizerPool.compute_recommendations(all_samples)
             logger.info(f"[{session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
             self.future_map[session_id] = [self.worker_pool.submit(
                 BayesianOptimizerPool.store_final_result, session_id, recommendations)]
@@ -152,15 +149,12 @@ class BayesianOptimizerPool():
                     "data": f"session_id {session_id} is not found"}
 
         if all([future.done() for future in future_list]):
-
             candidates = [future.result() for future in future_list]
             if not candidates:
                 logger.debug(f"[{session_id}]No more candidate suggested.")
                 return {"status": "done", "data": []}
             else:
                 logger.debug(f"[{session_id}]New candidates suggested:\n{candidates}")
-                # Flush this run
-                self.future_map[session_id] = []
                 return {"status": "done",
                         "data": self.filter_candidates(session_id, [
                             decode_nodetype(
@@ -194,8 +188,6 @@ class BayesianOptimizerPool():
 
             self.sample_map[session_id] = pd.concat(
                 [self.sample_map.get(session_id), df])
-
-            # TODO: store the latest samples (df) to the database
 
     def check_termination(self, session_id):
         """ This method determines if the optimization process for a given session_id can terminate.
@@ -247,11 +239,10 @@ class BayesianOptimizerPool():
         for l in candidate_rank_list:
             for row in l:
                 nodetype = row[1]
-                if nodetype not in result:
+                if (nodetype in self.available_nodetype_map.get(session_id)) or (nodetype not in result):
                     result.append(nodetype)
                     self.update_available_nodetype_map(session_id, [nodetype])
                     break
-                logger.debug("nodetype collision detected")
 
         logger.debug(f"filtered candidates: {result}")
         assert len(set(result)) == len(result)
@@ -373,7 +364,7 @@ class BayesianOptimizerPool():
             raise UserWarning("Unexpected error")
 
     @staticmethod
-    def create_sample_dataframe(request_body):
+    def create_sample_dataframe(session_id, request_body):
         """ Convert request_body to dataframe of training samples.
         Args:
                 request_body(dict): request body sent from workload profiler
@@ -400,25 +391,29 @@ class BayesianOptimizerPool():
                                })
             dfs.append(df)
         assert dfs, f'dataframe is not created\nrequest_body:\n{request_body}'
+
+        # Store the sizing run data in the dataframes to the database
+        BayesianOptimizerPool.store_sizing_run(session_id, dfs)
+
         return pd.concat(dfs)
 
     @staticmethod
-    def compute_optimum(df):
+    def compute_optimum(dfs):
         """ Compute the optimal perf_over_cost value among all given samples
         """
-        assert df is not None and len(df) > 0
+        assert dfs is not None and len(dfs) > 0
 
-        slo_type = df['slo_type'].iloc[0]
+        slo_type = dfs['slo_type'].iloc[0]
         if slo_type == 'latency':
-            perf_arr = 1. / df['qos_value']
+            perf_arr = 1. / dfs['qos_value']
         else:
-            perf_arr = df['qos_value']
+            perf_arr = dfs['qos_value']
 
-        perf_over_cost = perf_arr / df['cost']
+        perf_over_cost = perf_arr / dfs['cost']
         return np.max(perf_over_cost)
 
     @staticmethod
-    def compute_recommendations(df):
+    def compute_recommendations(dfs):
         """ Compute the final recommendations from the optimizer -
             optimal node types among all samples based on three different objective functions:
             1. MaxPerfOverCost
@@ -429,12 +424,12 @@ class BayesianOptimizerPool():
 
         recommendations = []
 
-        perf_arr = df['qos_value'].values
-        cost_arr = df['cost'].values
-        nodetype_arr = df['nodetype'].values
-        slo_type = df['slo_type'].iloc[0]
-        budget = df['budget'].iloc[0]
-        perf_constraint = df['slo_value'].iloc[0]
+        perf_arr = dfs['qos_value'].values
+        cost_arr = dfs['cost'].values
+        nodetype_arr = dfs['nodetype'].values
+        slo_type = dfs['slo_type'].iloc[0]
+        budget = dfs['budget'].iloc[0]
+        perf_constraint = dfs['slo_value'].iloc[0]
 
         # Convert qos value so we always maximize performance
         if slo_type == 'latency':
@@ -470,15 +465,52 @@ class BayesianOptimizerPool():
 
     @staticmethod
     def initialize_sizing_doc(session_id, app_name):
+        """ This method creates the initial sizing document and stores it to the database.
+            This method is called only when a sizing session is initiated
+        """
+
         app = get_app_info(app_name)
         sizing_doc = {'sessionId': session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
-                      'sloValue': app['slo']['value'], 'budget': app['budget']['value'], 'sizingRuns': []}
+                      'sloValue': app['slo']['value'], 'budget': app['budget']['value'],
+                      'sizingRuns': [], 'status': "started"}
 
         session_filter = {"sessionId": session_id}
-        result = metricdb[sizing_collection].replace_one(
-            session_filter, sizing_doc, True)
+        result = metricdb[sizing_collection].replace_one(session_filter, sizing_doc, True)
         if result.matched_count > 0:
             logger.warning(f"Sizing document for session {session_id} already exists; overwritten")
+
+    @staticmethod
+    def store_sizing_run(session_id, samples):
+        """ This method stores the sample test results from each sizing run to the database.
+        """
+
+        session_filter = {'sessionId': session_id}
+        sizing_doc = metricdb[sizing_collection].find_one(session_filter)
+        if sizing_doc is None:
+            logger.error(f"[{session_id}]Target sizing document cannot be found")
+            raise KeyError(
+                'Cannot find sizing document: filter={}'.format(session_filter))
+
+        results = []
+        for sample in samples:
+            assert sample['cost'].values[0] > 0, "Non-positive cost value encountered."
+            result = {'nodetype': sample['nodetype'].values[0],
+                      'status': "done",
+                      'qosValue': sample['qos_value'].values[0],
+                      'cost': sample['cost'].values[0],
+                      'perfOverCost': sample['qos_value'].values[0] / sample['cost'].values[0]
+                     }
+            results.append(result)
+
+        sizing_runs = sizing_doc['sizingRuns']
+        sizing_run = {'run': len(sizing_runs) + 1,
+                      'samples': len(samples),
+                      'results': results
+                     }
+        sizing_runs.append(sizing_run)
+        metricdb[sizing_collection].find_one_and_update(
+            session_filter, {'$set': {'sizingRuns': sizing_runs, 'status': "running"}})
+        logger.info(f"[{session_id}]New sizing run results have been stored in the database\n{sizing_run}")
 
     @staticmethod
     def store_final_result(session_id, recommendations):
@@ -488,10 +520,10 @@ class BayesianOptimizerPool():
 
         # TODO: check if mongodb is thread safe?
         session_filter = {'sessionId': session_id}
-        matching_doc = metricdb[sizing_collection].find_one_and_update(
+        sizing_doc = metricdb[sizing_collection].find_one_and_update(
             session_filter, {'$set': {"status": "complete", 'recommendations': recommendations}})
 
-        if matching_doc is None:
+        if sizing_doc is None:
             logger.error(f"[{session_id}]Target sizing document cannot be found")
             raise KeyError(
                 'Cannot find sizing document: filter={}'.format(session_filter))
