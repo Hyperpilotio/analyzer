@@ -4,6 +4,7 @@ from __future__ import division, print_function
 import threading
 from concurrent.futures import ProcessPoolExecutor
 
+
 import numpy as np
 import pandas as pd
 import copy
@@ -278,19 +279,10 @@ class BayesianOptimizerPool():
         return result
 
     @staticmethod
-    def psudo_random_generator(all_nodetypes, sample_map, unavailable_nodetypes, num=1):
-        """ Randomly draw a nodetype that does not exist in the sample_map or unavailable_nodetypes
+    def psudo_random_generator(available_nodetypes, num=1):
+        """ Randomly draw a nodetype from availabl
         """
-        if sample_map.get('nodetype') is not None:
-            for i in sample_map.get('nodetype'):
-                if i in all_nodetypes:
-                    all_nodetypes.remove(i)
-
-        for i in unavailable_nodetypes:
-            if i in all_nodetypes:
-                all_nodetypes.remove(i)
-
-        return np.random.choice(all_nodetypes, num, replace=False) if all_nodetypes else None
+        return np.random.choice(available_nodetypes, num, replace=False)
 
     # @staticmethod
     # def generate_initial_samples(init_samples=3):
