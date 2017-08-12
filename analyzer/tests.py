@@ -142,13 +142,6 @@ class BayesianOptimizerPoolTest(TestCase):
 
     def testSingleton(self):
         pool = ThreadPoolExecutor(40)
-        future_list = [pool.submit(
-            BOS.instance, 'hyperpilot_session_id') for i in range(100000)]
-        instances = [f.result() for f in future_list]
-        self.assertEqual(len(set(instances)), 1,
-                         "Only one instance should be created")
-
-        pool = ThreadPoolExecutor(40)
         future_list = [pool.submit(BOP.instance) for i in range(100000)]
         instances = [f.result() for f in future_list]
         self.assertEqual(len(set(instances)), 1,
@@ -157,7 +150,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
     def testUpdateSampleDataframe(self):
         session_id = 'hyper123'
-        bos = BOS.instance(session_id)
+        bos = BOS(session_id)
         pool = ThreadPoolExecutor(40)
         future_list, total = [], 0
         for i in range(1000):

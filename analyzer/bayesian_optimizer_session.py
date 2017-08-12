@@ -35,17 +35,7 @@ class BayesianOptimizerSession():
     """ This class manages the training samples in a single sizing session,
         dispatches jobs to the worker pool, and tracks the status of each job.
     """
-    __singleton_lock = threading.Lock()
-    __singleton_instance = None
-
-    @classmethod
-    def instance(cls, session_id):
-        """ The singleton instance of BayesianOptimizerSession """
-        if not cls.__singleton_instance:
-            with cls.__singleton_lock:
-                if not cls.__singleton_instance:
-                    cls.__singleton_instance = cls(session_id)
-        return cls.__singleton_instance
+    __instance_lock = threading.Lock()
 
     def __init__(self, session_id):
         self.session_id = session_id
@@ -172,7 +162,7 @@ class BayesianOptimizerSession():
             return {"status": "running"}
 
     def update_available_nodetype_set(self, exclude_keys):
-        with self.__singleton_lock:
+        with self.__instance_lock:
             assert self.available_nodetype_set is not None,\
                 "This method should only be called after the a session was initialized"
 
@@ -180,7 +170,7 @@ class BayesianOptimizerSession():
                 self.available_nodetype_set.discard(k)
 
     def update_sample_dataframe(self, new_sample_dataframe):
-        with self.__singleton_lock:
+        with self.__instance_lock:
             curr_sample_dataframe = self.sample_dataframe
             if curr_sample_dataframe is not None:
                 # check if incoming df contains duplicated nodetypes with existing sample_map

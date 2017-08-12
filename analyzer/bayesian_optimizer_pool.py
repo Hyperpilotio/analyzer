@@ -32,11 +32,11 @@ class BayesianOptimizerPool():
         return bo_session.get_status()
 
     def get_session(self, session_id):
-        # TODO: need a lock?
-        bo_session = self.session_map.get(session_id)
-        if bo_session is not None:
-            return bo_session
-        else:
-            self.session_map[session_id] = BayesianOptimizerSession.instance(
-                session_id)
-            return self.session_map[session_id]
+        with self.__singleton_lock:
+            bo_session = self.session_map.get(session_id)
+            if bo_session is not None:
+                return bo_session
+            else:
+                self.session_map[session_id] = BayesianOptimizerSession(
+                    session_id)
+                return self.session_map[session_id]

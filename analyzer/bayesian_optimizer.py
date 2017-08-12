@@ -98,14 +98,14 @@ def acq_max(utility, bounds):
 
     # Warm up with random points
     x_tries = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(10000000, bounds.shape[0]))
+                                size=(100000, bounds.shape[0]))
     ys = utility(x_tries)
     x_max = x_tries[ys.argmax()]
     max_acq = ys.max()
     logger.info(f'nonzeros of utility: {np.count_nonzero(ys)}')
     # Explore the parameter space more throughly
     x_seeds = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(500, bounds.shape[0]))
+                                size=(250, bounds.shape[0]))
     for x_try in x_seeds:
         # Find the minimum of minus the acquisition function
         res = minimize(lambda x: -utility(x.reshape(1, -1)), x_try.reshape(1, -1),
