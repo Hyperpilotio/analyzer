@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from __future__ import division, print_function
 
 import threading
@@ -25,113 +26,107 @@ sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
 
 pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
-
-# static logger
 logger = get_logger(__name__, log_level=(
-    "BAYESIAN_OPTIMIZER_SESSION", "LOGLEVEL"))
+    "BAYESIAN_OPTIMIZER_POOL", "LOGLEVEL"))
 
 
-class BayesianOptimizerSession():
-    """ This class manages the training samples in a single sizing session,
+class BayesianOptimizerPool():
+    """ This class manages the training samples for each sizing session,
         dispatches jobs to the worker pool, and tracks the status of each job.
     """
     __singleton_lock = threading.Lock()
     __singleton_instance = None
 
     @classmethod
-    def instance(cls, session_id):
-        """ The singleton instance of BayesianOptimizerSession """
+    def instance(cls):
+        """ The singleton instance of BayesianOptimizerPool """
         if not cls.__singleton_instance:
             with cls.__singleton_lock:
                 if not cls.__singleton_instance:
-                    cls.__singleton_instance = cls(session_id)
+                    cls.__singleton_instance = cls()
         return cls.__singleton_instance
 
-    def __init__(self, session_id):
-        self.session_id = session_id
+    def __init__(self):
         # Map for sharing data samples throughout each sizing session with session_id
-        self.sample_dataframe = None
+        self.sample_map = {}
         # Map for storing the future objects for python concurrent tasks
-        self.future_list = []
+        self.future_map = {}
         # Pool of worker processes for handling jobs
-        self.worker_pool = ProcessPoolExecutor(max_workers=3)
+        self.worker_pool = ProcessPoolExecutor(max_workers=16)
         # Map for optimal perf_over_cost value from all samples evaluted
-        self.optimal_poc = None
+        self.optimal_poc = {}
         # Map for storing all the avaialbe nodetypes
-        self.available_nodetype_set = None
+        self.available_nodetype_map = {}
 
-    def get_candidates(self, request_body, **kwargs):
+    def get_candidates(self, session_id, request_body, **kwargs):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
+            session_id(str): unique key to identify each sizing session
             request_body(dict): the request body sent from the client of the analyzer service
         """
 
         # Generate initial samples if the data field of request_body is empty (special case)
         if not request_body.get('data'):
-            assert self.available_nodetype_set is None,\
+            assert self.available_nodetype_map.get(session_id) is None,\
                 "The data field of the request_body can only be empty at the beginning of a session"
 
             # create initial sizing document in the database
             app_name = request_body['appName']
             try:
-                self.initialize_sizing_doc(app_name)
-                logger.info(f"[{self.session_id}] Initial sizing document created")
+                BayesianOptimizerPool.initialize_sizing_doc(session_id, app_name)
+                logger.info(f"Initial sizing document created for session {session_id}")
             except Exception as e:
                 return {"status": "server_error",
                         "message": "Failed to create initial sizing document: " + str(e)}
 
-            # initialize with all available nodetype (defensive copy)
-            self.available_nodetype_set = set(
-                copy.deepcopy(get_all_nodetypes()).keys())
+            # initialize with all available nodetype
+            self.available_nodetype_map[session_id] = copy.deepcopy(
+                get_all_nodetypes())  # defensive copy here
             # draw inital samples
-            init_samples = BayesianOptimizerSession.generate_initial_samples()
-            self.future_list = [self.worker_pool.submit(
+            init_samples = BayesianOptimizerPool.generate_initial_samples()
+            self.future_map[session_id] = [self.worker_pool.submit(
                 encode_nodetype, i) for i in init_samples]
             return {"status": "success"}
 
         # Pre-process request body and remove unavailable nodetypes
-        logger.debug(f"[{self.session_id}]Received non-empty request_body; preprocessing...")
+        logger.debug(f"[{session_id}]Received non-empty request_body; preprocessing...")
         unavailable_nodetypes = [i['instanceType'] for i in
                                  filter(lambda d: d['qosValue'] == 0., request_body['data'])]
-        self.update_available_nodetype_set(unavailable_nodetypes)
+        self.update_available_nodetype_map(session_id, unavailable_nodetypes)
 
         request_body['data'] = list(
             filter(lambda d: d['qosValue'] != 0., request_body['data']))
         if not request_body['data']:
-            logger.debug(f"[{self.session_id}]All nodetypes suggested last time are unavailable; regenerating...")
-            random_samples = BayesianOptimizerSession.generate_initial_samples()
-            self.future_list = [self.worker_pool.submit(
+            logger.debug(f"[{session_id}]All nodetypes suggested last time are unavailable; regenerating...")
+            random_samples = BayesianOptimizerPool.generate_initial_samples()
+            self.future_map[session_id] = [self.worker_pool.submit(
                 encode_nodetype, i) for i in random_samples]
             return {"status": "success"}
 
-        # Update sample dataframe and check termination
-        new_sample_dataframe = BayesianOptimizerSession.create_sample_dataframe(
-            request_body)
-        # Store the sizing run data in the dataframes to the database
-        self.store_sizing_run(new_sample_dataframe)
-        self.update_available_nodetype_set(
-            new_sample_dataframe['nodetype'].values)
-        self.update_sample_dataframe(new_sample_dataframe)
-        assert self.sample_dataframe is not None, "sample dataframe should not be empty"
-        logger.debug(f"[{self.session_id}]All training samples evaluted:\n{self.sample_dataframe}")
+        # Update sample map and check termination
+        new_samples = BayesianOptimizerPool.create_sample_dataframe(session_id, request_body)
+        self.update_available_nodetype_map(session_id, new_samples['nodetype'])
+        self.update_sample_map(session_id, new_samples)
+        all_samples = self.sample_map.get(session_id)
+        assert all_samples is not None, "sample map should not be empty"
+        logger.debug(f"[{session_id}]All training samples evaluted:\n{all_samples}")
 
-        if self.check_termination():
-            recommendations = self.compute_recommendations()
-            logger.info(f"[{self.session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
-            self.future_list = [self.worker_pool.submit(
-                self.store_final_result, recommendations)]
+        if self.check_termination(session_id):
+            recommendations = BayesianOptimizerPool.compute_recommendations(all_samples)
+            logger.info(f"[{session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
+            self.future_map[session_id] = [self.worker_pool.submit(
+                BayesianOptimizerPool.store_final_result, session_id, recommendations)]
             return {"status": "success"}
 
         # Dispatch the optimizers
-        training_data_list = [BayesianOptimizerSession.make_optimizer_training_data(
-            self.sample_dataframe, objective_type=o)
-            for o in ['perf_over_cost',
-                      'cost_given_perf_limit',
-                      'perf_given_cost_limit']]
-        self.future_list = []
+        training_data_list = [BayesianOptimizerPool.make_optimizer_training_data(
+            self.sample_map[session_id], objective_type=o) for o in ['perf_over_cost',
+                                                                     'cost_given_perf_limit',
+                                                                     'perf_given_cost_limit']]
+        self.future_map[session_id] = []
         for training_data in training_data_list:
             logger.debug(
-                f"[{self.session_id}]Dispatching optimizer with training data:\n{training_data}")
+                f"[{session_id}]Dispatching optimizer with training data:\n{training_data}")
             future = self.worker_pool.submit(
                 get_candidate,
                 training_data.feature_mat,
@@ -142,88 +137,88 @@ class BayesianOptimizerSession():
                 constraint_upper=training_data.constraint_upper,
                 **kwargs
             )
-            self.future_list.append(future)
+            self.future_map[session_id].append(future)
 
         return {"status": "success"}
 
-    def get_status(self):
+    def get_status(self, session_id):
         """ The public method to get the state of current optimization jobs of a session.
         """
-        if not self.future_list:
+        future_list = self.future_map.get(session_id)
+        if not future_list:
             return {"status": "bad_request",
-                    "data": f"session_id {self.session_id} is not found"}
+                    "data": f"session_id {session_id} is not found"}
 
-        if all([future.done() for future in self.future_list]):
-            candidates = [future.result() for future in self.future_list]
+        if all([future.done() for future in future_list]):
+            candidates = [future.result() for future in future_list]
             if not candidates:
-                logger.debug(f"[{self.session_id}]No more candidate suggested.")
+                logger.debug(f"[{session_id}]No more candidate suggested.")
                 return {"status": "done", "data": []}
             else:
-                logger.debug(f"[{self.session_id}]New candidates suggested:\n{candidates}")
+                logger.debug(f"[{session_id}]New candidates suggested:\n{candidates}")
                 return {"status": "done",
-                        "data": self.filter_candidates(
-                            [decode_nodetype(
-                                c, list(self.available_nodetype_set))
-                             for c in candidates if c is not None])}
-        elif any([future.cancelled() for future in self.future_list]):
+                        "data": self.filter_candidates(session_id, [
+                            decode_nodetype(
+                                c, list(self.available_nodetype_map[session_id].keys()))
+                            for c in candidates if c is not None]
+                        )}
+        elif any([future.cancelled() for future in future_list]):
             return {"status": "server_error", "error": "task cancelled"}
         else:
             # Running or pending
             return {"status": "running"}
 
-    def update_available_nodetype_set(self, exclude_keys):
+    def update_available_nodetype_map(self, session_id, exclude_keys):
         with self.__singleton_lock:
-            assert self.available_nodetype_set is not None,\
+            assert self.available_nodetype_map.get(session_id) is not None,\
                 "This method should only be called after the a session was initialized"
 
             for k in exclude_keys:
-                self.available_nodetype_set.discard(k)
+                self.available_nodetype_map[session_id].pop(k, None)
 
-    def update_sample_dataframe(self, new_sample_dataframe):
+    def update_sample_map(self, session_id, df):
         with self.__singleton_lock:
-            curr_sample_dataframe = self.sample_dataframe
-            if curr_sample_dataframe is not None:
+            if self.sample_map.get(session_id) is not None:
                 # check if incoming df contains duplicated nodetypes with existing sample_map
-                intersection = set(new_sample_dataframe['nodetype']).intersection(
-                    set(curr_sample_dataframe['nodetype']))
+                intersection = set(df['nodetype']).intersection(
+                    set(self.sample_map[session_id]['nodetype']))
                 if intersection:
-                    logger.warning(f"[{self.session_id}]Duplicated samples were sent from the client")
-                    logger.warning(f"[{self.session_id}]new samples:\n\
-                        {new_sample_dataframe}\ncurrent samples:\n{curr_sample_dataframe}")
-                    logger.warning(f"[{self.session_id}]intersection: {intersection}")
+                    logger.warning(f"Duplicated samples were sent from the client")
+                    logger.warning(f"input:\n{df}\nsample_map:\n{self.sample_map.get(session_id)}")
+                    logger.warning(f"intersection: {intersection}")
 
-            self.sample_dataframe = pd.concat(
-                [curr_sample_dataframe, new_sample_dataframe])
+            self.sample_map[session_id] = pd.concat(
+                [self.sample_map.get(session_id), df])
 
-    def check_termination(self):
+    def check_termination(self, session_id):
         """ This method determines if the optimization process for a given session_id can terminate.
         Termination conditions:
             1. if total number of samples evaluated exceeds max_samples, or
-            2. if total number of samples evaluated exceeds min_samples && incremental improvement
+            2. if total number of samples evaluated exceeds min_samples && incremental improvement 
                 in the objective over previous runs is within min_improvement, or
             3. if available nodetype map is empty
         """
-        all_samples = self.sample_dataframe
+        all_samples = self.sample_map.get(session_id)
         if (all_samples is not None) and (len(all_samples) > max_samples):
             logger.debug(f"[session_id]:Termination condition is met due to enough number of samples = {len(df)}")
             return True
 
-        if not self.available_nodetype_set:
+        if not self.available_nodetype_map.get(session_id):
             logger.debug(f"[session_id]:Termination condition is met due running out of available nodetypes")
             return True
 
-        new_opt_poc = self.compute_optimum()
-        optimal_poc = self.optimal_poc
+        new_opt_poc = BayesianOptimizerPool.compute_optimum(all_samples)
+        optimal_poc = self.optimal_poc.get(session_id)
         if (optimal_poc is None) or (len(all_samples) < min_samples) or\
                 (new_opt_poc - optimal_poc >= min_improvement * optimal_poc):
-            self.optimal_poc = new_opt_poc
+            self.optimal_poc[session_id] = new_opt_poc
             return False
         else:
             logger.debug(f"[session_id]:Termination condition is met due to small incremental improvement.\n\
                 old_opt_poc = {optimal_poc}, new_opt_poc = {new_opt_poc}")
             return True
 
-    def filter_candidates(self, candidate_rank_list):
+    def filter_candidates(self, session_id, candidate_rank_list):
         """ This method filters the recommended candidates before returning to the client
             and avoid returning duplicate result by greedily select the closest solutions as possible
         Args:
@@ -233,11 +228,11 @@ class BayesianOptimizerSession():
         """
         # double check the candidate_rank_list does not consist of any nodetype in sample_map
         # if the samplei_map is None, BO is in initialization state
-        if self.sample_dataframe is not None:
+        if self.sample_map.get(session_id) is not None:
             for l in candidate_rank_list:
                 for row in l:
                     nodetype = row[1]
-                    assert nodetype not in self.sample_dataframe['nodetype'].values, \
+                    assert nodetype not in self.sample_map.get(session_id)['nodetype'].values, \
                         f"{nodetype} shouldn't exist in sample map at this point"
 
         # Get the closest candidate greedily
@@ -245,9 +240,9 @@ class BayesianOptimizerSession():
         for l in candidate_rank_list:
             for row in l:
                 nodetype = row[1]
-                if nodetype not in result:
+                if (nodetype in self.available_nodetype_map.get(session_id)) or (nodetype not in result):
                     result.append(nodetype)
-                    self.update_available_nodetype_set([nodetype])
+                    self.update_available_nodetype_map(session_id, [nodetype])
                     break
 
         logger.debug(f"filtered candidates: {result}")
@@ -283,13 +278,20 @@ class BayesianOptimizerSession():
         logger.debug(f"initial samples:\n{result}")
         return result
 
+    @staticmethod
+    def psudo_random_generator(available_nodetypes, num=1):
+        """ Randomly draw a nodetype from availabl
+        """
+        return np.random.choice(available_nodetypes, num, replace=False)
+
     # @staticmethod
     # def generate_initial_samples(init_samples=3):
     #     dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
     #     result = np.random.choice(dataframe['name'], init_samples)
     #     return result
+
     @staticmethod
-    def make_optimizer_training_data(sample_dataframe, objective_type=None):
+    def make_optimizer_training_data(df, objective_type=None):
         """ Convert the objective and constraints such the optimizer can always:
             1. maximize objective function such that 2. constraints function < constraint
         """
@@ -325,15 +327,15 @@ class BayesianOptimizerSession():
         if objective_type not in implmentation:
             raise NotImplementedError(f'objective_type: {objective_type} is not implemented.')
 
-        feature_mat = np.array(sample_dataframe['feature'].tolist())
-        slo_type = sample_dataframe['slo_type'].iloc[0]
-        budget = sample_dataframe['budget'].iloc[0]
-        perf_constraint = sample_dataframe['slo_value'].iloc[0]
-        perf_arr = sample_dataframe['qos_value']
+        feature_mat = np.array(df['feature'].tolist())
+        slo_type = df['slo_type'].iloc[0]
+        budget = df['budget'].iloc[0]
+        perf_constraint = df['slo_value'].iloc[0]
+        perf_arr = df['qos_value']
 
         # Convert metric so we always try to maximize performance
         if slo_type == 'latency':
-            perf_arr = 1. / sample_dataframe['qos_value']
+            perf_arr = 1. / df['qos_value']
             perf_constraint = 1. / perf_constraint
         elif slo_type == 'throughput':
             pass
@@ -341,29 +343,20 @@ class BayesianOptimizerSession():
             raise AssertionError(f'invalid slo type: {slo_type}')
 
         # Compute objectives
-        perf_over_cost = (
-            perf_arr / sample_dataframe['cost']).rename("performance over cost")
+        perf_over_cost = (perf_arr / df['cost']
+                          ).rename("performance over cost")
 
         if objective_type == 'perf_over_cost':
-            return BOTrainingData(objective_type,
-                                  feature_mat,
-                                  perf_over_cost)
+            return BOTrainingData(objective_type, feature_mat, perf_over_cost)
         elif objective_type == 'cost_given_perf_limit':
-            return BOTrainingData(objective_type,
-                                  feature_mat,
-                                  -sample_dataframe['cost'],
-                                  -perf_arr, -perf_constraint)
+            return BOTrainingData(objective_type, feature_mat, -df['cost'], -perf_arr, -perf_constraint)
         elif objective_type == 'perf_given_cost_limit':
-            return BOTrainingData(objective_type,
-                                  feature_mat,
-                                  perf_arr,
-                                  sample_dataframe['cost'],
-                                  budget)
+            return BOTrainingData(objective_type, feature_mat, perf_arr, df['cost'], budget)
         else:
             raise UserWarning("Unexpected error")
 
     @staticmethod
-    def create_sample_dataframe(request_body):
+    def create_sample_dataframe(session_id, request_body):
         """ Convert request_body to dataframe of training samples.
         Args:
                 request_body(dict): request body sent from workload profiler
@@ -386,29 +379,33 @@ class BayesianOptimizerSession():
                                'feature': [encode_nodetype(nodetype)],
                                'cost': [compute_cost(get_price(nodetype), slo_type, qos_value)],
                                'slo_value': [get_slo_value(app_name)],
-                               'budget': [get_budget(app_name)]})
+                               'budget': [get_budget(app_name)]
+                               })
             dfs.append(df)
         assert dfs, f'dataframe is not created\nrequest_body:\n{request_body}'
 
-        dfs = pd.concat(dfs)
-        return dfs
+        # Store the sizing run data in the dataframes to the database
+        BayesianOptimizerPool.store_sizing_run(session_id, dfs)
 
-    def compute_optimum(self):
+        return pd.concat(dfs)
+
+    @staticmethod
+    def compute_optimum(dfs):
         """ Compute the optimal perf_over_cost value among all given samples
         """
-        assert self.sample_dataframe is not None and len(
-            self.sample_dataframe) > 0
+        assert dfs is not None and len(dfs) > 0
 
-        slo_type = self.sample_dataframe['slo_type'].iloc[0]
+        slo_type = dfs['slo_type'].iloc[0]
         if slo_type == 'latency':
-            perf_arr = 1. / self.sample_dataframe['qos_value']
+            perf_arr = 1. / dfs['qos_value']
         else:
-            perf_arr = self.sample_dataframe['qos_value']
+            perf_arr = dfs['qos_value']
 
-        perf_over_cost = perf_arr / self.sample_dataframe['cost']
+        perf_over_cost = perf_arr / dfs['cost']
         return np.max(perf_over_cost)
 
-    def compute_recommendations(self):
+    @staticmethod
+    def compute_recommendations(dfs):
         """ Compute the final recommendations from the optimizer -
             optimal node types among all samples based on three different objective functions:
             1. MaxPerfOverCost
@@ -419,12 +416,12 @@ class BayesianOptimizerSession():
 
         recommendations = []
 
-        perf_arr = self.sample_dataframe['qos_value'].values
-        cost_arr = self.sample_dataframe['cost'].values
-        nodetype_arr = self.sample_dataframe['nodetype'].values
-        slo_type = self.sample_dataframe['slo_type'].iloc[0]
-        budget = self.sample_dataframe['budget'].iloc[0]
-        perf_constraint = self.sample_dataframe['slo_value'].iloc[0]
+        perf_arr = dfs['qos_value'].values
+        cost_arr = dfs['cost'].values
+        nodetype_arr = dfs['nodetype'].values
+        slo_type = dfs['slo_type'].iloc[0]
+        budget = dfs['budget'].iloc[0]
+        perf_constraint = dfs['slo_value'].iloc[0]
 
         # Convert qos value so we always maximize performance
         if slo_type == 'latency':
@@ -458,69 +455,70 @@ class BayesianOptimizerSession():
 
         return recommendations
 
-    def initialize_sizing_doc(self, app_name):
+    @staticmethod
+    def initialize_sizing_doc(session_id, app_name):
         """ This method creates the initial sizing document and stores it to the database.
             This method is called only when a sizing session is initiated
         """
 
         app = get_app_info(app_name)
-        sizing_doc = {'sessionId': self.session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
+        sizing_doc = {'sessionId': session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
                       'sloValue': app['slo']['value'], 'budget': app['budget']['value'],
                       'sizingRuns': [], 'status': "started"}
 
-        session_filter = {"sessionId": self.session_id}
-        result = metricdb[sizing_collection].replace_one(
-            session_filter, sizing_doc, True)
+        session_filter = {"sessionId": session_id}
+        result = metricdb[sizing_collection].replace_one(session_filter, sizing_doc, True)
         if result.matched_count > 0:
-            logger.warning(f"Sizing document for session {self.session_id} already exists; overwritten")
+            logger.warning(f"Sizing document for session {session_id} already exists; overwritten")
 
-    def store_sizing_run(self, sample_dataframe):
+    @staticmethod
+    def store_sizing_run(session_id, samples):
         """ This method stores the sample test results from each sizing run to the database.
         """
 
-        session_filter = {'sessionId': self.session_id}
+        session_filter = {'sessionId': session_id}
         sizing_doc = metricdb[sizing_collection].find_one(session_filter)
         if sizing_doc is None:
-            logger.error(f"[{self.session_id}]Target sizing document cannot be found")
+            logger.error(f"[{session_id}]Target sizing document cannot be found")
             raise KeyError(
                 'Cannot find sizing document: filter={}'.format(session_filter))
 
         results = []
-
-        for i, sample in sample_dataframe.iterrows():
-            assert sample['cost'] > 0, "Non-positive cost value encountered."
-            result = {'nodetype': sample['nodetype'],
+        for sample in samples:
+            assert sample['cost'].values[0] > 0, "Non-positive cost value encountered."
+            result = {'nodetype': sample['nodetype'].values[0],
                       'status': "done",
-                      'qosValue': sample['qos_value'],
-                      'cost': sample['cost'],
-                      'perfOverCost': sample['qos_value'] / sample['cost']
-                      }
+                      'qosValue': sample['qos_value'].values[0],
+                      'cost': sample['cost'].values[0],
+                      'perfOverCost': sample['qos_value'].values[0] / sample['cost'].values[0]
+                     }
             results.append(result)
 
         sizing_runs = sizing_doc['sizingRuns']
         sizing_run = {'run': len(sizing_runs) + 1,
-                      'samples': len(sample_dataframe.index),
+                      'samples': len(samples),
                       'results': results
-                      }
+                     }
         sizing_runs.append(sizing_run)
         metricdb[sizing_collection].find_one_and_update(
             session_filter, {'$set': {'sizingRuns': sizing_runs, 'status': "running"}})
-        logger.info(f"[{self.session_id}]New sizing run results have been stored in the database\n{sizing_run}")
+        logger.info(f"[{session_id}]New sizing run results have been stored in the database\n{sizing_run}")
 
-    def store_final_result(self, recommendations):
+    @staticmethod
+    def store_final_result(session_id, recommendations):
         """ This method stores the final recommendations from the sizing session to the database.
             This method is called only after the analysis is completed
         """
 
         # TODO: check if mongodb is thread safe?
-        session_filter = {'sessionId': self.session_id}
+        session_filter = {'sessionId': session_id}
         sizing_doc = metricdb[sizing_collection].find_one_and_update(
             session_filter, {'$set': {"status": "complete", 'recommendations': recommendations}})
 
         if sizing_doc is None:
-            logger.error(f"[{self.session_id}]Target sizing document cannot be found")
+            logger.error(f"[{session_id}]Target sizing document cannot be found")
             raise KeyError(
                 'Cannot find sizing document: filter={}'.format(session_filter))
-        logger.info(f"[{self.session_id}]Final recommendations have been stored in the database")
+        logger.info(f"[{session_id}]Final recommendations have been stored in the database")
 
         return None

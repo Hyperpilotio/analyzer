@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 from analyzer.bayesian_optimizer import (UtilityFunction, get_candidate,
                                          get_fitted_gaussian_processor)
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool as BOP
+from analyzer.bayesian_optimizer_session import BayesianOptimizerSession as BOS
+
 from api_service.app import app as api_service_app
 from api_service.db import metricdb
 from logger import get_logger
@@ -119,8 +121,8 @@ class BayesianOptimizerPoolTest(TestCase):
             ]}
 
         session_id = "hyperpilot-sizing-demo-4-horray"
-        df = BOP.create_sample_dataframe(session_id, request_body)
-        training_data_list = [BOP.make_optimizer_training_data(df, objective_type=o)
+        df = BOS.create_sample_dataframe(request_body)
+        training_data_list = [BOS.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']]
 
         bounds = get_feature_bounds(normalized=True)
@@ -140,29 +142,35 @@ class BayesianOptimizerPoolTest(TestCase):
 
     def testSingleton(self):
         pool = ThreadPoolExecutor(40)
+        future_list = [pool.submit(
+            BOS.instance, 'hyperpilot_session_id') for i in range(100000)]
+        instances = [f.result() for f in future_list]
+        self.assertEqual(len(set(instances)), 1,
+                         "Only one instance should be created")
+
+        pool = ThreadPoolExecutor(40)
         future_list = [pool.submit(BOP.instance) for i in range(100000)]
         instances = [f.result() for f in future_list]
         self.assertEqual(len(set(instances)), 1,
                          "Only one instance should be created")
         del pool
 
-    def testUpdateSampleMap(self):
-        bop = BOP.instance()
+    def testUpdateSampleDataframe(self):
+        session_id = 'hyper123'
+        bos = BOS.instance(session_id)
         pool = ThreadPoolExecutor(40)
-        app_id = 'hyperpilot'
-
         future_list, total = [], 0
         for i in range(1000):
             df = pd.DataFrame({"nodetype": [i]})
             future_list.append(pool.submit(
-                bop.update_sample_map, app_id, df))
+                BOS.update_sample_dataframe, bos, df))
             total += i
 
         while any(f.running() for f in future_list):
             sleep(1)
 
         self.assertEqual(
-            sum(bop.sample_map[app_id]['nodetype']), total, "Race condition detected")
+            sum(bos.sample_dataframe['nodetype']), total, "Race condition detected")
 
         del pool
 
@@ -174,33 +182,11 @@ class BayesianOptimizerPoolTest(TestCase):
             nodetype_map[j['name']] = j['instanceFamily']
 
         for i in range(100):
-            samples = BOP.generate_initial_samples(
+            samples = BOS.generate_initial_samples(
                 len(set(dataframe['instanceFamily'])))
             if len(samples) != len(set([nodetype_map[i] for i in samples])):
                 raise AssertionError(
                     "Initial samples coming from same instance families")
-
-    def testPsudoGenerator(self):
-        all_nodetype = ['a', 'b', 'c', 'd', 'e']
-        dfs = [pd.DataFrame({'nodetype': [f'{i}']}) for i in all_nodetype[:-2]]
-        df = pd.concat(dfs)
-
-        # draw 100 times s
-        for i in range(100):
-            assert BOP.psudo_random_generator(
-                all_nodetype, df, []) in all_nodetype[-2:]
-
-        # draw 100 times s
-        for i in range(100):
-            assert BOP.psudo_random_generator(
-                all_nodetype, df, []) not in all_nodetype[:-2]
-        for i in range(100):
-            samples = BOP.psudo_random_generator(
-                all_nodetype, df, ['g'], num=2)
-            assert len(samples) == len(set(samples))
-
-        samples = BOP.psudo_random_generator(all_nodetype, df, ['e'], num=1)
-        assert 'd' in samples
 
 
 class BayesianOptimizerTest(TestCase):
