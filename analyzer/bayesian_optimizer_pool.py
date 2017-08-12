@@ -239,9 +239,8 @@ class BayesianOptimizerPool():
         for l in candidate_rank_list:
             for row in l:
                 nodetype = row[1]
-                if (nodetype in self.available_nodetype_map.get(session_id)) or (nodetype not in result):
+                if nodetype not in result:
                     result.append(nodetype)
-                    self.update_available_nodetype_map(session_id, [nodetype])
                     break
 
         logger.debug(f"filtered candidates: {result}")
@@ -412,6 +411,7 @@ class BayesianOptimizerPool():
         perf_over_cost = perf_arr / dfs['cost']
         return np.max(perf_over_cost)
 
+    # TODO: handle the case where no feasible solution is found for each constraint
     @staticmethod
     def compute_recommendations(dfs):
         """ Compute the final recommendations from the optimizer -
