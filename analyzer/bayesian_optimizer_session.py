@@ -237,7 +237,6 @@ class BayesianOptimizerSession():
                 nodetype = row[1]
                 if nodetype not in result:
                     result.append(nodetype)
-                    self.update_available_nodetype_set([nodetype])
                     break
 
         logger.debug(f"filtered candidates: {result}")
