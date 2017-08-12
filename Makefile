@@ -8,7 +8,7 @@ PYTHON_VERSION = $(shell $(PYTHON) --version)
 PY_VERSION_OK = $(shell $(PYTHON) -c 'import sys; print(int(sys.version_info >= (3, 6, 1)))')
 PIPENV = $(shell which pipenv)
 
-GUNICORN_ARGS = api_service.wsgi:app --access-logfile - -k gevent --bind 0.0.0.0:5000
+GUNICORN_ARGS = api_service.wsgi:app --access-logfile - --error-logfile - -k gevent --bind 0.0.0.0:5000 --log-level debug
 
 init:
 	@if [ $(PY_VERSION_OK) = 0 ]; then\
@@ -49,7 +49,7 @@ docker-run:
 
 docker-rm:
 	docker rm -f $(shell docker ps -a -q --filter ancestor=$(ANALYZER_IMAGE))
-	
+
 docker-test:
 	docker run -it $(ANALYZER_IMAGE) pipenv run python -m unittest
 

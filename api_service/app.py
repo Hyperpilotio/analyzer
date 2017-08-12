@@ -17,7 +17,6 @@ from .util import (JSONEncoderWithMongo, ObjectIdConverter,
 
 app = Flask(__name__)
 
-app.config.update(get_config())
 app.json_encoder = JSONEncoderWithMongo
 app.url_map.converters["objectid"] = ObjectIdConverter
 
@@ -31,7 +30,6 @@ logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BO = BayesianOptimizerPool.instance()
 
-
 @app.route("/")
 def index():
     return jsonify(status="ok")
@@ -39,7 +37,7 @@ def index():
 
 @app.route("/cluster")
 def cluster_service_placement():
-    with open(app.config["ANALYZER"]["DEPLOY_JSON"]) as f:
+    with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
     result = shape_service_placement(deploy_json)
     return jsonify(result)
@@ -47,7 +45,7 @@ def cluster_service_placement():
 
 @app.route("/cluster/recommended")
 def recommended_service_placement():
-    with open(app.config["ANALYZER"]["RECOMMENDED_DEPLOY_JSON"]) as f:
+    with open(my_config.get("ANALYZER", "RECOMMENDED_DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
     result = shape_service_placement(deploy_json)
     return jsonify(result)
@@ -55,7 +53,7 @@ def recommended_service_placement():
 
 @app.route("/apps")
 def get_all_apps():
-    with open(app.config["ANALYZER"]["DEPLOY_JSON"]) as f:
+    with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
     apps = {}
     service_names = [
