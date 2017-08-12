@@ -22,6 +22,7 @@ min_samples = int(config.get("BAYESIAN_OPTIMIZER_POOL", "MIN_SAMPLES"))
 max_samples = int(config.get("BAYESIAN_OPTIMIZER_POOL", "MAX_SAMPLES"))
 min_improvement = float(config.get("BAYESIAN_OPTIMIZER_POOL", "MIN_IMPROVEMENT"))
 sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
+max_workers = int(config.get("ANALYZER", "MAX_WORKERS"), 1)
 
 pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
@@ -193,7 +194,7 @@ class BayesianOptimizerPool():
         """ This method determines if the optimization process for a given session_id can terminate.
         Termination conditions:
             1. if total number of samples evaluated exceeds max_samples, or
-            2. if total number of samples evaluated exceeds min_samples && incremental improvement 
+            2. if total number of samples evaluated exceeds min_samples && incremental improvement
                 in the objective over previous runs is within min_improvement, or
             3. if available nodetype map is empty
         """
@@ -291,12 +292,6 @@ class BayesianOptimizerPool():
                 all_nodetypes.remove(i)
 
         return np.random.choice(all_nodetypes, num, replace=False) if all_nodetypes else None
-
-    # @staticmethod
-    # def generate_initial_samples(init_samples=3):
-    #     dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
-    #     result = np.random.choice(dataframe['name'], init_samples)
-    #     return result
 
     @staticmethod
     def make_optimizer_training_data(df, objective_type=None):
