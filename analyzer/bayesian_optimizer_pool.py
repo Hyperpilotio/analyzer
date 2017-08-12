@@ -18,9 +18,9 @@ from .util import (compute_cost, decode_nodetype, encode_nodetype,
                    get_app_info, get_price, get_slo_type, get_slo_value)
 
 config = get_config()
-min_samples = int(config.get("ANALYZER", "MIN_SAMPLES"))
-max_samples = int(config.get("ANALYZER", "MAX_SAMPLES"))
-min_improvement = float(config.get("ANALYZER", "MIN_IMPROVEMENT"))
+min_samples = int(config.get("BAYESIAN_OPTIMIZER_POOL", "MIN_SAMPLES"))
+max_samples = int(config.get("BAYESIAN_OPTIMIZER_POOL", "MAX_SAMPLES"))
+min_improvement = float(config.get("BAYESIAN_OPTIMIZER_POOL", "MIN_IMPROVEMENT"))
 sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
 
 pd.set_option('display.width', 1000)  # widen the display
@@ -151,10 +151,10 @@ class BayesianOptimizerPool():
         if all([future.done() for future in future_list]):
             candidates = [future.result() for future in future_list]
             if not candidates:
-                logger.debug(f"[{session_id}]No more candidate suggested.")
+                logger.info(f"[{session_id}]No more candidate suggested.")
                 return {"status": "done", "data": []}
             else:
-                logger.debug(f"[{session_id}]New candidates suggested:\n{candidates}")
+                logger.info(f"[{session_id}]New candidates suggested:\n{candidates}")
                 return {"status": "done",
                         "data": self.filter_candidates(session_id, [
                             decode_nodetype(
@@ -199,11 +199,11 @@ class BayesianOptimizerPool():
         """
         all_samples = self.sample_map.get(session_id)
         if (all_samples is not None) and (len(all_samples) > max_samples):
-            logger.debug(f"[session_id]:Termination condition is met due to enough number of samples = {len(df)}")
+            logger.info(f"[session_id]:Termination condition is met due to enough number of samples = {len(df)}")
             return True
 
         if not self.available_nodetype_map.get(session_id):
-            logger.debug(f"[session_id]:Termination condition is met due running out of available nodetypes")
+            logger.info(f"[session_id]:Termination condition is met due running out of available nodetypes")
             return True
 
         new_opt_poc = BayesianOptimizerPool.compute_optimum(all_samples)
@@ -213,7 +213,7 @@ class BayesianOptimizerPool():
             self.optimal_poc[session_id] = new_opt_poc
             return False
         else:
-            logger.debug(f"[session_id]:Termination condition is met due to small incremental improvement.\n\
+            logger.info(f"[session_id]:Termination condition is met due to small incremental improvement.\n\
                 old_opt_poc = {optimal_poc}, new_opt_poc = {new_opt_poc}")
             return True
 
@@ -437,8 +437,8 @@ class BayesianOptimizerPool():
             perf_constraint = 1. / perf_constraint
         perf_over_cost_arr = list(perf_arr / cost_arr)
         if perf_over_cost_arr:
-            nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(
-                perf_over_cost_arr)], "objective": "MaxPerfOverCost"}
+            nodetype_best_ratio = {"nodetype": nodetype_arr[np.argmax(perf_over_cost_arr)],
+                                   "objective": "MaxPerfOverCost"}
             recommendations.append(nodetype_best_ratio)
 
         nodetype_subset = [nodetype for nodetype, perf in zip(
@@ -447,8 +447,8 @@ class BayesianOptimizerPool():
             cost_arr, perf_arr) if perf >= perf_constraint]
         if nodetype_subset and cost_subset:
             assert len(nodetype_subset) == len(cost_subset)
-            nodetype_min_cost = {"nodetype": nodetype_subset[np.argmin(
-                cost_subset)], "objective": "MinCostWithPerfLimit"}
+            nodetype_min_cost = {"nodetype": nodetype_subset[np.argmin(cost_subset)],
+                                 "objective": "MinCostWithPerfLimit"}
             recommendations.append(nodetype_min_cost)
 
         nodetype_subset = [nodetype for nodetype, cost in zip(
@@ -457,8 +457,8 @@ class BayesianOptimizerPool():
             perf_arr, cost_arr) if cost <= budget]
         if nodetype_subset and perf_subset:
             assert len(nodetype_subset) == len(perf_subset)
-            nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(
-                perf_subset)], "objective": "MaxPerfWithCostLimit"}
+            nodetype_max_perf = {"nodetype": nodetype_subset[np.argmax(perf_subset)],
+                                 "objective": "MaxPerfWithCostLimit"}
             recommendations.append(nodetype_max_perf)
 
         return recommendations
