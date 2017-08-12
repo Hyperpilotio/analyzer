@@ -6,7 +6,6 @@ from werkzeug.routing import BaseConverter, ValidationError
 
 
 class JSONEncoderWithMongo(JSONEncoder):
-
     def default(self, obj):
         if isinstance(obj, Cursor):
             return list(obj)
@@ -16,7 +15,6 @@ class JSONEncoderWithMongo(JSONEncoder):
 
 
 class ObjectIdConverter(BaseConverter):
-
     def to_python(self, value):
         if not bson.ObjectId.is_valid(value):
             raise ValidationError()

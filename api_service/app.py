@@ -4,6 +4,7 @@ import traceback
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
 
+from analyzer.status import Status, SessionStatus
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
 from analyzer.linear_regression import LinearRegression1
 from analyzer.util import (get_calibration_dataframe, get_profiling_dataframe,
@@ -29,8 +30,7 @@ sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
 
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
-BO = BayesianOptimizerPool.instance()
-
+BO = BayesianOptimizerPool()
 
 @app.route("/")
 def index():
@@ -162,22 +162,22 @@ def get_next_instance_types(session_id):
     application = configdb[app_collection].find_one({"name": app_name})
     if application is None:
         response = jsonify({"status": "bad_request",
-                            "data": "Target application not found"})
+                            "error": "Target application not found"})
         return response
 
     # TODO: This causes the candidate list to be filtered twice - needs improvement
-    if BO.get_status(session_id)['status'] == "running":
+    if BO.get_status(session_id).status == Status.RUNNING:
         response = jsonify({"status": "bad_request",
-                            "data": "Optimization process still running"})
+                            "error": "Optimization process still running"})
         return response
 
     logger.info(f"Starting a new sizing session {session_id} for app {app_name}")
     try:
-        response = jsonify(BO.get_candidates(session_id, request_body))
+        response = jsonify(BO.get_candidates(session_id, request_body).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
-                            "message":"Error in getting candidates from the analyzer: " + str(e)})
+                            "error":"Error in getting candidates from the analyzer: " + str(e)})
 
     return response
 
@@ -185,10 +185,9 @@ def get_next_instance_types(session_id):
 @app.route("/apps/<string:session_id>/get-optimizer-status")
 def get_task_status(session_id):
     try:
-        response = jsonify(BO.get_status(session_id))
+        repsonse = jsonify(BO.get_status(session_id).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
-                            "message": str(e)})
-
+                            "error": str(e)})
     return response

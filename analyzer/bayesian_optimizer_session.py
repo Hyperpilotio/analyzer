@@ -12,6 +12,7 @@ from api_service.db import metricdb
 from config import get_config
 from logger import get_logger
 
+from .status import Status, SessionStatus
 from .bayesian_optimizer import get_candidate
 from .util import (compute_cost, decode_nodetype, encode_nodetype,
                    get_all_nodetypes, get_budget, get_feature_bounds,
@@ -30,6 +31,53 @@ np.set_printoptions(precision=3)
 logger = get_logger(__name__, log_level=(
     "BAYESIAN_OPTIMIZER_SESSION", "LOGLEVEL"))
 
+class FuncArgs():
+    def __init__(self, function, *args, **kwargs):
+        self.funciton = function
+        self.data = data
+        self.args = args
+        self.kwargs = kwargs
+
+# Worker pool that is dedicated per session.
+# The pool also assume each session has one or more stages, and it only expect one stage to run
+# at a time.
+class SessionWorkerPool():
+    def __init__(self, workers):
+        # Map for storing the future objects for python concurrent tasks
+        self.future_list = []
+        # Pool of worker processes for handling jobs
+        self.worker_pool = ProcessPoolExecutor(max_workers=workers)
+
+    def submit_data(self, function, data, *args, **kwargs):
+        if self.get_status().status == Status.RUNNING:
+            return SessionStatus(Status.SERVER_ERROR, "Session have work in progress")
+
+        self.future_list = [self.worker_pool.submit(
+            function, i) for i in data]
+        return SessionStatus(Status.SUBMITTED)
+
+    def submit_funcs(self, funcargs_list):
+        if self.get_status().status == Status.RUNNING:
+            return SessionStatus(Status.SERVER_ERROR, "Session have work in progress")
+
+        self.future_list = [self.worker_pool.submit(
+            f.function, *f.args, **f.kwargs) for f in funcargs_list]
+        return SessionStatus(Status.SUBMITTED)
+
+    def get_status(self):
+        if not self.future_list:
+            return SessionStatus(Status.BAD_REQUEST, "No session work is in progress")
+
+        if all([future.done() for future in self.future_list]):
+            data = [future.result() for future in self.future_list]
+            return SessionStatus(Status.DONE, data)
+        elif any([future.cancelled() for future in self.future_list]):
+            return SessionStatus(status=Status.SERVER_ERROR, error="task cancelled")
+        else:
+            # Future in running or pending state
+            return SessionStatus(Status.RUNNING)
+
+
 
 class BayesianOptimizerSession():
     """ This class manages the training samples in a single sizing session,
@@ -38,46 +86,41 @@ class BayesianOptimizerSession():
     __instance_lock = threading.Lock()
 
     def __init__(self, session_id):
+        self.pool = SessionWorkerPool(3)
+
         self.session_id = session_id
         # Map for sharing data samples throughout each sizing session with session_id
         self.sample_dataframe = None
-        # Map for storing the future objects for python concurrent tasks
-        self.future_list = []
-        # Pool of worker processes for handling jobs
-        self.worker_pool = ProcessPoolExecutor(max_workers=3)
         # Map for optimal perf_over_cost value from all samples evaluted
         self.optimal_poc = None
-        # Map for storing all the avaialbe nodetypes
+        # Map for storing all the available nodetypes
         self.available_nodetype_set = None
 
-    def get_candidates(self, request_body, **kwargs):
+    def get_candidates(self, app_name, data):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
-            request_body(dict): the request body sent from the client of the analyzer service
+            app_name(str): The name of the application
+            data(list): List of reported data per instance type
         """
 
         # Generate initial samples if the data field of request_body is empty (special case)
-        if not request_body.get('data'):
+        if not data or len(data) == 0:
             assert self.available_nodetype_set is None,\
                 "The data field of the request_body can only be empty at the beginning of a session"
 
-            # create initial sizing document in the database
-            app_name = request_body['appName']
             try:
                 self.initialize_sizing_doc(app_name)
                 logger.info(f"[{self.session_id}] Initial sizing document created")
             except Exception as e:
-                return {"status": "server_error",
-                        "message": "Failed to create initial sizing document: " + str(e)}
+                return SessionStatus(status=Status.SERVER_ERROR,
+                                     error="Failed to create initial sizing document: " + str(e))
 
             # initialize with all available nodetype (defensive copy)
             self.available_nodetype_set = set(
                 copy.deepcopy(get_all_nodetypes()).keys())
             # draw inital samples
             init_samples = BayesianOptimizerSession.generate_initial_samples()
-            self.future_list = [self.worker_pool.submit(
-                encode_nodetype, i) for i in init_samples]
-            return {"status": "success"}
+            return self.pool.submit_data(encode_nodetype, init_samples)
 
         # Pre-process request body and remove unavailable nodetypes
         logger.debug(f"[{self.session_id}]Received non-empty request_body; preprocessing...")
@@ -90,9 +133,7 @@ class BayesianOptimizerSession():
         if not request_body['data']:
             logger.debug(f"[{self.session_id}]All nodetypes suggested last time are unavailable; regenerating...")
             random_samples = BayesianOptimizerSession.generate_initial_samples()
-            self.future_list = [self.worker_pool.submit(
-                encode_nodetype, i) for i in random_samples]
-            return {"status": "success"}
+            return self.pool.submit_data(encode_nodetype, random_samples)
 
         # Update sample dataframe and check termination
         new_sample_dataframe = BayesianOptimizerSession.create_sample_dataframe(
@@ -108,9 +149,7 @@ class BayesianOptimizerSession():
         if self.check_termination():
             recommendations = self.compute_recommendations()
             logger.info(f"[{self.session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
-            self.future_list = [self.worker_pool.submit(
-                self.store_final_result, recommendations)]
-            return {"status": "success"}
+            return self.pool.submit_data(self.store_final_result, recommendations)
 
         # Dispatch the optimizers
         training_data_list = [BayesianOptimizerSession.make_optimizer_training_data(
@@ -118,48 +157,39 @@ class BayesianOptimizerSession():
             for o in ['perf_over_cost',
                       'cost_given_perf_limit',
                       'perf_given_cost_limit']]
-        self.future_list = []
+        functions = []
         for training_data in training_data_list:
             logger.debug(
                 f"[{self.session_id}]Dispatching optimizer with training data:\n{training_data}")
-            future = self.worker_pool.submit(
-                get_candidate,
-                training_data.feature_mat,
-                training_data.objective_arr,
-                get_feature_bounds(normalized=True),
-                acq='cei' if training_data.has_constraint() else 'ei',
-                constraint_arr=training_data.constraint_arr,
-                constraint_upper=training_data.constraint_upper,
-                **kwargs
-            )
-            self.future_list.append(future)
+            functions.append(
+                FuncArgs(get_candidate, \
+                         training_data.feature_mat, \
+                         training_data.objective_arr, \
+                         get_feature_bounds(normalized=True), \
+                         acq='cei' if training_data.has_constraint() else 'ei', \
+                         constraint_arr=training_data.constraint_arr, \
+                         constraint_upper=training_data.constraint_upper))
 
-        return {"status": "success"}
+        return self.pool.submit_funcs(functions)
 
     def get_status(self):
         """ The public method to get the state of current optimization jobs of a session.
         """
-        if not self.future_list:
-            return {"status": "bad_request",
-                    "data": f"session_id {self.session_id} is not found"}
 
-        if all([future.done() for future in self.future_list]):
-            candidates = [future.result() for future in self.future_list]
+        status = self.pool.get_status()
+        if status.status == Status.DONE:
+            candidates = status.data
             if not candidates:
                 logger.debug(f"[{self.session_id}]No more candidate suggested.")
-                return {"status": "done", "data": []}
             else:
                 logger.debug(f"[{self.session_id}]New candidates suggested:\n{candidates}")
-                return {"status": "done",
-                        "data": self.filter_candidates(
+                candidates = self.filter_candidates(
                             [decode_nodetype(
                                 c, list(self.available_nodetype_set))
-                             for c in candidates if c is not None])}
-        elif any([future.cancelled() for future in self.future_list]):
-            return {"status": "server_error", "error": "task cancelled"}
-        else:
-            # Running or pending
-            return {"status": "running"}
+                             for c in candidates if c is not None])
+                status.data = candidates
+        return status
+
 
     def update_available_nodetype_set(self, exclude_keys):
         with self.__instance_lock:
