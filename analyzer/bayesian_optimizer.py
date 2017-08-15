@@ -1,12 +1,17 @@
 from __future__ import division, print_function
 
 import numpy as np
+from config import get_config
 from logger import get_logger
 from scipy.optimize import minimize
 from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern
 from sklearn.preprocessing import scale
+
+config = get_config()
+random_samples = config.getint("BAYESIAN_OPTIMIZER", "RANDOM_SAMPLES")
+random_seeds = config.getint("BAYESIAN_OPTIMIZER", "RANDOM_SEEDS")
 
 logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
@@ -85,8 +90,8 @@ class UtilityFunction(object):
 def acq_max(utility, bounds):
     """ A function to find the maximum of the acquisition function
         It uses a combination of random sampling (cheap) and the 'L-BFGS-B'
-        optimization method. First by sampling 1e5 points at random, and then
-        running L-BFGS-B from 250 random starting points.
+        optimization method: 1) by sampling of "random_samples" number of random points,
+        and 2) by running L-BFGS-B from "random_seeds" number of starting points.
     Args:
         ac: The acquisition function object that return its point-wise value.
         gp_objective: A gaussian process fitted to the relevant data.
@@ -96,16 +101,17 @@ def acq_max(utility, bounds):
         x_max: The arg max of the acquisition function.
     """
 
-    # Warm up with random points
+    # Warm up using random sampling
     x_tries = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(100000, bounds.shape[0]))
+                                size=(random_samples, bounds.shape[0]))
     ys = utility(x_tries)
     x_max = x_tries[ys.argmax()]
     max_acq = ys.max()
     logger.info(f'nonzeros of utility: {np.count_nonzero(ys)}')
-    # Explore the parameter space more throughly
+
+    # Explore the parameter space more throughly using L-BFGS-B
     x_seeds = np.random.uniform(bounds[:, 0], bounds[:, 1],
-                                size=(250, bounds.shape[0]))
+                                size=(random_seeds, bounds.shape[0]))
     for x_try in x_seeds:
         # Find the minimum of minus the acquisition function
         res = minimize(lambda x: -utility(x.reshape(1, -1)), x_try.reshape(1, -1),

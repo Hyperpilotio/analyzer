@@ -30,7 +30,7 @@ sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
 
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
-BO = BayesianOptimizerPool()
+BOP = BayesianOptimizerPool()
 
 @app.route("/")
 def index():
@@ -166,14 +166,14 @@ def get_next_instance_types(session_id):
         return response
 
     # TODO: This causes the candidate list to be filtered twice - needs improvement
-    if BO.get_status(session_id).status == Status.RUNNING:
+    if BOP.get_status(session_id).status == Status.RUNNING:
         response = jsonify({"status": "bad_request",
                             "error": "Optimization process still running"})
         return response
 
     logger.info(f"Starting a new sizing session {session_id} for app {app_name}")
     try:
-        response = jsonify(BO.get_candidates(session_id, request_body).to_dict())
+        response = jsonify(BOP.get_candidates(session_id, request_body).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
@@ -185,7 +185,7 @@ def get_next_instance_types(session_id):
 @app.route("/apps/<string:session_id>/get-optimizer-status")
 def get_task_status(session_id):
     try:
-        repsonse = jsonify(BO.get_status(session_id).to_dict())
+        response = jsonify(BOP.get_status(session_id).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",

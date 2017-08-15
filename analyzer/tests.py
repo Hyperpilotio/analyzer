@@ -47,9 +47,9 @@ class BayesianOptimizerPoolTest(TestCase):
                                                content_type="application/json").data)
 
         logger.debug(f"Response:\n{response}")
-        self.assertEqual(response['status'], 'success', response)
+        self.assertEqual(response['status'], 'submitted', response)
 
-        # Polling from workload profiler
+        # Polling status
         while True:
             logger.debug('Polling status from analyzer service API')
             response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
@@ -87,7 +87,7 @@ class BayesianOptimizerPoolTest(TestCase):
                                                content_type="application/json").data)
 
         logger.debug(f"Response:\n{response}")
-        self.assertEqual(response['status'], 'success', response)
+        self.assertEqual(response['status'], 'submitted', response)
 
         # Polling from workload profiler
         while True:
@@ -121,7 +121,7 @@ class BayesianOptimizerPoolTest(TestCase):
             ]}
 
         session_id = "hyperpilot-sizing-demo-4-horray"
-        df = BOS.create_sample_dataframe(request_body)
+        df = BOS.create_sample_dataframe(request_body['appName'], request_body['data'])
         training_data_list = [BOS.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']]
 
@@ -140,13 +140,14 @@ class BayesianOptimizerPoolTest(TestCase):
             get_all_nodetypes().keys())) for output in outputs]
         logger.debug(candidates)
 
-    def testSingleton(self):
-        pool = ThreadPoolExecutor(40)
-        future_list = [pool.submit(BOP.instance) for i in range(100000)]
-        instances = [f.result() for f in future_list]
-        self.assertEqual(len(set(instances)), 1,
-                         "Only one instance should be created")
-        del pool
+    #REMOVED for now since BOP no longer has an instance method
+    #def testSingleton(self):
+    #    pool = ThreadPoolExecutor(40)
+    #    future_list = [pool.submit(BOP.instance) for i in range(100000)]
+    #    instances = [f.result() for f in future_list]
+    #    self.assertEqual(len(set(instances)), 1,
+    #                     "Only one instance should be created")
+    #    del pool
 
     def testUpdateSampleDataframe(self):
         session_id = 'hyper123'

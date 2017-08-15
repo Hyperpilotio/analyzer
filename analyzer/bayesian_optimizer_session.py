@@ -19,9 +19,10 @@ from .util import (compute_cost, decode_nodetype, encode_nodetype,
                    get_app_info, get_price, get_slo_type, get_slo_value)
 
 config = get_config()
-min_samples = int(config.get("ANALYZER", "MIN_SAMPLES"))
-max_samples = int(config.get("ANALYZER", "MAX_SAMPLES"))
-min_improvement = float(config.get("ANALYZER", "MIN_IMPROVEMENT"))
+min_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MIN_SAMPLES")
+max_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_SAMPLES")
+min_improvement = config.getfloat("BAYESIAN_OPTIMIZER_SESSION", "MIN_IMPROVEMENT")
+num_workers = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_WORKERS_PER_SESSION")
 sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
 
 pd.set_option('display.width', 1000)  # widen the display
@@ -33,8 +34,7 @@ logger = get_logger(__name__, log_level=(
 
 class FuncArgs():
     def __init__(self, function, *args, **kwargs):
-        self.funciton = function
-        self.data = data
+        self.function = function
         self.args = args
         self.kwargs = kwargs
 
@@ -50,7 +50,7 @@ class SessionWorkerPool():
 
     def submit_data(self, function, data, *args, **kwargs):
         if self.get_status().status == Status.RUNNING:
-            return SessionStatus(Status.SERVER_ERROR, "Session have work in progress")
+            return SessionStatus(Status.BAD_REQUEST, "Session has work in progress; submit task later")
 
         self.future_list = [self.worker_pool.submit(
             function, i) for i in data]
@@ -58,7 +58,7 @@ class SessionWorkerPool():
 
     def submit_funcs(self, funcargs_list):
         if self.get_status().status == Status.RUNNING:
-            return SessionStatus(Status.SERVER_ERROR, "Session have work in progress")
+            return SessionStatus(Status.BAD_REQUEST, "Session has work in progress; submit task later")
 
         self.future_list = [self.worker_pool.submit(
             f.function, *f.args, **f.kwargs) for f in funcargs_list]
@@ -72,11 +72,10 @@ class SessionWorkerPool():
             data = [future.result() for future in self.future_list]
             return SessionStatus(Status.DONE, data)
         elif any([future.cancelled() for future in self.future_list]):
-            return SessionStatus(status=Status.SERVER_ERROR, error="task cancelled")
+            return SessionStatus(status=Status.SERVER_ERROR, error="at least one task was cancelled")
         else:
             # Future in running or pending state
             return SessionStatus(Status.RUNNING)
-
 
 
 class BayesianOptimizerSession():
@@ -86,25 +85,25 @@ class BayesianOptimizerSession():
     __instance_lock = threading.Lock()
 
     def __init__(self, session_id):
-        self.pool = SessionWorkerPool(3)
+        self.pool = SessionWorkerPool(num_workers)
 
         self.session_id = session_id
-        # Map for sharing data samples throughout each sizing session with session_id
+        # Map for caching sample data throughout each sizing session
         self.sample_dataframe = None
         # Map for optimal perf_over_cost value from all samples evaluted
         self.optimal_poc = None
-        # Map for storing all the available nodetypes
+        # Map for caching all the available nodetypes for each session
         self.available_nodetype_set = None
 
-    def get_candidates(self, app_name, data):
+    def get_candidates(self, app_name, sample_data):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
-            app_name(str): The name of the application
-            data(list): List of reported data per instance type
+            app_name(str): Name of the target application
+            sample_data(list): List of reported sample data per instance type
         """
 
-        # Generate initial samples if the data field of request_body is empty (special case)
-        if not data or len(data) == 0:
+        # Generate initial samples if the sample_data field is empty (special case)
+        if not sample_data or len(sample_data) == 0:
             assert self.available_nodetype_set is None,\
                 "The data field of the request_body can only be empty at the beginning of a session"
 
@@ -122,26 +121,25 @@ class BayesianOptimizerSession():
             init_samples = BayesianOptimizerSession.generate_initial_samples()
             return self.pool.submit_data(encode_nodetype, init_samples)
 
-        # Pre-process request body and remove unavailable nodetypes
-        logger.debug(f"[{self.session_id}]Received non-empty request_body; preprocessing...")
+        # Pre-process sample data and remove unavailable nodetypes
+        logger.debug(f"[{self.session_id}]Received non-empty sample data; preprocessing...")
         unavailable_nodetypes = [i['instanceType'] for i in
-                                 filter(lambda d: d['qosValue'] == 0., request_body['data'])]
+                                 filter(lambda d: d['qosValue'] == 0., sample_data)]
         self.update_available_nodetype_set(unavailable_nodetypes)
 
-        request_body['data'] = list(
-            filter(lambda d: d['qosValue'] != 0., request_body['data']))
-        if not request_body['data']:
-            logger.debug(f"[{self.session_id}]All nodetypes suggested last time are unavailable; regenerating...")
+        sample_data = list(filter(lambda d: d['qosValue'] != 0., sample_data))
+        if not sample_data:
+            logger.debug(
+                f"[{self.session_id}]All nodetypes suggested previously are unavailable; regenerating...")
             random_samples = BayesianOptimizerSession.generate_initial_samples()
             return self.pool.submit_data(encode_nodetype, random_samples)
 
         # Update sample dataframe and check termination
         new_sample_dataframe = BayesianOptimizerSession.create_sample_dataframe(
-            request_body)
-        # Store the sizing run data in the dataframes to the database
+            app_name, sample_data)
+        # Store the sizing run result to the database
         self.store_sizing_run(new_sample_dataframe)
-        self.update_available_nodetype_set(
-            new_sample_dataframe['nodetype'].values)
+        self.update_available_nodetype_set(new_sample_dataframe['nodetype'].values)
         self.update_sample_dataframe(new_sample_dataframe)
         assert self.sample_dataframe is not None, "sample dataframe should not be empty"
         logger.debug(f"[{self.session_id}]All training samples evaluted:\n{self.sample_dataframe}")
@@ -382,20 +380,20 @@ class BayesianOptimizerSession():
             raise UserWarning("Unexpected error")
 
     @staticmethod
-    def create_sample_dataframe(request_body):
-        """ Convert request_body to dataframe of training samples.
+    def create_sample_dataframe(app_name, sample_data):
+        """ Convert input sample data to dataframe of training samples.
         Args:
-                request_body(dict): request body sent from workload profiler
+            app_name(str): Name of the target application
+            sample_data(list): List of reported sample data per instance type
         Returns:
                 dfs(dataframe): sample data organized in dataframe
         """
-        app_name = request_body['appName']
         slo_type = get_slo_type(app_name)
         assert slo_type in ['throughput', 'latency'], \
             f'slo type should be either throughput or latency, but got {slo_type}'
 
         dfs = []
-        for data in request_body['data']:
+        for data in sample_data:
             nodetype = data['instanceType']
             qos_value = data['qosValue']
             df = pd.DataFrame({'app_name': [app_name],
@@ -407,7 +405,7 @@ class BayesianOptimizerSession():
                                'slo_value': [get_slo_value(app_name)],
                                'budget': [get_budget(app_name)]})
             dfs.append(df)
-        assert dfs, f'dataframe is not created\nrequest_body:\n{request_body}'
+        assert dfs, f'dataframe is not created for sample_data:\n{sample_data}'
 
         dfs = pd.concat(dfs)
         return dfs
