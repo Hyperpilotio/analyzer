@@ -10,8 +10,8 @@ from sklearn.gaussian_process.kernels import Matern
 from sklearn.preprocessing import scale
 
 config = get_config()
-random_samples = int(config.get("BAYESIAN_OPTIMIZER", "RANDOM_SAMPLES"))
-random_seeds = int(config.get("BAYESIAN_OPTIMIZER", "RANDOM_SEEDS"))
+random_samples = config.getint("BAYESIAN_OPTIMIZER", "RANDOM_SAMPLES")
+random_seeds = config.getint("BAYESIAN_OPTIMIZER", "RANDOM_SEEDS")
 
 logger = get_logger(__name__, log_level=("BAYESIAN_OPTIMIZER", "LOGLEVEL"))
 
