@@ -204,7 +204,7 @@ def __main__():
   args = parser.parse_args()
 
   # initialyze analyzer
-  analyzer = bayesian_optimizer_pool.BayesianOptimizerPool.instance()
+  analyzer = bayesian_optimizer_pool.BayesianOptimizerPool()
   request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
   request_dict = json.loads(request_str)
   session_id = "hyperpilot-sizing-demo-3-horray"
@@ -262,7 +262,7 @@ def __main__():
     print("...Iteration %d out of %d" %(i, args.iter))
     # check if done
     while True:
-      status_dict = analyzer.get_status(session_id)
+      status_dict = analyzer.get_status(session_id).to_dict()
       if status_dict['status'] != "running":
         break
       time.sleep(1)
