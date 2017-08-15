@@ -107,7 +107,7 @@ def acq_max(utility, bounds):
     ys = utility(x_tries)
     x_max = x_tries[ys.argmax()]
     max_acq = ys.max()
-    logger.info(f'nonzeros of utility: {np.count_nonzero(ys)}')
+    logger.info(f'nonzeros in the utility function: {np.count_nonzero(ys)}')
 
     # Explore the parameter space more throughly using L-BFGS-B
     x_seeds = np.random.uniform(bounds[:, 0], bounds[:, 1],
@@ -123,8 +123,8 @@ def acq_max(utility, bounds):
             x_max = res.x
             max_acq = -res.fun[0]
 
-    # Clip output to make sure it lies within the bounds. Due to floating
-    # point technicalities this is not always the case.
+    # Clip output to make sure it lies within the bounds.
+    # Due to floating point operations this is not always guaranteed.
     return np.clip(x_max, bounds[:, 0], bounds[:, 1])
 
 
