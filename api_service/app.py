@@ -4,8 +4,8 @@ import traceback
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
 
-from analyzer.status import Status, SessionStatus
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
+from analyzer.session_worker_pool import Status, SessionStatus
 from analyzer.linear_regression import LinearRegression1
 from analyzer.util import (get_calibration_dataframe, get_profiling_dataframe,
                            get_radar_dataframe)

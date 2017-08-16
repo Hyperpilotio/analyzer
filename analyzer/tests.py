@@ -12,16 +12,15 @@ from bayes_opt import BayesianOptimization as BO_ref
 from sklearn.gaussian_process.kernels import Matern
 from concurrent.futures import ThreadPoolExecutor
 
+from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool as BOP
+from analyzer.sizing_session import SizingSession
 from analyzer.bayesian_optimizer import (UtilityFunction, get_candidate,
                                          get_fitted_gaussian_processor)
-from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool as BOP
-from analyzer.bayesian_optimizer_session import BayesianOptimizerSession as BOS
+from analyzer.util import decode_nodetype, get_all_nodetypes, get_feature_bounds, encode_nodetype
 
 from api_service.app import app as api_service_app
 from api_service.db import metricdb
 from logger import get_logger
-
-from .util import decode_nodetype, get_all_nodetypes, get_feature_bounds, encode_nodetype
 
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
@@ -121,8 +120,8 @@ class BayesianOptimizerPoolTest(TestCase):
             ]}
 
         session_id = "hyperpilot-sizing-demo-4-horray"
-        df = BOS.create_sample_dataframe(request_body['appName'], request_body['data'])
-        training_data_list = [BOS.make_optimizer_training_data(df, objective_type=o)
+        df = SizingSession.create_sample_dataframe(request_body['appName'], request_body['data'])
+        training_data_list = [SizingSession.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']]
 
         bounds = get_feature_bounds(normalized=True)
@@ -151,13 +150,13 @@ class BayesianOptimizerPoolTest(TestCase):
 
     def testUpdateSampleDataframe(self):
         session_id = 'hyper123'
-        bos = BOS(session_id)
+        bos = SizingSession(session_id)
         pool = ThreadPoolExecutor(40)
         future_list, total = [], 0
         for i in range(1000):
             df = pd.DataFrame({"nodetype": [i]})
             future_list.append(pool.submit(
-                BOS.update_sample_dataframe, bos, df))
+                SizingSession.update_sample_dataframe, bos, df))
             total += i
 
         while any(f.running() for f in future_list):
@@ -176,7 +175,7 @@ class BayesianOptimizerPoolTest(TestCase):
             nodetype_map[j['name']] = j['instanceFamily']
 
         for i in range(100):
-            samples = BOS.generate_initial_samples(
+            samples = SizingSession.generate_initial_samples(
                 len(set(dataframe['instanceFamily'])))
             if len(samples) != len(set([nodetype_map[i] for i in samples])):
                 raise AssertionError(

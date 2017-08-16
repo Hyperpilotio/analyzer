@@ -195,11 +195,11 @@ def __main__():
   parser.add_argument("-ia", "-ioa", type=float, required=False, default=1.0, help="io a")
   parser.add_argument("-ib", "-iob", type=float, required=False, default=0.0, help="io b")
   parser.add_argument("-ic", "-ioc", type=float, required=False, default=0.0, help="io c")
-  parser.add_argument("-vw", "-vcpuw", type=float, required=False, default=1.0, help="vcpu w")
-  parser.add_argument("-cw", "-clkw", type=float, required=False, default=0.0, help="clk w")
-  parser.add_argument("-mw", "-memw", type=float, required=False, default=0.0, help="mem w")
-  parser.add_argument("-nw", "-netw", type=float, required=False, default=0.0, help="net w")
-  parser.add_argument("-iw", "-iow", type=float, required=False, default=0.0, help="io w")
+  parser.add_argument("-vw", "-vcpuw", type=float, required=False, default=0.4, help="vcpu w")
+  parser.add_argument("-cw", "-clkw", type=float, required=False, default=0.1, help="clk w")
+  parser.add_argument("-mw", "-memw", type=float, required=False, default=0.3, help="mem w")
+  parser.add_argument("-nw", "-netw", type=float, required=False, default=0.1, help="net w")
+  parser.add_argument("-iw", "-iow", type=float, required=False, default=0.1, help="io w")
   parser.add_argument("-b", "-base", type=float, required=False, default=1.0, help="base performance")
   args = parser.parse_args()
 
@@ -207,7 +207,7 @@ def __main__():
   analyzer = bayesian_optimizer_pool.BayesianOptimizerPool()
   request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
   request_dict = json.loads(request_str)
-  session_id = "hyperpilot-sizing-demo-3-horray"
+  session_id = "hyperpilot-sizing-demo-5-horray"
   analyzer.get_candidates(session_id, request_dict)
   print("...Initialized analyzer")
   bounds = util.get_feature_bounds(normalized=False)
@@ -266,8 +266,9 @@ def __main__():
       if status_dict['status'] != "running":
         break
       time.sleep(1)
+
     if args.verbose:
-      print("......Analyzer returned ", status_dict)
+      print("......Analyzer status returned:", status_dict)
     # throw error if needed
     if status_dict["status"] != "done":
       print("ERROR: Analyzer returned with status %s"  %status_dict["status"])
@@ -293,9 +294,13 @@ def __main__():
         print("......Considering nodetype %s" %nodetype)
     request_str += "]}"
     request_dict = json.loads(request_str)
-    analyzer.get_candidates(session_id, request_dict)
+    result_dict = analyzer.get_candidates(session_id, request_dict).to_dict()
     if args.verbose:
       print("......Called analyzer with arguments:", request_str)
+      print("........Result returned:", result_dict)
+    if result_dict['status'] == "done":
+      print("......Sizing session is complete")
+      break
     time.sleep(1)
 
   # evaluate results
@@ -335,7 +340,7 @@ def __main__():
   print("Performance/cost")
   i = 0
   for key, _ in sorted_optPC:
-    if i < 3:
+    if i < 5:
       print("   Available #%2d: %11s, %s" %(i+1, key, nodeinfo(key)))
     if key in visited:
       print("   Found    #%2d:  %11s, %s" %(i+1, key, nodeinfo(key)))
@@ -345,7 +350,7 @@ def __main__():
   print("Cost with performance constraint (%0.2f)" %slo)
   i = 0
   for key, _ in sorted_optC:
-    if i < 3:
+    if i < 5:
       print("   Available #%2d: %11s, %s" %(i+1, key, nodeinfo(key)))
     if key in visited:
       print("   Found    #%2d:  %11s, %s" %(i+1, key, nodeinfo(key)))
@@ -355,7 +360,7 @@ def __main__():
   print("Performance with cost constraint (%0.2f)" %budget)
   i = 0
   for key, _ in sorted_optP:
-    if i < 3:
+    if i < 5:
       print("   Available #%2d: %11s, %s" %(i+1, key, nodeinfo(key)))
     if key in visited:
       print("   Found    #%2d:  %11s, %s" %(i+1, key, nodeinfo(key)))

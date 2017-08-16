@@ -1,8 +1,6 @@
-from __future__ import division, print_function
-
 import threading
-import numpy as np
-from .bayesian_optimizer_session import BayesianOptimizerSession
+from .sizing_session import SizingSession
+
 
 class BayesianOptimizerPool():
     def __init__(self):
@@ -22,6 +20,6 @@ class BayesianOptimizerPool():
         with self._create_lock:
             session = self.session_map.get(session_id)
             if not session:
-                session = BayesianOptimizerSession(session_id)
+                session = SizingSession(session_id)
                 self.session_map[session_id] = session
         return session
