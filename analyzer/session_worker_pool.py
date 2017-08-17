@@ -31,9 +31,9 @@ class SessionStatus():
             "data": self.data
         }
 
-# Worker pool that is dedicated per Bayesian optimizer session.
-# The pool assumes each session has one or more stages, and it only expects one stage to run
-# at a time.
+# Worker pool that is dedicated to each Bayesian optimizer session.
+# The pool assumes each session has one or more stages, and it only expects one stage to run at a time;
+# if a task is submitted while the previous stage is still running, an error is returned.
 class SessionWorkerPool():
     def __init__(self, workers):
         # Map for storing the future objects for python concurrent tasks
@@ -59,13 +59,13 @@ class SessionWorkerPool():
 
     def get_status(self):
         if not self.future_list:
-            return SessionStatus(Status.BAD_REQUEST, "No session work is in progress")
+            return SessionStatus(Status.BAD_REQUEST, "Session has no work in progress")
 
         if all([future.done() for future in self.future_list]):
             data = [future.result() for future in self.future_list]
             return SessionStatus(Status.DONE, data)
         elif any([future.cancelled() for future in self.future_list]):
-            return SessionStatus(status=Status.SERVER_ERROR, error="at least one task was cancelled")
+            return SessionStatus(status=Status.SERVER_ERROR, error="At least one task was cancelled")
         else:
             # Future in running or pending state
             return SessionStatus(Status.RUNNING)

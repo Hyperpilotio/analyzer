@@ -17,10 +17,11 @@ from .util import (compute_cost, decode_nodetype, encode_nodetype,
                    get_app_info, get_price, get_slo_type, get_slo_value)
 
 config = get_config()
+sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
+num_init_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "INIT_SAMPLES")
 min_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MIN_SAMPLES")
 max_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_SAMPLES")
 min_improvement = config.getfloat("BAYESIAN_OPTIMIZER_SESSION", "MIN_IMPROVEMENT")
-sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
 num_workers = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_WORKERS_PER_SESSION")
 
 pd.set_option('display.width', 1000)  # widen the display
@@ -38,9 +39,10 @@ class SizingSession():
     __instance_lock = threading.Lock()
 
     def __init__(self, session_id):
-        self.pool = SessionWorkerPool(num_workers)
-
         self.session_id = session_id
+
+        # A single worker pool for this session
+        self.pool = SessionWorkerPool(num_workers)
         # Map for caching sample data throughout each sizing session
         self.sample_dataframe = None
         # Map for optimal perf_over_cost value from all samples evaluted
@@ -58,7 +60,7 @@ class SizingSession():
         # Generate initial samples if the sample_data field is empty (special case)
         if not sample_data or len(sample_data) == 0:
             assert self.available_nodetype_set is None,\
-                "The data field of the request_body can only be empty at the beginning of a session"
+                "Incoming sample_data can only be empty at the beginning of a session"
 
             try:
                 self.initialize_sizing_doc(app_name)
@@ -68,11 +70,14 @@ class SizingSession():
                                      error="Failed to create initial sizing document: " + str(e))
 
             # initialize with all available nodetype (defensive copy)
-            self.available_nodetype_set = set(
-                copy.deepcopy(get_all_nodetypes()).keys())
+            self.available_nodetype_set = set(copy.deepcopy(get_all_nodetypes()).keys())
             # draw inital samples
-            init_samples = SizingSession.generate_initial_samples()
-            return self.pool.submit_data(encode_nodetype, init_samples)
+            logger.debug(f"[{self.session_id}]Generating {num_init_samples} random initial samples")
+            functions = []
+            functions.append(
+                FuncArgs(SizingSession.generate_initial_samples, num_init_samples))
+            with self.__instance_lock:
+                return self.pool.submit_funcs(functions)
 
         # Pre-process sample data and remove unavailable nodetypes
         logger.debug(f"[{self.session_id}]Received non-empty sample data; preprocessing...")
@@ -81,11 +86,15 @@ class SizingSession():
         self.update_available_nodetype_set(unavailable_nodetypes)
 
         sample_data = list(filter(lambda d: d['qosValue'] != 0., sample_data))
-        if not sample_data:
+        if not sample_data or len(sample_data) == 0:
             logger.debug(
                 f"[{self.session_id}]All nodetypes suggested previously are unavailable; regenerating...")
-            random_samples = SizingSession.generate_initial_samples()
-            return self.pool.submit_data(encode_nodetype, random_samples)
+            functions = []
+            functions.append(
+                FuncArgs(SizingSession.generate_initial_samples, num_init_samples))
+            with self.__instance_lock:
+                return self.pool.submit_funcs(functions)
+
 
         # Update sample dataframe and check termination
         new_sample_dataframe = SizingSession.create_sample_dataframe(
@@ -96,11 +105,11 @@ class SizingSession():
         self.update_sample_dataframe(new_sample_dataframe)
         assert self.sample_dataframe is not None, "sample dataframe should not be empty"
         logger.debug(f"[{self.session_id}]All training samples evaluted:\n{self.sample_dataframe}")
-
         
         if self.check_termination():
             recommendations = self.compute_recommendations()
-            logger.info(f"[{self.session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
+            logger.info(
+                f"[{self.session_id}]Sizing analysis is done; final recommendations:\n{recommendations}")
             self.store_final_result(recommendations)
             #functions = []
             #functions.append(FuncArgs(self.store_final_result, recommendations))
@@ -123,26 +132,28 @@ class SizingSession():
                          constraint_arr=training_data.constraint_arr, \
                          constraint_upper=training_data.constraint_upper))
 
-        return self.pool.submit_funcs(functions)
+        with self.__instance_lock:
+            return self.pool.submit_funcs(functions)
 
     def get_status(self):
         """ The public method to get the state of current optimization jobs of a session.
         """
-
         status = self.pool.get_status()
         if status.status == Status.DONE:
             candidates = status.data
-            if not candidates:
+            if not candidates or len(candidates) == 0:
                 logger.debug(f"[{self.session_id}]No more candidate suggested.")
             else:
-                logger.debug(f"[{self.session_id}]New candidates suggested:\n{candidates}")
-                candidates = self.filter_candidates(
-                            [decode_nodetype(
-                                c, list(self.available_nodetype_set))
-                             for c in candidates if c is not None])
-                status.data = candidates
+                if type(candidates[0][0]) is str:
+                    # candidates are nodetypes
+                    status.data = candidates[0]
+                else:
+                    # candidates are feature vectors; need to be decoded into nodetypes
+                    status.data = self.filter_candidates(
+                        [decode_nodetype(c, list(self.available_nodetype_set))
+                            for c in candidates if c is not None])
+                logger.debug(f"[{self.session_id}]New candidates suggested:\n{status.data}")
         return status
-
 
     def update_available_nodetype_set(self, exclude_keys):
         with self.__instance_lock:
@@ -222,12 +233,13 @@ class SizingSession():
                     result.append(nodetype)
                     break
 
-        logger.debug(f"filtered candidates: {result}")
-        assert len(set(result)) == len(result)
+        logger.debug(f"[{self.session_id}]Filtered candidates: {result}")
+        assert len(set(result)) == len(result), "Filtered candidates cannot have duplicates"
         return result
 
+
     @staticmethod
-    def generate_initial_samples(init_samples=3):
+    def generate_initial_samples(num_samples):
         """ This method randomly select a 'instanceFamily',
             and randomly select a 'nodetype' from that family repeatly
         """
@@ -238,28 +250,22 @@ class SizingSession():
         assert '' not in instance_families, "instanceFamily shouldn't be empty"
         result = []
 
-        logger.debug("Generating random initial samples")
-        while init_samples > 0:
+        while num_samples > 0:
             family = np.random.choice(instance_families, 1)[0]
             if family in available:
                 nodetype = np.random.choice(
                     dataframe[dataframe['instanceFamily'] == family]['name'], 1)[0]
                 result.append(nodetype)
-                init_samples -= 1
+                num_samples -= 1
                 available.remove(family)
 
             # reset available when all families are visited
             if not available:
                 available = list(instance_families)
 
-        logger.debug(f"initial samples:\n{result}")
+        logger.debug(f"Generated {num_samples} random samples:\n{result}")
         return result
 
-    # @staticmethod
-    # def generate_initial_samples(init_samples=3):
-    #     dataframe = pd.DataFrame.from_dict(get_all_nodetypes()['data'])
-    #     result = np.random.choice(dataframe['name'], init_samples)
-    #     return result
     @staticmethod
     def make_optimizer_training_data(sample_dataframe, objective_type=None):
         """ Convert the objective and constraints such the optimizer can always:

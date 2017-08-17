@@ -34,7 +34,7 @@ class BayesianOptimizerPoolTest(TestCase):
         """ Initialization signal (empty data) send from client.
         """
         # Initialize
-        uuid = "hyperpilot-sizing-demo-4-horray"
+        uuid = "hyperpilot-sizing-demo-6-horray"
         request_body = {
             "appName": "redis",
             "data": []}
@@ -112,10 +112,10 @@ class BayesianOptimizerPoolTest(TestCase):
             "appName": "redis",
             "data": [
                 {"instanceType": "p2.xlarge",
-                 "qosValue": 200.
+                 "qosValue": 20000.
                  },
                 {"instanceType": "p2.8xlarge",
-                 "qosValue": 800.
+                 "qosValue": 80000.
                  }
             ]}
 
@@ -138,15 +138,6 @@ class BayesianOptimizerPoolTest(TestCase):
         candidates = [decode_nodetype(output, list(
             get_all_nodetypes().keys())) for output in outputs]
         logger.debug(candidates)
-
-    #REMOVED for now since BOP no longer has an instance method
-    #def testSingleton(self):
-    #    pool = ThreadPoolExecutor(40)
-    #    future_list = [pool.submit(BOP.instance) for i in range(100000)]
-    #    instances = [f.result() for f in future_list]
-    #    self.assertEqual(len(set(instances)), 1,
-    #                     "Only one instance should be created")
-    #    del pool
 
     def testUpdateSampleDataframe(self):
         session_id = 'hyper123'
