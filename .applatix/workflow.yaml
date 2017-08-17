@@ -1,0 +1,25 @@
+---
+type: workflow
+name: workflow
+description: deployer workflow
+inputs:
+  parameters:
+    commit:
+      default: "%%session.commit%%"
+    repo:
+      default: "%%session.repo%%"
+    docker_username:
+      default: "hyperpilotuser"
+    docker_password:
+      default: "hyper123"
+    version:
+      default: "test"
+steps:
+- checkout:
+    template: checkout
+-
+  publish:
+      template: publish
+      parameters:
+        code: "%%steps.checkout.code%%"
+        tag: "test"

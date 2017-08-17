@@ -1,0 +1,22 @@
+---
+type: container
+name: publish
+description: build docker image
+inputs:
+  parameters:
+    code:
+    version:
+    docker_username:
+    docker_password:
+    tag:
+  artifacts:
+  - from: "%%code%%"
+    path: "/src"
+container:
+  image: docker:1.12
+  command: "apk update && apk add make && \
+            cd /src && \
+            docker login -u %%docker_username%% -p %%docker_password%% && \
+            make docker-build TAG=%%tag%% && make docker-push TAG=%%tag%%"
+labels:
+    "ax_ea_docker_enable": '{ "graph-storage-name": "analyzer", "graph-storage-size": "10Gi", "cpu_cores":"0.5", "mem_mib":"800"}'
