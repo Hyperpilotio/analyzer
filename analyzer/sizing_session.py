@@ -107,10 +107,9 @@ class SizingSession():
 
 
         # Update sample dataframe and check termination
-        new_sample_dataframe = SizingSession.create_sample_dataframe(
-            app_name, sample_data)
+        new_sample_dataframe = SizingSession.create_sample_dataframe(app_name, sample_data)
         # Store the sizing run result to the database
-        self.store_sizing_run(new_sample_dataframe)
+        self.update_sizing_run(new_sample_dataframe)
         self.update_available_nodetype_set(new_sample_dataframe['nodetype'].values)
         self.update_sample_dataframe(new_sample_dataframe)
         assert self.sample_dataframe is not None, "sample dataframe should not be empty"
@@ -162,7 +161,10 @@ class SizingSession():
                     status.data = self.filter_candidates(
                         [decode_nodetype(c, list(self.available_nodetype_set))
                             for c in candidates if c is not None])
-                logger.debug(f"[{self.session_id}]New candidates suggested:\n{status.data}")
+                logger.debug(
+                    f"[{self.session_id}]New candidates suggested for the next sizing run:\n{status.data}")
+                self.store_sizing_run(status.data)
+
         return status
 
     def update_available_nodetype_set(self, exclude_keys):
@@ -462,8 +464,8 @@ class SizingSession():
         if result.matched_count > 0:
             logger.warning(f"Sizing document for session {self.session_id} already exists; overwritten")
 
-    def store_sizing_run(self, sample_dataframe):
-        """ This method stores the sample test results from each sizing run to the database.
+    def store_sizing_run(self, candidates):
+        """ This method stores the info of a new sizing run to the database.
         """
 
         session_filter = {'sessionId': self.session_id}
@@ -474,26 +476,67 @@ class SizingSession():
                 'Cannot find sizing document: filter={}'.format(session_filter))
 
         results = []
-
-        for i, sample in sample_dataframe.iterrows():
-            assert sample['cost'] > 0, "Non-positive cost value encountered."
-            result = {'nodetype': sample['nodetype'],
-                      'status': "done",
-                      'qosValue': sample['qos_value'],
-                      'cost': sample['cost'],
-                      'perfOverCost': sample['qos_value'] / sample['cost']
-                      }
+        for nodetype in candidates:
+            result = {'nodetype': nodetype,
+                      'status': "running"
+                     }
             results.append(result)
 
         sizing_runs = sizing_doc['sizingRuns']
-        sizing_run = {'run': len(sizing_runs) + 1,
-                      'samples': len(sample_dataframe.index),
-                      'results': results
-                      }
-        sizing_runs.append(sizing_run)
+        new_sizing_run = {'run': len(sizing_runs) + 1,
+                          'samples': len(candidates),
+                          'results': results
+                         }
+        sizing_runs.append(new_sizing_run)
         metricdb[sizing_collection].find_one_and_update(
             session_filter, {'$set': {'sizingRuns': sizing_runs, 'status': "running"}})
-        logger.info(f"[{self.session_id}]New sizing run results have been stored in the database\n{sizing_run}")
+        logger.debug(f"[{self.session_id}]New sizing run info is saved to the database:\n{new_sizing_run}")
+
+    def update_sizing_run(self, sample_dataframe):
+        """ This method stores the sample test results from the last sizing run to the database.
+        """
+
+        session_filter = {'sessionId': self.session_id}
+        sizing_doc = metricdb[sizing_collection].find_one(session_filter)
+        if sizing_doc is None:
+            logger.error(f"[{self.session_id}]Target sizing document cannot be found")
+            raise KeyError(
+                'Cannot find sizing document: filter={}'.format(session_filter))
+
+        sizing_runs = sizing_doc['sizingRuns']
+        last_sizing_run = sizing_runs[-1]
+        results = last_sizing_run['results']
+
+        for n, result in enumerate(results):
+            updated = False
+            for i, sample in sample_dataframe.iterrows():
+                if sample['nodetype'] == result['nodetype']:
+                    assert sample['cost'] > 0, "Non-positive cost value encountered."
+                    new_result = {'nodetype': sample['nodetype'],
+                                  'status': "done",
+                                  'qosValue': sample['qos_value'],
+                                  'cost': sample['cost'],
+                                  'perfOverCost': sample['qos_value'] / sample['cost']
+                                  }
+                    updated = True
+                    break
+            if not updated:
+                logger.debug(f"[{self.session_id}]No valid result came back for nodetype {result['nodetype']};\
+                     set all metrics to zero")
+                new_result = {'nodetype': result['nodetype'],
+                              'status': "done",
+                              'qosValue': 0.,
+                              'cost': 0.,
+                              'perfOverCost': 0.
+                              }
+            results[n] = new_result
+
+        last_sizing_run['results'] = results
+        sizing_runs[-1] = last_sizing_run
+        metricdb[sizing_collection].find_one_and_update(
+            session_filter, {'$set': {'sizingRuns': sizing_runs}})
+        logger.info(f"[{self.session_id}]Results from the last sizing run are stored in the database\
+            \n{last_sizing_run}")
 
     def store_final_result(self, recommendations):
         """ This method stores the final recommendations from the sizing session to the database.
