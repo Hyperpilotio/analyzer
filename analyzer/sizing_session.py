@@ -63,7 +63,7 @@ class SizingSession():
                 "Incoming sample_data can only be empty at the beginning of a session"
             # initialize with all available nodetypes (defensive copy)
             self.available_nodetype_set = set(copy.deepcopy(get_all_nodetypes()).keys())
-            
+
             # update available nodetypes with app container resource requests
             min_resources = get_resource_requests(app_name)
             excluded_nodetypes = []
@@ -73,7 +73,7 @@ class SizingSession():
                     excluded_nodetypes.append(nodetype_name)
             logger.debug(f"Nodetypes to be excluded due to insufficient resources: {excluded_nodetypes} ")
             self.update_available_nodetype_set(excluded_nodetypes)
-            
+
             try:
                 self.initialize_sizing_doc(app_name)
                 logger.info(f"[{self.session_id}] Initial sizing document created")
