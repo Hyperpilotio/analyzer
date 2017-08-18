@@ -12,9 +12,9 @@ from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
 from .session_worker_pool import FuncArgs, Status, SessionStatus, SessionWorkerPool
-from .util import (compute_cost, decode_nodetype, encode_nodetype,
-                   get_all_nodetypes, get_budget, get_feature_bounds,
-                   get_app_info, get_price, get_slo_type, get_slo_value)
+from .util import (get_all_nodetypes, compute_cost, decode_nodetype, encode_nodetype,
+                   get_app_info, get_slo_type, get_slo_value, get_price, get_budget,
+                   get_raw_features, get_feature_bounds, get_resource_requests)
 
 config = get_config()
 sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")
@@ -57,11 +57,23 @@ class SizingSession():
             sample_data(list): List of reported sample data per instance type
         """
 
-        # Generate initial samples if the sample_data field is empty (special case)
+        # Generate initial samples if the sample_data field is empty (only at the start of a session)
         if not sample_data or len(sample_data) == 0:
             assert self.available_nodetype_set is None,\
                 "Incoming sample_data can only be empty at the beginning of a session"
-
+            # initialize with all available nodetypes (defensive copy)
+            self.available_nodetype_set = set(copy.deepcopy(get_all_nodetypes()).keys())
+            
+            # update available nodetypes with app container resource requests
+            min_resources = get_resource_requests(app_name)
+            excluded_nodetypes = []
+            for nodetype_name in self.available_nodetype_set:
+                raw_features = get_raw_features(nodetype_name)
+                if raw_features[0] < min_resources['cpu'] or raw_features[2] < min_resources['mem']:
+                    excluded_nodetypes.append(nodetype_name)
+            logger.debug(f"Nodetypes to be excluded due to insufficient resources: {excluded_nodetypes} ")
+            self.update_available_nodetype_set(excluded_nodetypes)
+            
             try:
                 self.initialize_sizing_doc(app_name)
                 logger.info(f"[{self.session_id}] Initial sizing document created")
@@ -69,8 +81,6 @@ class SizingSession():
                 return SessionStatus(status=Status.SERVER_ERROR,
                                      error="Failed to create initial sizing document: " + str(e))
 
-            # initialize with all available nodetype (defensive copy)
-            self.available_nodetype_set = set(copy.deepcopy(get_all_nodetypes()).keys())
             # draw inital samples
             logger.debug(f"[{self.session_id}]Generating {num_init_samples} random initial samples")
             functions = []
@@ -263,7 +273,7 @@ class SizingSession():
             if not available:
                 available = list(instance_families)
 
-        logger.debug(f"Generated {num_samples} random samples:\n{result}")
+        logger.debug(f"Generated initial random samples:\n{result}")
         return result
 
     @staticmethod

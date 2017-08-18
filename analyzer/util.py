@@ -200,20 +200,19 @@ def get_resource_requests(app_name):
 
     # TODO: handle apps with multiple services
     service = app['serviceNames'][0]
-    tasks = app['taskDefinitions']
-    
+
     min_resources = {'cpu': 0., 'mem': 0.}
 
-    for task in tasks:
+    for task in app['taskDefinitions']:
         if task['nodeMapping']['task'] == service:
             container_spec =\
                 task['taskDefinition']['deployment']['spec']['template']['spec']['containers'][0]
             try:
                 resource_requests = container_spec['resources']['requests']
             except KeyError:
-                logger.debug(f"No resource requests for the container running {service_name}")
+                logger.debug(f"No resource requests for the container running {service}")
                 return min_resources
-            
+
             try:
                 cpu_request = resource_requests['cpu']
                 # conver cpu unit from millicores to number of vcpus
@@ -222,8 +221,8 @@ def get_resource_requests(app_name):
                 else:
                     min_resources['cpu'] = float(cpu_request)
             except KeyError:
-                logger.debug(f"No cpu request for the container running {service_name}")
-                
+                logger.debug(f"No cpu request for the container running {service}")
+
             try:
                 mem_request = resource_requests['memory']
                 # convert memory unit to GB
@@ -232,11 +231,11 @@ def get_resource_requests(app_name):
                 elif mem_request[-2:] == 'Mi':
                     min_resources['mem'] = float(mem_request[:len(mem_request)-2]) / 1024.
                 else:
-                    min_resources['mem'] = float(mem_request) / 1024. / 1024.               
+                    min_resources['mem'] = float(mem_request) / 1024. / 1024.
             except KeyError:
-                logger.debug(f"No memory request for the container running {service_name}")            
+                logger.debug(f"No memory request for the container running {service}")
 
-    logger.info(f"Found resource requests for app service {service_name}: {min_resources}")
+    logger.info(f"Found resource requests for app {app_name} service {service}: {min_resources}")
     return min_resources
 
 
