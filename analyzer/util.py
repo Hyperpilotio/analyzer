@@ -194,6 +194,52 @@ def get_budget(app_name):
     return budget
 
 
+# get from configdb the {cpu|mem} requests (i.e. min) for the app service container
+def get_resource_requests(app_name):
+    app = get_app_info(app_name)
+
+    # TODO: handle apps with multiple services
+    service = app['serviceNames'][0]
+    tasks = app['taskDefinitions']
+    
+    min_resources = {'cpu': 0., 'mem': 0.}
+
+    for task in tasks:
+        if task['nodeMapping']['task'] == service:
+            container_spec =\
+                task['taskDefinition']['deployment']['spec']['template']['spec']['containers'][0]
+            try:
+                resource_requests = container_spec['resources']['requests']
+            except KeyError:
+                logger.debug(f"No resource requests for the container running {service_name}")
+                return min_resources
+            
+            try:
+                cpu_request = resource_requests['cpu']
+                # conver cpu unit from millicores to number of vcpus
+                if cpu_request[-1] == 'm':
+                    min_resources['cpu'] = float(cpu_request[:len(cpu_request)-1]) / 1000.
+                else:
+                    min_resources['cpu'] = float(cpu_request)
+            except KeyError:
+                logger.debug(f"No cpu request for the container running {service_name}")
+                
+            try:
+                mem_request = resource_requests['memory']
+                # convert memory unit to GB
+                if mem_request[-1] == 'M':
+                    min_resources['mem'] = float(mem_request[:len(mem_request)-1]) / 1000.
+                elif mem_request[-2:] == 'Mi':
+                    min_resources['mem'] = float(mem_request[:len(mem_request)-2]) / 1024.
+                else:
+                    min_resources['mem'] = float(mem_request) / 1024. / 1024.               
+            except KeyError:
+                logger.debug(f"No memory request for the container running {service_name}")            
+
+    logger.info(f"Found resource requests for app service {service_name}: {min_resources}")
+    return min_resources
+
+
 # TODO: probably need to change to appId.
 def create_profiling_dataframe(app_name, collection='profiling'):
     """ Create a dataframe of features.
