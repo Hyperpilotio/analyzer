@@ -125,7 +125,7 @@ for i in range(niter):
 # print(candidates)
 
 
-# %% 
+# %%
 def target(x):
     return np.exp(-(x - 2)**2) + np.exp(-(x - 6)**2/10) + 1/ (x**2 + 1)
 

@@ -167,7 +167,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
         for i in range(100):
             samples = SizingSession.generate_initial_samples(
-                len(set(dataframe['instanceFamily'])))
+                len(set(dataframe['instanceFamily'])), get_all_nodetypes().keys())
             if len(samples) != len(set([nodetype_map[i] for i in samples])):
                 raise AssertionError(
                     "Initial samples coming from same instance families")

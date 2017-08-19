@@ -71,7 +71,7 @@ class SizingSession():
                 raw_features = get_raw_features(nodetype_name)
                 if raw_features[0] < min_resources['cpu'] or raw_features[2] < min_resources['mem']:
                     excluded_nodetypes.append(nodetype_name)
-            logger.debug(f"Nodetypes to be excluded due to insufficient resources: {excluded_nodetypes} ")
+            logger.debug(f"[{self.session_id}] Nodetypes to be excluded due to insufficient resources: {excluded_nodetypes} ")
             self.update_available_nodetype_set(excluded_nodetypes)
 
             try:
@@ -85,7 +85,7 @@ class SizingSession():
             logger.debug(f"[{self.session_id}]Generating {num_init_samples} random initial samples")
             functions = []
             functions.append(
-                FuncArgs(SizingSession.generate_initial_samples, num_init_samples))
+                FuncArgs(SizingSession.generate_initial_samples, num_init_samples, self.available_nodetype_set))
             with self.__instance_lock:
                 return self.pool.submit_funcs(functions)
 
@@ -101,7 +101,7 @@ class SizingSession():
                 f"[{self.session_id}]All nodetypes suggested previously are unavailable; regenerating...")
             functions = []
             functions.append(
-                FuncArgs(SizingSession.generate_initial_samples, num_init_samples))
+                FuncArgs(SizingSession.generate_initial_samples, num_init_samples, self.available_nodetype_set))
             with self.__instance_lock:
                 return self.pool.submit_funcs(functions)
 
@@ -114,7 +114,7 @@ class SizingSession():
         self.update_sample_dataframe(new_sample_dataframe)
         assert self.sample_dataframe is not None, "sample dataframe should not be empty"
         logger.debug(f"[{self.session_id}]All training samples evaluted:\n{self.sample_dataframe}")
-        
+
         if self.check_termination():
             recommendations = self.compute_recommendations()
             logger.info(
@@ -131,7 +131,7 @@ class SizingSession():
             training_data = SizingSession.make_optimizer_training_data(
                 self.sample_dataframe, obj)
             logger.debug(
-                f"[{self.session_id}]Dispatching optimizer with training data:\n{training_data}")           
+                f"[{self.session_id}]Dispatching optimizer with training data:\n{training_data}")
             functions.append(
                 FuncArgs(get_candidate, \
                          training_data.feature_mat, \
@@ -251,11 +251,18 @@ class SizingSession():
 
 
     @staticmethod
-    def generate_initial_samples(num_samples):
+    def generate_initial_samples(num_samples, available_nodetypes=None):
         """ This method randomly select a 'instanceFamily',
             and randomly select a 'nodetype' from that family repeatly
         """
-        dataframe = pd.DataFrame.from_dict(list(get_all_nodetypes().values()))
+        all_nodetypes = get_all_nodetypes()
+        node_values = []
+        if available_nodetypes:
+            for nodetype in available_nodetypes:
+                node_values.append(all_nodetypes[nodetype])
+        else:
+            node_values = list(all_nodetypes.values())
+        dataframe = pd.DataFrame.from_dict(node_values)
         instance_families = list(set(dataframe['instanceFamily']))
         available = list(instance_families)
         # check if there is any instance's instanceFamily field is empty string
@@ -462,7 +469,7 @@ class SizingSession():
         result = metricdb[sizing_collection].replace_one(
             session_filter, sizing_doc, True)
         if result.matched_count > 0:
-            logger.warning(f"Sizing document for session {self.session_id} already exists; overwritten")
+            logger.warning(f"[{self.session_id}] Sizing document for session {self.session_id} already exists; overwritten")
 
     def store_sizing_run(self, candidates):
         """ This method stores the info of a new sizing run to the database.
