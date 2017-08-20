@@ -5,7 +5,6 @@ import threading
 import numpy as np
 import pandas as pd
 import copy
-from itertools import filterfalse, tee
 
 from api_service.db import metricdb
 from config import get_config
@@ -32,10 +31,6 @@ np.set_printoptions(precision=3)
 logger = get_logger(__name__, log_level=(
     "BAYESIAN_OPTIMIZER_SESSION", "LOGLEVEL"))
 
-def partition(pred, iterable):
-    t1, t2 = tee(iterable)
-    return list(filterfalse(pred, t1)), list(filter(pred, t2))
-
 
 class SizingSession():
     """ This class manages the training samples in a single sizing session,
@@ -55,43 +50,6 @@ class SizingSession():
         # Map for caching all the available nodetypes for each session
         self.available_nodetype_set = None
 
-    def get_initial_candidates(self, app_name):
-        assert self.available_nodetype_set is None,\
-                "Incoming sample_data can only be empty at the beginning of a session"
-        self.app_name = app_name
-        self.slo_value = get_slo_value(app_name)
-        self.slo_type = get_slo_type(app_name)
-        self.budget = get_budget(app_name)
-
-        # initialize with all available nodetypes (defensive copy)
-        self.available_nodetype_set = set(copy.deepcopy(get_all_nodetypes()).keys())
-
-        # update available nodetypes with app container resource requests
-        min_resources = get_resource_requests(app_name)
-        excluded_nodetypes = []
-        for nodetype_name in self.available_nodetype_set:
-            raw_features = get_raw_features(nodetype_name)
-            if raw_features[0] < min_resources['cpu'] or raw_features[2] < min_resources['mem']:
-                excluded_nodetypes.append(nodetype_name)
-                logger.debug(f"[{self.session_id}] Nodetypes to be excluded due to insufficient resources: {excluded_nodetypes} ")
-        if len(excluded_nodetypes) > 0:
-            self.update_available_nodetype_set(excluded_nodetypes)
-
-        try:
-            self.initialize_sizing_doc(app_name)
-            logger.info(f"[{self.session_id}] Initial sizing document created")
-        except Exception as e:
-            return SessionStatus(status=Status.SERVER_ERROR,
-                                 error="Failed to create initial sizing document: " + str(e))
-
-        # draw inital samples
-        logger.debug(f"[{self.session_id}]Generating {num_init_samples} random initial samples")
-        functions = []
-        functions.append(
-            FuncArgs(SizingSession.generate_initial_samples, num_init_samples, self.available_nodetype_set))
-        with self.__instance_lock:
-            return self.pool.submit_funcs(functions)
-
     def get_candidates(self, app_name, sample_data):
         """ The public method to asychronously start the jobs for generating candidates.
         Args:
@@ -101,13 +59,43 @@ class SizingSession():
 
         # Generate initial samples if the sample_data field is empty (only at the start of a session)
         if not sample_data or len(sample_data) == 0:
-            return self.get_initial_candidates(app_name)
+            assert self.available_nodetype_set is None,\
+                "Incoming sample_data can only be empty at the beginning of a session"
+            # initialize with all available nodetypes (defensive copy)
+            self.available_nodetype_set = set(copy.deepcopy(get_all_nodetypes()).keys())
+
+            # update available nodetypes with app container resource requests
+            min_resources = get_resource_requests(app_name)
+            excluded_nodetypes = []
+            for nodetype_name in self.available_nodetype_set:
+                raw_features = get_raw_features(nodetype_name)
+                if raw_features[0] < min_resources['cpu'] or raw_features[2] < min_resources['mem']:
+                    excluded_nodetypes.append(nodetype_name)
+            logger.debug(f"[{self.session_id}] Nodetypes to be excluded due to insufficient resources: {excluded_nodetypes} ")
+            self.update_available_nodetype_set(excluded_nodetypes)
+
+            try:
+                self.initialize_sizing_doc(app_name)
+                logger.info(f"[{self.session_id}] Initial sizing document created")
+            except Exception as e:
+                return SessionStatus(status=Status.SERVER_ERROR,
+                                     error="Failed to create initial sizing document: " + str(e))
+
+            # draw inital samples
+            logger.debug(f"[{self.session_id}]Generating {num_init_samples} random initial samples")
+            functions = []
+            functions.append(
+                FuncArgs(SizingSession.generate_initial_samples, num_init_samples, self.available_nodetype_set))
+            with self.__instance_lock:
+                return self.pool.submit_funcs(functions)
 
         # Pre-process sample data and remove unavailable nodetypes
         logger.debug(f"[{self.session_id}]Received non-empty sample data; preprocessing...")
-        sample_data, unavailable = partition(lambda d: d['qosValue'] == 0. or d['qosValue'] < self.slo_value, sample_data)
-        unavailable_nodetypes = [i['instanceType'] for i in unavailable]
+        unavailable_nodetypes = [i['instanceType'] for i in
+                                 filter(lambda d: d['qosValue'] == 0., sample_data)]
         self.update_available_nodetype_set(unavailable_nodetypes)
+
+        sample_data = list(filter(lambda d: d['qosValue'] != 0., sample_data))
         if not sample_data or len(sample_data) == 0:
             logger.debug(
                 f"[{self.session_id}]All nodetypes suggested previously are unavailable; regenerating...")
@@ -117,9 +105,9 @@ class SizingSession():
             with self.__instance_lock:
                 return self.pool.submit_funcs(functions)
 
+
         # Update sample dataframe and check termination
-        new_sample_dataframe = SizingSession.create_sample_dataframe(
-            app_name, self.slo_type, self.slo_value, self.budget, sample_data)
+        new_sample_dataframe = SizingSession.create_sample_dataframe(app_name, sample_data)
         # Store the sizing run result to the database
         self.update_sizing_run(new_sample_dataframe)
         self.update_available_nodetype_set(new_sample_dataframe['nodetype'].values)
@@ -372,7 +360,7 @@ class SizingSession():
             raise UserWarning("Unexpected error")
 
     @staticmethod
-    def create_sample_dataframe(app_name, slo_type, slo_value, budget, sample_data):
+    def create_sample_dataframe(app_name, sample_data):
         """ Convert input sample data to dataframe of training samples.
         Args:
             app_name(str): Name of the target application
@@ -380,6 +368,7 @@ class SizingSession():
         Returns:
                 dfs(dataframe): sample data organized in dataframe
         """
+        slo_type = get_slo_type(app_name)
         assert slo_type in ['throughput', 'latency'], \
             f'slo type should be either throughput or latency, but got {slo_type}'
 
@@ -393,8 +382,8 @@ class SizingSession():
                                'nodetype': [nodetype],
                                'feature': [encode_nodetype(nodetype)],
                                'cost': [compute_cost(get_price(nodetype), slo_type, qos_value)],
-                               'slo_value': [slo_value],
-                               'budget': [budget]})
+                               'slo_value': [get_slo_value(app_name)],
+                               'budget': [get_budget(app_name)]})
             dfs.append(df)
         assert dfs, f'dataframe is not created for sample_data:\n{sample_data}'
 
