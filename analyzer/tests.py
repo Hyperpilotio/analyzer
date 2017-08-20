@@ -120,7 +120,7 @@ class BayesianOptimizerPoolTest(TestCase):
             ]}
 
         session_id = "hyperpilot-sizing-demo-4-horray"
-        df = SizingSession.create_sample_dataframe(request_body['appName'], request_body['data'])
+        df = SizingSession.create_sample_dataframe(request_body['appName'], "throughput", 2000, 3000, request_body['data'])
         training_data_list = [SizingSession.make_optimizer_training_data(df, objective_type=o)
                               for o in ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']]
 
