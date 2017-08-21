@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4ddcba9b0da5f6c43b0ac6a99ded15c740c6eafc70e0b3ae52d8a4683528bf99"
+            "sha256": "1f7ba078321727a35bf5de980e29c525ab7e883e6a5f971c4ad3a077d062884e"
         },
         "requires": {
             "python_full_version": "3.6.1",
@@ -15,6 +15,9 @@
         ]
     },
     "default": {
+        "bayesian-optimization": {
+            "version": "==0.4.0"
+        },
         "click": {
             "version": "==6.7"
         },
@@ -46,7 +49,7 @@
             "version": "==0.20.3"
         },
         "pymongo": {
-            "version": "==3.4.0"
+            "version": "==3.5.0"
         },
         "python-dateutil": {
             "version": "==2.6.1"
@@ -55,7 +58,7 @@
             "version": "==2017.2"
         },
         "scikit-learn": {
-            "version": "==0.18.2"
+            "version": "==0.19.0"
         },
         "scipy": {
             "version": "==0.19.1"
