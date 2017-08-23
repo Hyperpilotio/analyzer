@@ -23,6 +23,8 @@ min_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MIN_SAMPLES")
 max_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_SAMPLES")
 min_improvement = config.getfloat("BAYESIAN_OPTIMIZER_SESSION", "MIN_IMPROVEMENT")
 num_workers = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_WORKERS_PER_SESSION")
+BO_objectives = ['perf_over_cost']
+#BO_objectives = ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']
 
 pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
@@ -128,11 +130,11 @@ class SizingSession():
 
         # Dispatch the optimizers for multiple objective functions in parallel
         functions = []
-        for obj in ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']:
+        for obj in BO_objectives:
             training_data = SizingSession.make_optimizer_training_data(
                 self.sample_dataframe, obj)
             logger.debug(
-                f"[{self.session_id}]Dispatching optimizer with training data:\n{training_data}")
+                f"[{self.session_id}] Dispatching optimizer with training data:\n{training_data}")
             functions.append(
                 FuncArgs(get_candidate, \
                          training_data.feature_mat, \
@@ -152,18 +154,22 @@ class SizingSession():
         if status.status == Status.DONE:
             candidates = status.data
             if not candidates or len(candidates) == 0:
-                logger.debug(f"[{self.session_id}]No more candidate suggested.")
+                logger.debug(f"[{self.session_id}] No more candidate suggested.")
             else:
                 if type(candidates[0][0]) is str:
                     # candidates are nodetypes
                     status.data = candidates[0]
+                    # TESTING: Return only the first candidate
+                    #status.data = [candidates[0][0]]
                 else:
                     # candidates are feature vectors; need to be decoded into nodetypes
+                    # TESTING: Return only the first candidate
+                    #candidates = [candidates[0]]
                     status.data = self.filter_candidates(
                         [decode_nodetype(c, list(self.available_nodetype_set))
                             for c in candidates if c is not None])
                 logger.debug(
-                    f"[{self.session_id}]New candidates suggested for the next sizing run:\n{status.data}")
+                    f"[{self.session_id}] New candidates suggested for the next sizing run: {status.data}")
                 self.store_sizing_run(status.data)
 
         return status
@@ -184,10 +190,10 @@ class SizingSession():
                 intersection = set(new_sample_dataframe['nodetype']).intersection(
                     set(curr_sample_dataframe['nodetype']))
                 if intersection:
-                    logger.warning(f"[{self.session_id}]Duplicated samples were sent from the client")
-                    logger.warning(f"[{self.session_id}]new samples:\n\
+                    logger.warning(f"[{self.session_id}] Duplicated samples were sent from the client")
+                    logger.warning(f"[{self.session_id}]  new samples:\n\
                         {new_sample_dataframe}\ncurrent samples:\n{curr_sample_dataframe}")
-                    logger.warning(f"[{self.session_id}]intersection: {intersection}")
+                    logger.warning(f"[{self.session_id}]  intersection: {intersection}")
 
             self.sample_dataframe = pd.concat(
                 [curr_sample_dataframe, new_sample_dataframe])
@@ -246,7 +252,7 @@ class SizingSession():
                     result.append(nodetype)
                     break
 
-        logger.debug(f"[{self.session_id}]Filtered candidates: {result}")
+        logger.debug(f"[{self.session_id}] Filtered candidates: {result}")
         assert len(set(result)) == len(result), "Filtered candidates cannot have duplicates"
         return result
 
@@ -505,7 +511,7 @@ class SizingSession():
         sizing_runs.append(new_sizing_run)
         metricdb[sizing_collection].find_one_and_update(
             session_filter, {'$set': {'sizingRuns': sizing_runs, 'status': "running"}})
-        logger.debug(f"[{self.session_id}]New sizing run info is saved to the database:\n{new_sizing_run}")
+        logger.debug(f"[{self.session_id}] New sizing run info is saved to the database:\n{new_sizing_run}")
 
     def update_sizing_run(self, sample_dataframe):
         """ This method stores the sample test results from the last sizing run to the database.
@@ -514,7 +520,7 @@ class SizingSession():
         session_filter = {'sessionId': self.session_id}
         sizing_doc = metricdb[sizing_collection].find_one(session_filter)
         if sizing_doc is None:
-            logger.error(f"[{self.session_id}]Target sizing document cannot be found")
+            logger.error(f"[{self.session_id}] Target sizing document cannot be found")
             raise KeyError(
                 'Cannot find sizing document: filter={}'.format(session_filter))
 
@@ -536,7 +542,7 @@ class SizingSession():
                     updated = True
                     break
             if not updated:
-                logger.debug(f"[{self.session_id}]No valid result came back for nodetype {result['nodetype']};\
+                logger.debug(f"[{self.session_id}] No valid result came back for nodetype {result['nodetype']};\
                      set all metrics to zero")
                 new_result = {'nodetype': result['nodetype'],
                               'status': "done",
@@ -549,7 +555,7 @@ class SizingSession():
         last_sizing_run['results'] = results
         metricdb[sizing_collection].find_one_and_update(
             session_filter, {'$set': {'sizingRuns': sizing_runs}})
-        logger.info(f"[{self.session_id}]Results from the last sizing run are stored in the database\
+        logger.info(f"[{self.session_id}] Results from the last sizing run are stored in the database\
             \n{last_sizing_run}")
 
     def store_final_result(self, recommendations):
@@ -563,9 +569,9 @@ class SizingSession():
             session_filter, {'$set': {"status": "complete", 'recommendations': recommendations}})
 
         if sizing_doc is None:
-            logger.error(f"[{self.session_id}]Target sizing document cannot be found")
+            logger.error(f"[{self.session_id}] Target sizing document cannot be found")
             raise KeyError(
                 'Cannot find sizing document: filter={}'.format(session_filter))
-        logger.info(f"[{self.session_id}]Final recommendations have been stored in the database")
+        logger.info(f"[{self.session_id}] Final recommendations have been stored in the database")
 
         return None
