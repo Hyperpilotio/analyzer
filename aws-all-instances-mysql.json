@@ -1,0 +1,240 @@
+{
+  "_id": "599c0018affb276e54ecaa78",
+  "runId": "awssizing-dd7b0941-2cbc-462f-43a3-88bcbe3f4d32",
+  "duration": "4h38m38.388999421s",
+  "appName": "mysql",
+  "testResult": {
+    "g3.8xlarge": {
+      "state": "Finished",
+      "qosValue": 15881.333333333334
+    },
+    "c3.large": {
+      "state": "Finished",
+      "qosValue": 5480.666666666667
+    },
+    "i3.16xlarge": {
+      "state": "Finished",
+      "qosValue": 14883.666666666666
+    },
+    "m4.xlarge": {
+      "state": "Finished",
+      "qosValue": 10637.166666666666
+    },
+    "r4.8xlarge": {
+      "state": "Finished",
+      "qosValue": 15073.166666666666
+    },
+    "d2.8xlarge": {
+      "state": "Finished",
+      "qosValue": 14341.166666666666
+    },
+    "g3.16xlarge": {
+      "state": "Finished",
+      "qosValue": 15184.333333333334
+    },
+    "m4.16xlarge": {
+      "state": "Finished",
+      "qosValue": 14961.666666666666
+    },
+    "d2.2xlarge": {
+      "state": "Finished",
+      "qosValue": 14866
+    },
+    "i3.2xlarge": {
+      "state": "Finished",
+      "qosValue": 14017.166666666666
+    },
+    "r3.4xlarge": {
+      "state": "Finished",
+      "qosValue": 15565.166666666666
+    },
+    "t2.large": {
+      "state": "Finished",
+      "qosValue": 6566
+    },
+    "c4.large": {
+      "state": "Finished",
+      "qosValue": 6723.5
+    },
+    "m4.10xlarge": {
+      "state": "Finished",
+      "qosValue": 13026
+    },
+    "c3.4xlarge": {
+      "state": "Finished",
+      "qosValue": 16609.833333333332
+    },
+    "t2.medium": {
+      "state": "Finished",
+      "qosValue": 8643.833333333334
+    },
+    "f1.16xlarge": {
+      "state": "Finished",
+      "qosValue": 14073.333333333334
+    },
+    "i3.4xlarge": {
+      "state": "Finished",
+      "qosValue": 15602.5
+    },
+    "m4.large": {
+      "state": "Finished",
+      "qosValue": 6141.166666666667
+    },
+    "r3.large": {
+      "state": "Finished",
+      "qosValue": 5099.833333333333
+    },
+    "c3.2xlarge": {
+      "state": "Finished",
+      "qosValue": 13842.666666666666
+    },
+    "c3.xlarge": {
+      "state": "Finished",
+      "qosValue": 9948.833333333334
+    },
+    "r4.xlarge": {
+      "state": "Finished",
+      "qosValue": 10602.333333333334
+    },
+    "r4.2xlarge": {
+      "state": "Finished",
+      "qosValue": 15003.333333333334
+    },
+    "t2.xlarge": {
+      "state": "Finished",
+      "qosValue": 12616
+    },
+    "x1.16xlarge": {
+      "state": "Finished",
+      "qosValue": 14444.833333333334
+    },
+    "g3.4xlarge": {
+      "state": "Finished",
+      "qosValue": 14675.833333333334
+    },
+    "i3.large": {
+      "state": "Finished",
+      "qosValue": 5934.166666666667
+    },
+    "i3.xlarge": {
+      "state": "Finished",
+      "qosValue": 9906
+    },
+    "m3.large": {
+      "state": "Finished",
+      "qosValue": 5299
+    },
+    "p2.xlarge": {
+      "state": "Finished",
+      "qosValue": 10017
+    },
+    "t2.small": {
+      "state": "Finished",
+      "qosValue": 4661.67
+    },
+    "c4.4xlarge": {
+      "state": "Finished",
+      "qosValue": 16861.833333333332
+    },
+    "d2.4xlarge": {
+      "state": "Finished",
+      "qosValue": 14912.833333333334
+    },
+    "m3.2xlarge": {
+      "state": "Finished",
+      "qosValue": 12488.5
+    },
+    "m3.medium": {
+      "state": "Finished",
+      "qosValue": 1975.5
+    },
+    "x1.32xlarge": {
+      "state": "Finished",
+      "qosValue": 13202.5
+    },
+    "f1.2xlarge": {
+      "state": "Finished",
+      "qosValue": 13708.166666666666
+    },
+    "i3.8xlarge": {
+      "state": "Finished",
+      "qosValue": 15884.5
+    },
+    "m4.2xlarge": {
+      "state": "Finished",
+      "qosValue": 14567.666666666666
+    },
+    "p2.8xlarge": {
+      "state": "Finished",
+      "qosValue": 16165.333333333334
+    },
+    "p2.16xlarge": {
+      "state": "Finished",
+      "qosValue": 15809.333333333334
+    },
+    "r3.2xlarge": {
+      "state": "Finished",
+      "qosValue": 12434.5
+    },
+    "c4.8xlarge": {
+      "state": "Finished",
+      "qosValue": 13524.833333333334
+    },
+    "c4.xlarge": {
+      "state": "Finished",
+      "qosValue": 10993
+    },
+    "d2.xlarge": {
+      "state": "Finished",
+      "qosValue": 10154.333333333334
+    },
+    "m4.4xlarge": {
+      "state": "Finished",
+      "qosValue": 15466.5
+    },
+    "r3.xlarge": {
+      "state": "Finished",
+      "qosValue": 8991.5
+    },
+    "r4.4xlarge": {
+      "state": "Finished",
+      "qosValue": 15022.5
+    },
+    "c3.8xlarge": {
+      "state": "Finished",
+      "qosValue": 16035.666666666666
+    },
+    "c4.2xlarge": {
+      "state": "Finished",
+      "qosValue": 15160.5
+    },
+    "m3.xlarge": {
+      "state": "Finished",
+      "qosValue": 6364.666666666667
+    },
+    "r3.8xlarge": {
+      "state": "Finished",
+      "qosValue": 15283
+    },
+    "r4.16xlarge": {
+      "state": "Finished",
+      "qosValue": 13979.666666666666
+    },
+    "r4.large": {
+      "state": "Finished",
+      "qosValue": 6203.333333333333
+    },
+    "t2.2xlarge": {
+      "state": "Finished",
+      "qosValue": 16721.5
+    },
+    "t2.nano": {
+      "state": "Finished",
+      "qosValue": 0.0
+    },
+    "t2.micro": {
+      "state": "Finished",
+      "qosValue": 0.0
+    }
+  }
+}

@@ -22,9 +22,8 @@ num_init_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "INIT_SAMPLES")
 min_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MIN_SAMPLES")
 max_samples = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_SAMPLES")
 min_improvement = config.getfloat("BAYESIAN_OPTIMIZER_SESSION", "MIN_IMPROVEMENT")
+BO_objectives = config.get("BAYESIAN_OPTIMIZER_SESSION", "BO_OBJECTIVES").split(',')
 num_workers = config.getint("BAYESIAN_OPTIMIZER_SESSION", "MAX_WORKERS_PER_SESSION")
-BO_objectives = ['perf_over_cost']
-#BO_objectives = ['perf_over_cost', 'cost_given_perf_limit', 'perf_given_cost_limit']
 
 pd.set_option('display.width', 1000)  # widen the display
 np.set_printoptions(precision=3)
@@ -130,11 +129,12 @@ class SizingSession():
 
         # Dispatch the optimizers for multiple objective functions in parallel
         functions = []
+        logger.debug(f"Objective functions used: {BO_objectives}")
         for obj in BO_objectives:
             training_data = SizingSession.make_optimizer_training_data(
                 self.sample_dataframe, obj)
-            logger.debug(
-                f"[{self.session_id}] Dispatching optimizer with training data:\n{training_data}")
+            logger.debug(f"[{self.session_id}] Dispatching optimizer for objective {obj} \
+                with training data:\n{training_data}")
             functions.append(
                 FuncArgs(get_candidate, \
                          training_data.feature_mat, \

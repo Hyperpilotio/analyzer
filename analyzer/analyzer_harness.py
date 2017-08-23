@@ -26,6 +26,19 @@ from . import bayesian_optimizer_pool
 features = {}
 cloud = None
 
+class AwsPerf(object):
+  """ A class for real performance data collected from AWS
+  """
+
+  def __init__(self, perf_file):
+    """ initialize perf map from the result data json file
+    """
+    self.perf_file = perf_file
+    with open(perf_file) as json_data:
+        data = json.load(json_data)
+    self.perf_map = data['testResult']
+
+
 class CloudPerf(object):
   """ A class for a cloud performance model
   """
@@ -67,6 +80,7 @@ class CloudPerf(object):
     self.noise = noise
     self.nrange = nrange
     self.base = base
+
     # some sanity checks
     if (vcpu_w + clk_w + mem_w + net_w + io_w) != 1.0:
       print("ERROR: Performance weights should sum to 1.0")
@@ -83,7 +97,6 @@ class CloudPerf(object):
     if io_a == 0 and io_b == 0 and io_c == 0 and io_w != 0:
       print("ERROR: IO performance parameters are all 0")
       sys.exit()
-
 
   def vcpu_model(self, vcpu):
     """ a vcpu based performance model.
@@ -153,20 +166,26 @@ def str2bool(v):
   else:
     raise argparse.ArgumentTypeError('Boolean value expected.')
 
+
 def nodeinfo(nodetype):
   """ returns a string with all the node info
   """
   global features
   global cloud
+  global model
   if nodetype == "none":
     return "perf %10.2f, price %5.3f, cost %7.2f, perf/cost %10.2f" \
          %(0.0, 0.0, 0.0, 0.0)
   feat = features[nodetype]
-  perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
+  if model == 'aws': # use real data from aws
+    perf = aws_data.perf_map[nodetype]['qosValue']
+  else: # use CloudPerf model instead
+    perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
   price = util.get_price(nodetype)
   cost = util.compute_cost(price, 'throughput', perf)
   return "perf %10.2f, price %5.3f, cost %7.2f, perf/cost %10.2f" \
          %(perf, price, cost, perf/cost)
+
 
 def __main__():
   """ Main function of analyzer harness
@@ -180,6 +199,7 @@ def __main__():
   parser.add_argument("-i", "--iter", type=int, required=False, default=10, help="maximum iterations")
   parser.add_argument("-n", "--noise", type=str2bool, required=False, default=True, help="add noise to cloud performance")
   parser.add_argument("-r", "--nrange", type=int, required=False, default=10, help="noise range (int)")
+  parser.add_argument("-m", "--model", type=str, required=False, default="aws", help="perf model used (aws or cloud)")
   parser.add_argument("-va", "-vcpua", type=float, required=False, default=1.0, help="vcpu a")
   parser.add_argument("-vb", "-vcpub", type=float, required=False, default=0.0, help="vcpu b")
   parser.add_argument("-vc", "-vcpuc", type=float, required=False, default=0.0, help="vcpu c")
@@ -205,9 +225,9 @@ def __main__():
 
   # initialyze analyzer
   analyzer = bayesian_optimizer_pool.BayesianOptimizerPool()
-  request_str = "{\"appName\": \"redis\", \"data\": [ ]}"
+  request_str = "{\"appName\": \"mysql\", \"data\": [ ]}"
   request_dict = json.loads(request_str)
-  session_id = "hyperpilot-sizing-demo-5-horray"
+  session_id = "hyperpilot-sizing-demo-1-horray"
   analyzer.get_candidates(session_id, request_dict)
   print("...Initialized analyzer")
   bounds = util.get_feature_bounds(normalized=False)
@@ -229,17 +249,26 @@ def __main__():
   # initialize performance model
   global cloud
   global features
+  global aws_data
+  global model
   cloud = CloudPerf(args.va, args.vb, args.vc, args.vw, max_v, \
                     args.ca, args.cb, args.cc, args.cw, max_c, \
                     args.ma, args.mb, args.mc, args.mw, max_m, \
                     args.na, args.nb, args.nc, args.nw, max_n, \
                     args.ia, args.ib, args.ic, args.iw, max_i, \
                     args.b, args.noise, args.nrange)
+
+  model = args.model
+  if model == 'aws':
+    print("Read app perf data for all aws instances from a json file")
+    perf_file = "aws-all-instances-mysql.json"
+    aws_data = AwsPerf(perf_file)
+
   print("Running analyzer harness with following parameters:")
   print(args)
   print()
 
-  # get all the instance info
+  # build feature map for all the instances types
   all_nodetypes = list(util.get_all_nodetypes().values())
   numtypes = len(all_nodetypes)
   if numtypes < args.iter*3:
@@ -257,7 +286,7 @@ def __main__():
   visited = set()
   print("...Got information for %d instance types" %numtypes)
 
-  #main loop
+  # main loop
   for i in range(args.iter):
     print("...Iteration %d out of %d" %(i, args.iter))
     # check if done
@@ -277,13 +306,17 @@ def __main__():
     if len(status_dict["data"]) == 0:
       print("...Terminating due to empty reply")
       break
+
     # prepare next candidates
-    request_str = "{\"appName\": \"redis\", \"data\": [ "
+    request_str = "{\"appName\": \"mysql\", \"data\": [ "
     count = 0
     for nodetype in status_dict["data"]:
       count += 1
       feat = features[nodetype]
-      perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], True)
+      if model == 'aws': # use real data from aws
+          perf = aws_data.perf_map[nodetype]['qosValue']
+      else: # use CloudPerf model instead
+          perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], args.noise)
       request_str += "{\"instanceType\": \"%s\", \"qosValue\": %f}" %(nodetype, perf)
       if count < len(status_dict["data"]):
         request_str += ", "
@@ -304,26 +337,36 @@ def __main__():
     time.sleep(1)
 
   # evaluate results
-  slo = float(util.get_slo_value("redis"))
-  budget = float(util.get_budget("redis"))
+  slo = float(util.get_slo_value("mysql"))
+  budget = float(util.get_budget("mysql"))
 
   optPC = {}
   optP = {}
   optC = {}
-  for key in features:
-    feat = features[key]
-    perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], False)
-    price = util.get_price(key)
+  #alltypes = {}
+  for nodetype in features:
+    feat = features[nodetype]
+    if model == 'aws': # use real data from aws
+      perf = aws_data.perf_map[nodetype]['qosValue']
+    else: # use CloudPerf model instead
+      perf = cloud.perf(feat[0], feat[1], feat[2], feat[3], feat[4], noise)
+
+    price = util.get_price(nodetype)
     cost = util.compute_cost(price, 'throughput', perf)
-    optPC[key] = perf/cost
+    optPC[nodetype] = perf/cost
     if cost <= budget:
-      optP[key] = perf
+      optP[nodetype] = perf
     if perf >= slo:
-      optC[key] = cost
+      optC[nodetype] = cost
+    #alltypes[nodetype] = [cost, perf, perf/cost]
 
   sorted_optPC = sorted(optPC.items(), key=operator.itemgetter(1), reverse=True)
   sorted_optP = sorted(optP.items(), key=operator.itemgetter(1), reverse=True)
   sorted_optC = sorted(optC.items(), key=operator.itemgetter(1), reverse=False)
+
+  #alltypes_sorted = sorted(alltypes.items(), key=operator.itemgetter(1), reverse=False)
+  #with open('aws-all-instances-sorted.json', 'w') as fp:
+  #  json.dump(alltypes_sorted, fp)
 
   # print results
   print("")
