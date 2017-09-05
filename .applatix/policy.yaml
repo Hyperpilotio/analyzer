@@ -1,0 +1,22 @@
+---
+type: policy
+name: analyzer_build_policy
+description: Trigger workflow on master branch changes
+template: workflow
+notifications:
+  -
+    when:
+      - on_success
+      - on_failure
+    whom:
+      - committer
+      - author
+when:
+  -
+    event: on_push
+    target_branches:
+      - "master"
+      - "autoBuild"
+labels:
+  milestone: build
+  version: 1.0.0

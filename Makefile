@@ -1,6 +1,7 @@
 .PHONY : init test docker-build docker-run
 
 ANALYZER_IMAGE ?= hyperpilot/analyzer
+TAG ?= latest
 SLO_CONFIG_IMAGE ?= hyperpilot/analyzer:config
 
 PYTHON = python3
@@ -41,7 +42,7 @@ dev:
 dev-py: dev
 
 docker-build:
-	docker build -t $(ANALYZER_IMAGE) .
+	docker build --no-cache -t $(ANALYZER_IMAGE):${TAG} .
 
 docker-run: PORT ?= 5000
 docker-run:
@@ -51,10 +52,13 @@ docker-rm:
 	docker rm -f $(shell docker ps -a -q --filter ancestor=$(ANALYZER_IMAGE))
 
 docker-test:
-	docker run -it $(ANALYZER_IMAGE) pipenv run python -m unittest
+	docker run -it $(ANALYZER_IMAGE):${TAG} pipenv run python -m unittest
+
+docker-push:
+	docker push $(ANALYZER_IMAGE):${TAG}
 
 build-slo-form:
-	docker build -t $(SLO_CONFIG_IMAGE) -f slo_config/Dockerfile .
+	docker build --no-cache -t $(SLO_CONFIG_IMAGE):${TAG} -f slo_config/Dockerfile .
 
 run-slo-form: PORT ?= 5000
 run-slo-form:
