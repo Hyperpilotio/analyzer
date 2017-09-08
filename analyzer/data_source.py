@@ -65,11 +65,9 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
     previous_item_time = 0
 
     for tag in rs_app.items():
-
         # iterate per data point
         print "scanning..."
         for data_point in tag[GENERATOR_IDX]:
-
             line = []
             item_time = data_point['time']
 
@@ -80,12 +78,11 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
                 key_list = [
                     key for key in keys
                     if key["measurement"] == measurement_data["key"]]
-                if len(key) == 0:
+                if len(key_list) == 0:
                     continue
 
                 while True:
                     current_data = measurement_data['currentData']
-
                     measurement_data['currentData'] = next(measurement_data['generator'], None)
 
                     if current_data is None:
@@ -104,8 +101,7 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
                     line.append('%d:%f' % (key_list[0]['id'], mean(values)))
 
             if len(line) > 0:
-                line.append(str(data_point['value']))
-                print line
+                line = [str(data_point['value'])] + line
                 data.append(" ".join(line))
             proceedRecords += 1
             previous_item_time = item_time
