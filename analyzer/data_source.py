@@ -70,6 +70,9 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
         for data_point in tag[GENERATOR_IDX]:
             line = []
             item_time = data_point['time']
+            if previous_item_time == 0:
+                item_time = previous_item_time
+                continue
 
             print datetime.fromtimestamp(item_time)
 
