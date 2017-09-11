@@ -6,7 +6,22 @@ import json
 
 GROUP_IDX = 0
 GENERATOR_IDX = 1
-
+EXCLUDE_MEASUREMENTS = [
+    'intel/docker/spec/creation_time',
+    'intel/docker/spec/image_name',
+    'intel/docker/spec/labels/value',
+    'intel/docker/spec/size_root_fs',
+    'intel/docker/spec/size_rw',
+    'intel/docker/spec/status',
+    'intel/docker/stats/cgroups/cpu_stats/cpu_usage/per_cpu/value',
+    'intel/docker/stats/cgroups/pids_stats/limit',
+    'intel/docker/stats/filesystem/device_name']
+TAG_KEYS = dict(
+    docker="docker_id",
+    procfs="nodename",
+    goddd="method"
+)
+METADATA_KEYS = ['nodename', 'app']
 
 class XGBoostData():
     """XGBoostData."""
@@ -43,7 +58,7 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
     rs_measurement = influxClient.query(show_measurements).items()
     measurement_list = [
         x['name'] for x in rs_measurement[0][GENERATOR_IDX]
-        if "hyperpilot" not in x['name']
+        if "hyperpilot" not in x['name'] and x['name'] not in EXCLUDE_MEASUREMENTS
     ]
 
     rs_list = []
@@ -58,6 +73,7 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
 
     # generate keys
     # [{'measurement': 'name', 'tagValue': 'tag value', 'tagKey': 'tag key', 'id': int_id}, ...]
+    print "generate keys..."
     keys = generateKeys(influxClient, rs_list)
 
     data = []
@@ -108,11 +124,17 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
                 data.append(" ".join(line))
             proceedRecords += 1
             previous_item_time = item_time
+
     print "total data: %d" % len(data)
     print "write keys to key.txt"
-    write_to_file(keys, "keys.txt")
+    write_to_file([dict(id=k['id'], tagKey=k['tagKey'], tagValue=k['tagValue'], measurement=k['measurement']) for k in keys], "keys.txt")
+    print "write mapping file to mapping.txt"
+    write_to_file([dict(id=k['id'], metadata=m['metadata']) for m in keys], 'mapping.txt')
     print "write data to data.txt"
     write_to_file(data, "data.txt")
+    print "write xgboost key to xgboost_key.txt"
+    # all values has parsed into float type
+    write_to_file(["%d %s %s" % (k['id'], k['measurement'], 'float') for k in keys], "xgboost_key.txt")
 
     return XGBoostData(keys, data)
 
@@ -134,31 +156,35 @@ def generateKeys(influxClient, rs):
             'tagKey': 'tag key',
             'tagValue': 'tag value',
             'id': int_id
+            'metadata': {app: [app_name], nodename: [node_name], deploymentId: [deployment_id]}
         },
         {...}
         [measurement: list_data]
     ]
     """
-    tagKey = dict(
-        docker="docker_id",
-        procfs="nodename",
-        goddd="method"
-    )
+
     keys = []
     index = 0
     for x in rs:
         measurement_name = x['key']
-        item = [k for k in tagKey if k in measurement_name]
+        item = [k for k in TAG_KEYS if k in measurement_name]
         if len(item) == 1:
-            tagQuery = 'SHOW TAG VALUES FROM "%s" WITH KEY="%s"' % (measurement_name, tagKey[item[0]])
+            tagQuery = 'SHOW TAG VALUES FROM "%s" WITH KEY="%s"' % (measurement_name, TAG_KEYS[item[0]])
+            metadataQuery = 'SHOW TAG VALUES FROM "{measurement_name}" WITH KEY="{metadata_key}" WHERE {id_key} = \'{id_value}\''
             tagValues = influxClient.query(tagQuery)
             for tag in tagValues.items()[0][1]:
                 index += 1
+                metadata = {}
+                for t in METADATA_KEYS:
+                    metaRs = influxClient.query(metadataQuery.format(measurement_name=measurement_name, metadata_key=t, id_key=TAG_KEYS[item[0]], id_value=tag['value']))
+                    if len(metaRs.items()) > 0:
+                        metadata[t] = [x['value'] for x in list(metaRs.items()[0][GENERATOR_IDX])]
                 keys.append({
                     'measurement': measurement_name,
-                    'tagKey': tagKey[item[0]],
+                    'tagKey': TAG_KEYS[item[0]],
                     'tagValue': tag['value'],
-                    'id': index
+                    'id': index,
+                    'metadata': metadata
                 })
     print "total %s keys" % index
     return keys
