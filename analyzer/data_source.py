@@ -63,9 +63,13 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
 
     rs_list = []
     for measurement in measurement_list:
+        items = influxClient.query('select * from "%s"' % measurement, epoch='s').items()
+        if len(items) == 0:
+            print "No items found for measurement %s" % measurement
+            continue
         rs_list.append({
             'key': measurement,
-            'generator': influxClient.query('select * from "%s"' % measurement, epoch='s').items()[0][GENERATOR_IDX],
+            'generator': items[0][GENERATOR_IDX],
             'currentData': {}
         })
 
