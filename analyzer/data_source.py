@@ -21,7 +21,7 @@ TAG_KEYS = dict(
     procfs="nodename",
     goddd="method"
 )
-METADATA_KEYS = ['nodename', 'app']
+METADATA_KEYS = ['nodename', 'app', 'docker_id']
 
 class XGBoostData():
     """XGBoostData."""
@@ -32,7 +32,7 @@ class XGBoostData():
         self.data = data
 
 
-def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
+def get_xgboost_data(app_metric, app_slo, tags):
     """Get XGBoost data."""
     with open('data_source_config.json') as f:
         config = json.load(f)
@@ -47,9 +47,11 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
     # sampling_rate = config["sampling_rate"]
     # acceptable_offset = config["acceptable_offset"]
 
+    tag_filter = " AND " .join(["%s='%s'" % (k, v) for k, v in tags.items()])
     # query metrics by tag
-    query_metric = "SELECT * FROM \"%s\" where %s='%s' order by time asc" % \
-                   (app_metric, tag_name, tag_value)
+    query_metric = "SELECT * FROM \"%s\" where %s order by time asc" % \
+                   (app_metric, tag_filter)
+    print("App query: " + query_metric)
 
     show_measurements = "SHOW MEASUREMENTS"
 
@@ -57,7 +59,7 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
 
     rs_measurement = influxClient.query(show_measurements).items()
     measurement_list = [
-        x['name'] for x in rs_measurement[0][GENERATOR_IDX]
+        x['name'] for x in rs_measurement[GROUP_IDX][GENERATOR_IDX]
         if "hyperpilot" not in x['name'] and x['name'] not in EXCLUDE_MEASUREMENTS
     ]
 
@@ -69,8 +71,8 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
             continue
         rs_list.append({
             'key': measurement,
-            'generator': items[0][GENERATOR_IDX],
-            'currentData': {}
+            'generator': items[GROUP_IDX][GENERATOR_IDX],
+            'currentData': items[GROUP_IDX][GENERATOR_IDX].next()
         })
 
     rs_app = influxClient.query(query_metric, epoch='s')
@@ -84,48 +86,48 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
     proceedRecords = 0
     previous_item_time = 0
 
-    for tag in rs_app.items():
-        # iterate per data point
-        print "scanning..."
-        for data_point in tag[GENERATOR_IDX]:
-            line = []
-            item_time = data_point['time']
-            if previous_item_time == 0:
-                item_time = previous_item_time
+
+    # iterate per data point
+    print "scanning..."
+    for data_point in rs_app.items()[0][GENERATOR_IDX]:
+        line = []
+        print(data_point)
+        item_time = data_point['time']
+        if previous_item_time == 0:
+            previous_item_time = item_time
+            continue
+
+        print datetime.fromtimestamp(item_time)
+
+        for measurement_data in rs_list:
+            values = []
+            key_list = [
+                key for key in keys
+                if key["measurement"] == measurement_data["key"]]
+            if len(key_list) == 0:
                 continue
 
-            print datetime.fromtimestamp(item_time)
+            while True:
+                current_data = measurement_data['currentData']
+                if not current_data:
+                    break
 
-            for measurement_data in rs_list:
-                values = []
-                key_list = [
-                    key for key in keys
-                    if key["measurement"] == measurement_data["key"]]
-                if len(key_list) == 0:
-                    continue
-
-                while True:
-                    current_data = measurement_data['currentData']
-                    measurement_data['currentData'] = next(measurement_data['generator'], None)
-
-                    if current_data is None:
-                        break
-                    if not current_data:
-                        continue
-
-                    if current_data['time'] <= item_time and current_data['time'] > previous_item_time:
-                        if type(current_data['value']) is unicode or type(current_data['value']) is str:
-                            continue
+                if current_data['time'] <= item_time and current_data['time'] > previous_item_time:
+                    if type(current_data['value']) is not unicode and type(current_data['value']) is not str:
                         values.append(current_data['value'])
-                    else:
-                        # measurement_data time > item_time
-                        break
-                if len(values) > 0:
-                    line.append('%d:%f' % (key_list[0]['id'], mean(values)))
+                    measurement_data['currentData'] = next(measurement_data['generator'], None)
+                elif current_data['time'] > item_time:
+                    # measurement_data time > item_time
+                    break
+                else:
+                    # measurement_data time <= previous_item_time
+                    measurement_data['currentData'] = next(measurement_data['generator'], None)
+            if len(values) > 0:
+                line.append('%d:%f' % (key_list[0]['id'], mean(values)))
 
-            if len(line) > 0:
-                line = [str(data_point['value'])] + line
-                data.append(" ".join(line))
+        if len(line) > 0:
+            line = [str(data_point['value'])] + line
+            data.append(" ".join(line))
             proceedRecords += 1
             previous_item_time = item_time
 
@@ -133,7 +135,7 @@ def get_xgboost_data(app_metric, app_slo, tag_name, tag_value):
     print "write keys to key.txt"
     write_to_file([dict(id=k['id'], tagKey=k['tagKey'], tagValue=k['tagValue'], measurement=k['measurement']) for k in keys], "keys.txt")
     print "write mapping file to mapping.txt"
-    write_to_file([dict(id=k['id'], metadata=m['metadata']) for m in keys], 'mapping.txt')
+    write_to_file([dict(id=m['id'], metadata=m['metadata']) for m in keys], 'mapping.txt')
     print "write data to data.txt"
     write_to_file(data, "data.txt")
     print "write xgboost key to xgboost_key.txt"
@@ -182,7 +184,7 @@ def generateKeys(influxClient, rs):
                 for t in METADATA_KEYS:
                     metaRs = influxClient.query(metadataQuery.format(measurement_name=measurement_name, metadata_key=t, id_key=TAG_KEYS[item[0]], id_value=tag['value']))
                     if len(metaRs.items()) > 0:
-                        metadata[t] = [x['value'] for x in list(metaRs.items()[0][GENERATOR_IDX])]
+                        metadata[t] = [x['value'] for x in list(metaRs.items()[GROUP_IDX][GENERATOR_IDX])]
                 keys.append({
                     'measurement': measurement_name,
                     'tagKey': TAG_KEYS[item[0]],
@@ -201,10 +203,9 @@ def mean(valueList):
 
 if __name__ == '__main__':
     d = get_xgboost_data(
-        app_metric="hyperpilot/goddd/api_booking_service_request_count",
+        app_metric="hyperpilot/goddd/api_booking_service_request_latency_microseconds",
         app_slo=100,
-        tag_name="method",
-        tag_value="load")
+        tags={"method": "load", "summary": "quantile_90"})
 
     # print d.keys
     # print d.data
