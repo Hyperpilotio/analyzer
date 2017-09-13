@@ -126,7 +126,7 @@ def get_xgboost_data(app_metric, app_slo, tags):
                 line.append('%d:%f' % (key_list[0]['id'], mean(values)))
 
         if len(line) > 0:
-            line = [str(data_point['value'])] + line
+            line = [str(data_point['value'] * 1000)] + line
             data.append(" ".join(line))
             proceedRecords += 1
             previous_item_time = item_time
