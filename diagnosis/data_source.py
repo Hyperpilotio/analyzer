@@ -55,7 +55,7 @@ def get_xgboost_data(app_metric, app_slo, tags):
 
     show_measurements = "SHOW MEASUREMENTS"
 
-    print "preparing data..."
+    print("preparing data...")
 
     rs_measurement = influxClient.query(show_measurements).items()
     measurement_list = [
@@ -67,19 +67,19 @@ def get_xgboost_data(app_metric, app_slo, tags):
     for measurement in measurement_list:
         items = influxClient.query('select * from "%s"' % measurement, epoch='s').items()
         if len(items) == 0:
-            print "No items found for measurement %s" % measurement
+            print("No items found for measurement %s" % measurement)
             continue
         rs_list.append({
             'key': measurement,
             'generator': items[GROUP_IDX][GENERATOR_IDX],
-            'currentData': items[GROUP_IDX][GENERATOR_IDX].next()
+            'currentData': next(items[GROUP_IDX][GENERATOR_IDX])
         })
 
     rs_app = influxClient.query(query_metric, epoch='s')
 
     # generate keys
     # [{'measurement': 'name', 'tagValue': 'tag value', 'tagKey': 'tag key', 'id': int_id}, ...]
-    print "generate keys..."
+    print("generate keys...")
     keys = generateKeys(influxClient, rs_list)
 
     data = []
@@ -88,7 +88,7 @@ def get_xgboost_data(app_metric, app_slo, tags):
 
 
     # iterate per data point
-    print "scanning..."
+    print("scanning...")
     for data_point in rs_app.items()[0][GENERATOR_IDX]:
         line = []
         print(data_point)
@@ -97,7 +97,7 @@ def get_xgboost_data(app_metric, app_slo, tags):
             previous_item_time = item_time
             continue
 
-        print datetime.fromtimestamp(item_time)
+        print(datetime.fromtimestamp(item_time))
 
         for measurement_data in rs_list:
             values = []
@@ -131,14 +131,14 @@ def get_xgboost_data(app_metric, app_slo, tags):
             proceedRecords += 1
             previous_item_time = item_time
 
-    print "total data: %d" % len(data)
-    print "write keys to key.txt"
+    print("total data: %d" % len(data))
+    print("write keys to key.txt")
     write_to_file([dict(id=k['id'], tagKey=k['tagKey'], tagValue=k['tagValue'], measurement=k['measurement']) for k in keys], "keys.txt")
-    print "write mapping file to mapping.txt"
+    print("write mapping file to mapping.txt")
     write_to_file([dict(id=m['id'], metadata=m['metadata']) for m in keys], 'mapping.txt')
-    print "write data to data.txt"
+    print("write data to data.txt")
     write_to_file(data, "data.txt")
-    print "write xgboost key to xgboost_key.txt"
+    print("write xgboost key to xgboost_key.txt")
     # all values has parsed into float type
     write_to_file(["%d %s %s" % (k['id'], k['measurement'], 'float') for k in keys], "xgboost_key.txt")
 
@@ -192,7 +192,7 @@ def generateKeys(influxClient, rs):
                     'id': index,
                     'metadata': metadata
                 })
-    print "total %s keys" % index
+    print("total %s keys" % index)
     return keys
 
 
