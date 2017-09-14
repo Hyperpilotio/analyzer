@@ -14,7 +14,7 @@ python mknfold.py data.txt 1
 $MY_XGBOOST model.conf num_round=$NUM_ROUNDS
 
 # output predictions of test data - TODO: need to fix crash
-#$MY_XGBOOST model.conf task=pred model_in=$MODEL_NAME
+$MY_XGBOOST model.conf task=pred model_in=$MODEL_NAME
 
 # print the boosters of last model in dump.raw.txt
 $MY_XGBOOST model.conf task=dump model_in=$MODEL_NAME name_dump=dump.raw.txt
