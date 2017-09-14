@@ -108,3 +108,7 @@ db.sqlite3
 
 node_modules/
 static/
+
+# data files
+diagnosis/data.txt*
+diagnosis/keys.txt
