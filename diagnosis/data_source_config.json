@@ -3,5 +3,7 @@
     "influx_port": 8086,
     "influx_username": "root",
     "influx_password": "root",
-    "influx_database": "snap"
+    "influx_database": "snap",
+    "start_time": "",
+    "end_time": ""
 }

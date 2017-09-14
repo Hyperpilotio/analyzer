@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MY_XGBOOST=~/go/src/github.com/xgboost/xgboost
-NUM_ROUNDS=8
+NUM_ROUNDS=6
 MODEL_NAME=000$NUM_ROUNDS.model
 echo $MODEL_NAME
 
@@ -20,8 +20,8 @@ $MY_XGBOOST model.conf task=pred model_in=$MODEL_NAME
 $MY_XGBOOST model.conf task=dump model_in=$MODEL_NAME name_dump=dump.raw.txt
 # cat the result
 echo "Estimated decision tree model:"
-cat dump.raw.txt
+#cat dump.raw.txt
 
 # print the boosters of 0002.model in dump.nice.txt with feature map - TODO: fix featmap.txt format
-#$MY_XGBOOST model.conf task=dump model_in=$MODEL_NAME fmap=featmap.txt name_dump=dump.nice.txt
-#cat dump.nice.txt
+$MY_XGBOOST model.conf task=dump model_in=$MODEL_NAME fmap=xgboost_keys.txt name_dump=dump.nice.txt
+cat dump.nice.txt
