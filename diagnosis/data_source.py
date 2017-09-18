@@ -51,7 +51,7 @@ def get_xgboost_data(app_metric, app_slo, tags):
     first_sample = influxClient.query("select first(*) from \"%s\" where %s" % \
             (app_metric, tag_filter), epoch='s')
     initial_time = next(first_sample.items()[0][GENERATOR_IDX])['time']
-    print('Beginning time of app metric:', initial_time)
+    print('Beginning time of app metric in DB:', datetime.fromtimestamp(initial_time))
 
     if 'start_time' in config and config['start_time'] != "":
         time_filter = "time > '" + config['start_time'] + "'"
@@ -59,12 +59,16 @@ def get_xgboost_data(app_metric, app_slo, tags):
         time_filter = "time > '" + initial_time + "'"
     if 'end_time' in config and config['end_time'] != "":
         time_filter = time_filter + " AND time < '" + config['end_time'] + "'"
+    print('Using time filter:', time_filter)
+
     # query metrics by tag and time filters
     query_metric = "select value from \"%s\" where %s AND %s order by time asc" % \
         (app_metric, tag_filter, time_filter)
     print("Query to get app metric: \n " + query_metric)
     rs_app = influxClient.query(query_metric, epoch='s')
     print("Number of app metric samples fetched: ", len(list(rs_app.items()[0][GENERATOR_IDX])))
+    sample1_time = next(rs_app.items()[0][GENERATOR_IDX])['time']
+    print('Beginning time of app metric in DB:', datetime.fromtimestamp(sample1_time))
 
     show_measurements = "SHOW MEASUREMENTS"
 
@@ -217,7 +221,7 @@ if __name__ == '__main__':
     d = get_xgboost_data(
         app_metric="hyperpilot/goddd/api_booking_service_request_latency_microseconds",
         app_slo=100,
-        tags={"method": "load", "summary": "quantile_90"})
+        tags={"method": "request_routes", "summary": "quantile_90"})
 
     # print d.keys
     # print d.data
