@@ -1,6 +1,7 @@
 """Data Source for xgboost."""
 from influxdb import InfluxDBClient
 from datetime import datetime
+from collections import namedtuple
 
 import json
 
@@ -23,13 +24,7 @@ TAG_KEYS = dict(
 )
 METADATA_KEYS = ['nodename', 'app', 'docker_id']
 
-class XGBoostData():
-    """XGBoostData."""
-
-    def __init__(self, keys, data):
-        """Constructor."""
-        self.keys = keys
-        self.data = data
+XGBoostData = namedtuple('XGBoostData', ['keys', 'data'])
 
 
 def get_xgboost_data(app_metric, app_slo, tags):
