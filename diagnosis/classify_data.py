@@ -1,25 +1,16 @@
 #!/usr/bin/python
 
+import numpy as np
+
 SLO_VALUE = 100
-ymax = 0
-ymin = 1000000
 
-fout = open( 'data-class.txt', 'w' )
+arr = np.loadtxt('data.txt')
 
-for lin in open( 'data.txt' ):
-    arr = lin.split(' ')
-    y = float(arr[0])
-    ybin = 1 if y <= SLO_VALUE else 0
-    
-    fout.write( '%d' %ybin)
-    for x in arr[1:-1]:
-        fout.write( ' %s' %x )
-    fout.write('\n')
+y = arr[:, 0]
+ybin = y <= SLO_VALUE
 
-    ymax = max(y, ymax)
-    ymin = min(y, ymin)
+output = np.column_stack((ybin, arr[:, 1:-1]))
+np.savetxt('data-class.txt', output, fmt='%d')
 
-print("maximum y value = %d" % ymax)
-print("minimum y value = %d" % ymin)
-
-fout.close()
+print("maximum y value = %d" % y.max())
+print("minimum y value = %d" % y.min())
