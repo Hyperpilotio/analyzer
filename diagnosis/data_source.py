@@ -49,9 +49,9 @@ def get_xgboost_data(app_metric, app_slo, tags):
     print('Beginning time of app metric in DB:', datetime.fromtimestamp(initial_time))
 
     if 'start_time' in config and config['start_time'] != "":
-        time_filter = "time > '" + config['start_time'] + "'"
+        time_filter = "time > %s" % config['start_time']
     else:
-        time_filter = "time > '" + initial_time + "'"
+        time_filter = "time > %s" % initial_time
     if 'end_time' in config and config['end_time'] != "":
         time_filter = time_filter + " AND time < '" + config['end_time'] + "'"
     print('Using time filter:', time_filter)
@@ -156,11 +156,14 @@ def get_xgboost_data(app_metric, app_slo, tags):
     return XGBoostData(keys, data)
 
 
-def write_to_file(list, file_name):
+def write_to_file(rows, file_name):
     """Write to file."""
     with open(file_name, 'w') as text_file:
-        for item in list:
-            text_file.write(str(item))
+        for item in rows:
+            if isinstance(item, (list, dict)):
+                json.dump(item, text_file)
+            else:
+                text_file.write(str(item))
             text_file.write("\n")
 
 
