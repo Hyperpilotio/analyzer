@@ -47,11 +47,11 @@ def get_xgboost_data(app_metric, app_slo, tags):
     print('Beginning time of app metric in DB:', datetime.fromtimestamp(initial_time))
 
     if 'start_time' in config and config['start_time'] != "":
-        time_filter = "time > %s" % config['start_time']
+        time_filter = "time > %d" % config['start_time']
     else:
-        time_filter = "time > %s" % initial_time
+        time_filter = "time > %d" % initial_time
     if 'end_time' in config and config['end_time'] != "":
-        time_filter = time_filter + " AND time < '" + config['end_time'] + "'"
+        time_filter = "%d AND time < %d" % (time_filter, config['end_time'])
     print('Using time filter:', time_filter)
 
     # query metrics by tag and time filters
