@@ -1,10 +1,11 @@
 """Data Source for xgboost."""
 from influxdb import InfluxDBClient
 from datetime import datetime
-from collections import namedtuple
 
 import json
 
+GROUP_IDX = 0
+GENERATOR_IDX = 1
 EXCLUDE_MEASUREMENTS = [
     'intel/docker/spec/creation_time',
     'intel/docker/spec/image_name',
@@ -22,7 +23,13 @@ TAG_KEYS = dict(
 )
 METADATA_KEYS = ['nodename', 'app', 'docker_id']
 
-XGBoostData = namedtuple('XGBoostData', ['keys', 'data'])
+class XGBoostData():
+    """XGBoostData."""
+
+    def __init__(self, keys, data):
+        """Constructor."""
+        self.keys = keys
+        self.data = data
 
 
 def get_xgboost_data(app_metric, app_slo, tags):
@@ -43,7 +50,7 @@ def get_xgboost_data(app_metric, app_slo, tags):
     tag_filter = " AND " .join(["%s='%s'" % (k, v) for k, v in tags.items()])
     first_sample = influxClient.query("select first(*) from \"%s\" where %s" % \
             (app_metric, tag_filter), epoch='s')
-    initial_time = next(first_sample[app_metric])['time']
+    initial_time = next(first_sample.items()[0][GENERATOR_IDX])['time']
     print('Beginning time of app metric in DB:', datetime.fromtimestamp(initial_time))
 
     if 'start_time' in config and config['start_time'] != "":
@@ -59,17 +66,17 @@ def get_xgboost_data(app_metric, app_slo, tags):
         (app_metric, tag_filter, time_filter)
     print("Query to get app metric: \n " + query_metric)
     rs_app = influxClient.query(query_metric, epoch='s')
-    print("Number of app metric samples fetched: ", len(list(rs_app[app_metric])))
-    sample1_time = next(rs_app[app_metric])['time']
+    print("Number of app metric samples fetched: ", len(list(rs_app.items()[0][GENERATOR_IDX])))
+    sample1_time = next(rs_app.items()[0][GENERATOR_IDX])['time']
     print('Beginning time of app metric in DB:', datetime.fromtimestamp(sample1_time))
 
     show_measurements = "SHOW MEASUREMENTS"
 
     print("Preparing data...")
 
-    rs_measurement = influxClient.query(show_measurements)
+    rs_measurement = influxClient.query(show_measurements).items()
     measurement_list = [
-        x['name'] for x in rs_measurement['measurements']
+        x['name'] for x in rs_measurement[GROUP_IDX][GENERATOR_IDX]
         if "hyperpilot" not in x['name'] and x['name'] not in EXCLUDE_MEASUREMENTS
     ]
     print("Number of system metrics to be fetched", len(measurement_list))
@@ -78,14 +85,14 @@ def get_xgboost_data(app_metric, app_slo, tags):
     for measurement in measurement_list:
         query_measurements = 'select * from "%s" where %s order by time asc' % (measurement, time_filter)
         print("Query to get system metric: \n " + query_measurements)
-        result = influxClient.query(query_measurements, epoch='s')
-        if len(result) == 0:
+        items = influxClient.query(query_measurements, epoch='s').items()
+        if len(items) == 0:
             print("No items found for measurement %s" % measurement)
             continue
         rs_list.append({
             'key': measurement,
-            'generator': result[measurement],
-            'currentData': next(result[measurement])
+            'generator': items[GROUP_IDX][GENERATOR_IDX],
+            'currentData': next(items[GROUP_IDX][GENERATOR_IDX])
         })
 
     # generate keys
@@ -99,7 +106,7 @@ def get_xgboost_data(app_metric, app_slo, tags):
 
     # iterate per data point
     print("Scanning data and matching timestamps...")
-    for data_point in rs_app[app_metric]:
+    for data_point in rs_app.items()[0][GENERATOR_IDX]:
         line = []
         item_time = data_point['time']
         if previous_item_time == 0:
@@ -154,14 +161,11 @@ def get_xgboost_data(app_metric, app_slo, tags):
     return XGBoostData(keys, data)
 
 
-def write_to_file(rows, file_name):
+def write_to_file(list, file_name):
     """Write to file."""
     with open(file_name, 'w') as text_file:
-        for item in rows:
-            if isinstance(item, (list, dict)):
-                json.dump(item, text_file)
-            else:
-                text_file.write(str(item))
+        for item in list:
+            text_file.write(str(item))
             text_file.write("\n")
 
 
@@ -193,14 +197,9 @@ def generateKeys(influxClient, rs):
             for tag in tagValues.items()[0][1]:
                 metadata = {}
                 for t in METADATA_KEYS:
-                    metaRs = influxClient.query(metadataQuery.format(
-                        measurement_name=measurement_name,
-                        metadata_key=t,
-                        id_key=TAG_KEYS[item[0]],
-                        id_value=tag['value']
-                    ))
+                    metaRs = influxClient.query(metadataQuery.format(measurement_name=measurement_name, metadata_key=t, id_key=TAG_KEYS[item[0]], id_value=tag['value']))
                     if len(metaRs.items()) > 0:
-                        metadata[t] = [x['value'] for x in metaRs[measurement_name]]
+                        metadata[t] = [x['value'] for x in list(metaRs.items()[GROUP_IDX][GENERATOR_IDX])]
                 keys.append({
                     'measurement': measurement_name,
                     'tagKey': TAG_KEYS[item[0]],
