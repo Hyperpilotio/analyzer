@@ -1,28 +1,23 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import sys
-import random
+import numpy as np
+from sklearn.model_selection import train_test_split
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
     print ('Usage:<filename> <k> [nfold = 5]')
     exit(0)
 
-random.seed( 10 )
-
+fname = sys.argv[1]
 k = int( sys.argv[2] )
 if len(sys.argv) > 3:
     nfold = int( sys.argv[3] )
 else:
     nfold = 5
 
-fi = open( sys.argv[1], 'r' )
-ftr = open( sys.argv[1]+'.train', 'w' )
-fte = open( sys.argv[1]+'.test', 'w' )
-for l in fi:
-    if random.randint( 1 , nfold ) == k:
-        fte.write( l )
-    else:
-        ftr.write( l )
+with open(fname, 'r') as f:
+    train, test = train_test_split(f.readlines(), test_size=1 / nfold, random_state=10)
 
-fi.close()
-ftr.close()
-fte.close()
+with open(fname + '.train', 'w') as train_f:
+    train_f.write(''.join(train))
+with open(fname + '.test', 'w') as test_f:
+    test_f.write(''.join(test))
