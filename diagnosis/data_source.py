@@ -21,7 +21,7 @@ TAG_KEYS = dict(
     procfs="nodename",
     goddd="method"
 )
-METADATA_KEYS = ['nodename', 'app', 'docker_id']
+METADATA_KEYS = ['nodename', 'app', 'docker_id', 'io.kubernetes.container.name']
 
 class XGBoostData():
     """XGBoostData."""
