@@ -1,0 +1,49 @@
+{
+	"app_id": "tech-demo-xxxxxxxx-xxxx",
+	"name": "tech-demo",
+	"services": [{
+			"service_id": "service_01",
+			"name": "goddd",
+			"deployment_template": "deploy_godd.json"
+		},
+		{
+			"service-id": "service-02",
+			"name": "mongo-serve",
+			"deployment_template": "deploy_mongo.json"
+		},
+		{
+			"service-id": "service-03",
+			"name": "pathfinder",
+			"deployment_template": "deploy_pathfinder.json"
+		}
+	],
+	"type": "long-running",
+	"slo": {
+		"metric": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
+		"type": "latency",
+		"summary": "90 p",
+		"value": "300",
+		"unit": "milliseconds"
+	},
+	"management_features": [{
+			"name": "interference_management",
+			"mode": "off",
+			"policy": []
+		},
+		{
+			"name": "bottleneck_management",
+			"mode": "semi-auto",
+			"policy": []
+		},
+		{
+			"name": "utilization_management",
+			"mode": "auto",
+			"policy": []
+		}
+	],
+	"budget": {
+		"value": "300",
+		"unit": "dollar"
+	},
+	"state": "registered"
+}
