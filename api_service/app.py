@@ -4,12 +4,10 @@ import traceback
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
 
-from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
-from analyzer.session_worker_pool import Status, SessionStatus
-from analyzer.linear_regression import LinearRegression1
-from api_service.util import (JSONEncoderWithMongo, ObjectIdConverter,
-                           ensure_document_found, shape_service_placement,
-                           get_calibration_dataframe, get_profiling_dataframe,
+from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
+from sizing_service.session_worker_pool import Status, SessionStatus
+from sizing_service.linear_regression import LinearRegression1
+from api_service.util import (get_calibration_dataframe, get_profiling_dataframe,
                            get_radar_dataframe)
 from config import get_config
 from logger import get_logger
@@ -71,10 +69,29 @@ def get_all_apps():
     return jsonify(apps)
 
 
-@app.route("/apps/<objectid:app_id>")
+@app.route("/apps/<string:app_name>")
 def get_app_info(app_id):
-    application = configdb[app_collection].find_one(app_id, {"_id": 0})
+    application = configdb[app_collection].find_one({"name": app_name})
     return ensure_document_found(application)
+
+
+@app.route("/apps/<string:app_name>/slo")
+def get_app_slo(app_name):
+    application = configdb[app_collection].find_one({"name": app_name})
+    return ensure_document_found(application, ['slo'])
+
+
+#@app.route("/apps/<string:app_name>/diagnosis")
+#def get_app_slo(app_name):
+#    application = configdb[app_collection].find_one({"name": app_name})
+#    if application is None:
+#        response = jsonify({"status": "bad_request",
+#                            "error": "Target application not found"})
+#        return response
+#
+#    result = {'state': "normal", 'incidents': "", 'risks': "", 'opportunities': ""}
+#
+#    return jsonify(result)
 
 
 @app.route("/apps/<objectid:app_id>/calibration")
@@ -176,7 +193,7 @@ def get_next_instance_types(session_id):
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
-                            "error":"Error in getting candidates from the analyzer: " + str(e)})
+                            "error":"Error in getting candidates from the sizing service: " + str(e)})
 
     return response
 
