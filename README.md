@@ -26,7 +26,7 @@ In order to connect to database, connecting to VPN is needed for now.
 	make docker-build
 	make docker-run
 	
-then connect to: [http://localhost:5000](http://localhost:5000)
+then connect to: [http://localhost:5000/api](http://localhost:5000/api)
 
 
 ### Setting up and running the app (without Docker)
