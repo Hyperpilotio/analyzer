@@ -12,11 +12,11 @@ from bayes_opt import BayesianOptimization as BO_ref
 from sklearn.gaussian_process.kernels import Matern
 from concurrent.futures import ThreadPoolExecutor
 
-from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool as BOP
-from analyzer.sizing_session import SizingSession
-from analyzer.bayesian_optimizer import (UtilityFunction, get_candidate,
+from .bayesian_optimizer_pool import BayesianOptimizerPool as BOP
+from .sizing_session import SizingSession
+from .bayesian_optimizer import (UtilityFunction, get_candidate,
                                          get_fitted_gaussian_processor)
-from analyzer.util import decode_nodetype, get_all_nodetypes, get_feature_bounds, encode_nodetype
+from .util import decode_nodetype, get_all_nodetypes, get_feature_bounds, encode_nodetype
 
 from api_service.app import app as api_service_app
 from api_service.db import metricdb
@@ -40,7 +40,7 @@ class BayesianOptimizerPoolTest(TestCase):
             "data": []}
 
         # Sending request
-        logger.debug(f'Sending request to analyzer service API:\n{request_body}')
+        logger.debug(f'Sending request to sizing service API:\n{request_body}')
         response = json.loads(self.client.post(f'/apps/{uuid}/suggest-instance-types',
                                                data=json.dumps(request_body),
                                                content_type="application/json").data)
@@ -50,7 +50,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
         # Polling status
         while True:
-            logger.debug('Polling status from analyzer service API')
+            logger.debug('Polling status from sizing service API')
             response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
             logger.debug(f'Response:\n{response}')
 
@@ -63,7 +63,7 @@ class BayesianOptimizerPoolTest(TestCase):
         self.assertEqual(response['status'], "done", response)
         self.assertEqual(len(response['data']), 3, response)
 
-        # Passing the candidates suggested from the last call back to the analyzer
+        # Passing the candidates suggested from the last call back to the sizing service
         returned_types = response['data']
         request_body = {
             "appName": "redis",
@@ -80,7 +80,7 @@ class BayesianOptimizerPoolTest(TestCase):
             ]}
 
         # Sending request
-        logger.debug(f'Sending request to analyzer service API:\n{request_body}')
+        logger.debug(f'Sending request to sizing service API:\n{request_body}')
         response = json.loads(self.client.post(f'/apps/{uuid}/suggest-instance-types',
                                                data=json.dumps(request_body),
                                                content_type="application/json").data)
@@ -90,7 +90,7 @@ class BayesianOptimizerPoolTest(TestCase):
 
         # Polling from workload profiler
         while True:
-            logger.debug('Polling status from analyzer service API')
+            logger.debug('Polling status from sizing service API')
             response = json.loads(self.client.get(f'/apps/{uuid}/get-optimizer-status').data)
             logger.debug(f'Response:\n{response}')
 
