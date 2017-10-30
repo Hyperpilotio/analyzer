@@ -12,7 +12,8 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern, RBF
 from matplotlib import cm
 
-from analyzer import bayesian_optimizer, util
+import util
+from analyzer import bayesian_optimizer
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool as BOP
 
 %matplotlib inline

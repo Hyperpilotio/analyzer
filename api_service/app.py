@@ -7,14 +7,14 @@ from pymongo import DESCENDING
 from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool
 from analyzer.session_worker_pool import Status, SessionStatus
 from analyzer.linear_regression import LinearRegression1
-from analyzer.util import (get_calibration_dataframe, get_profiling_dataframe,
+from api_service.util import (JSONEncoderWithMongo, ObjectIdConverter,
+                           ensure_document_found, shape_service_placement,
+                           get_calibration_dataframe, get_profiling_dataframe,
                            get_radar_dataframe)
 from config import get_config
 from logger import get_logger
 
 from .db import configdb, metricdb
-from .util import (JSONEncoderWithMongo, ObjectIdConverter,
-                   ensure_document_found, shape_service_placement)
 
 app = Flask(__name__)
 

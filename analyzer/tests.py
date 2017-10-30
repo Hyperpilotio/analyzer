@@ -16,7 +16,7 @@ from analyzer.bayesian_optimizer_pool import BayesianOptimizerPool as BOP
 from analyzer.sizing_session import SizingSession
 from analyzer.bayesian_optimizer import (UtilityFunction, get_candidate,
                                          get_fitted_gaussian_processor)
-from analyzer.util import decode_nodetype, get_all_nodetypes, get_feature_bounds, encode_nodetype
+from api_service.util import decode_nodetype, get_all_nodetypes, get_feature_bounds, encode_nodetype
 
 from api_service.app import app as api_service_app
 from api_service.db import metricdb
