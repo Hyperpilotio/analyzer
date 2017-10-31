@@ -31,7 +31,6 @@ NETWORK_DICT = {'Very Low': 50, 'Low': 100, 'Low to Moderate': 300, 'Moderate': 
                 '10 Gigabit': 10000, 'Up to 10 Gigabit': 10000, '20 Gigabit': 20000}
 
 
-
 class JSONEncoderWithMongo(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Cursor):
@@ -52,6 +51,13 @@ class ObjectIdConverter(BaseConverter):
         return str(value)
 
 
+def ensure_document_written(result):
+    if result.acknowledged:
+        return jsonify({'success': True, 'response': 200})
+    else:
+        return jsonify({'success': False, 'response': 500})
+
+
 def ensure_document_found(document, **kwargs):
     if document is None:
         response = jsonify(error="Document not found")
@@ -64,6 +70,7 @@ def ensure_document_found(document, **kwargs):
                 for new_key, original_key in kwargs.items()
             }
         return jsonify(document)
+
 
 def shape_service_placement(deploy_json):
     result = {}
@@ -82,6 +89,7 @@ def shape_service_placement(deploy_json):
                   if node["id"] in nodes_in_default]
     }
     return result
+
 
 @lru_cache(maxsize=1)
 def get_all_nodetypes(region=my_region):
@@ -127,7 +135,8 @@ def get_raw_features(nodetype_name):
     nodetype_map = get_all_nodetypes()
     nodetype = nodetype_map.get(nodetype_name)
     if nodetype is None:
-        raise KeyError(f'Cannot find instance type in the database: name={nodetype_name}')
+        raise KeyError(
+            f'Cannot find instance type in the database: name={nodetype_name}')
 
     vcpu = nodetype['cpuConfig']['vCPU']
     clock_speed = nodetype['cpuConfig']['clockSpeed']['value']
@@ -183,7 +192,8 @@ def get_price(nodetype_name):
     nodetype = nodetype_map.get(nodetype_name)
 
     if nodetype is None:
-        raise KeyError(f'Cannot find instance type in the database: name={nodetype_name}')
+        raise KeyError(
+            f'Cannot find instance type in the database: name={nodetype_name}')
 
     try:
         price = nodetype['hourlyCost'][cost_type]['value']
@@ -267,32 +277,39 @@ def get_resource_requests(app_name):
             try:
                 resource_requests = container_spec['resources']['requests']
             except KeyError:
-                logger.debug(f"No resource requests for the container running {service}")
+                logger.debug(
+                    f"No resource requests for the container running {service}")
                 return min_resources
 
             try:
                 cpu_request = resource_requests['cpu']
                 # conver cpu unit from millicores to number of vcpus
                 if cpu_request[-1] == 'm':
-                    min_resources['cpu'] = float(cpu_request[:len(cpu_request)-1]) / 1000.
+                    min_resources['cpu'] = float(
+                        cpu_request[:len(cpu_request) - 1]) / 1000.
                 else:
                     min_resources['cpu'] = float(cpu_request)
             except KeyError:
-                logger.debug(f"No cpu request for the container running {service}")
+                logger.debug(
+                    f"No cpu request for the container running {service}")
 
             try:
                 mem_request = resource_requests['memory']
                 # convert memory unit to GB
                 if mem_request[-1] == 'M':
-                    min_resources['mem'] = float(mem_request[:len(mem_request)-1]) / 1000.
+                    min_resources['mem'] = float(
+                        mem_request[:len(mem_request) - 1]) / 1000.
                 elif mem_request[-2:] == 'Mi':
-                    min_resources['mem'] = float(mem_request[:len(mem_request)-2]) / 1024.
+                    min_resources['mem'] = float(
+                        mem_request[:len(mem_request) - 2]) / 1024.
                 else:
                     min_resources['mem'] = float(mem_request) / 1024. / 1024.
             except KeyError:
-                logger.debug(f"No memory request for the container running {service}")
+                logger.debug(
+                    f"No memory request for the container running {service}")
 
-    logger.info(f"Found resource requests for app {app_name} service {service}: {min_resources}")
+    logger.info(
+        f"Found resource requests for app {app_name} service {service}: {min_resources}")
     return min_resources
 
 

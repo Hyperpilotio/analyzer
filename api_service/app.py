@@ -1,14 +1,14 @@
 import json
-import sys
 import traceback
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
 
 from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
-from sizing_service.session_worker_pool import Status, SessionStatus
 from sizing_service.linear_regression import LinearRegression1
-from api_service.util import (get_calibration_dataframe, get_profiling_dataframe,
-                           get_radar_dataframe)
+from api_service.util import (JSONEncoderWithMongo, ObjectIdConverter,
+                              ensure_document_found, ensure_document_written,
+                              shape_service_placement, get_calibration_dataframe,
+                              get_profiling_dataframe, get_radar_dataframe)
 from config import get_config
 from logger import get_logger
 
@@ -29,28 +29,22 @@ logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BOP = BayesianOptimizerPool()
 
+
 @app.route("/")
 def index():
     return jsonify(status="ok")
 
 
-@app.route("/cluster")
-def cluster_service_placement():
-    with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
-        deploy_json = json.load(f)
-    result = shape_service_placement(deploy_json)
-    return jsonify(result)
+@app.route("/apps", methods=["POST"])
+def create_application():
+    with open('/Users/cheriemeyer/analyzer/workloads/tech-demo-app.json', 'r') \
+            as f:
+        doc = json.load(f)
+        result = configdb[app_collection].insert_one(doc)
+        return ensure_document_written(result)
 
 
-@app.route("/cluster/recommended")
-def recommended_service_placement():
-    with open(my_config.get("ANALYZER", "RECOMMENDED_DEPLOY_JSON")) as f:
-        deploy_json = json.load(f)
-    result = shape_service_placement(deploy_json)
-    return jsonify(result)
-
-
-@app.route("/apps")
+@app.route("/apps", methods=["GET"])
 def get_all_apps():
     with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
@@ -82,7 +76,7 @@ def get_app_slo(app_name):
 
 
 #@app.route("/apps/<string:app_name>/diagnosis")
-#def get_app_slo(app_name):
+# def get_app_slo(app_name):
 #    application = configdb[app_collection].find_one({"name": app_name})
 #    if application is None:
 #        response = jsonify({"status": "bad_request",
@@ -187,13 +181,15 @@ def get_next_instance_types(session_id):
                             "error": "Optimization process still running"})
         return response
 
-    logger.info(f"Starting a new sizing session {session_id} for app {app_name}")
+    logger.info(
+        f"Starting a new sizing session {session_id} for app {app_name}")
     try:
-        response = jsonify(BOP.get_candidates(session_id, request_body).to_dict())
+        response = jsonify(BOP.get_candidates(
+            session_id, request_body).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
-                            "error":"Error in getting candidates from the sizing service: " + str(e)})
+                            "error": "Error in getting candidates from the sizing service: " + str(e)})
 
     return response
 
@@ -207,3 +203,19 @@ def get_task_status(session_id):
         response = jsonify({"status": "server_error",
                             "error": str(e)})
     return response
+
+
+@app.route("/cluster")
+def cluster_service_placement():
+    with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
+        deploy_json = json.load(f)
+    result = shape_service_placement(deploy_json)
+    return jsonify(result)
+
+
+@app.route("/cluster/recommended")
+def recommended_service_placement():
+    with open(my_config.get("ANALYZER", "RECOMMENDED_DEPLOY_JSON")) as f:
+        deploy_json = json.load(f)
+    result = shape_service_placement(deploy_json)
+    return jsonify(result)
