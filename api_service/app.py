@@ -5,10 +5,7 @@ from pymongo import DESCENDING
 
 from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
 from sizing_service.linear_regression import LinearRegression1
-from api_service.util import (JSONEncoderWithMongo, ObjectIdConverter,
-                              ensure_document_found, ensure_document_written,
-                              shape_service_placement, get_calibration_dataframe,
-                              get_profiling_dataframe, get_radar_dataframe)
+import api_service.util as util
 from config import get_config
 from logger import get_logger
 
@@ -16,8 +13,8 @@ from .db import configdb, metricdb
 
 app = Flask(__name__)
 
-app.json_encoder = JSONEncoderWithMongo
-app.url_map.converters["objectid"] = ObjectIdConverter
+app.json_encoder = util.JSONEncoderWithMongo
+app.url_map.converters["objectid"] = util.ObjectIdConverter
 
 my_config = get_config()
 app_collection = my_config.get("ANALYZER", "APP_COLLECTION")
@@ -37,11 +34,10 @@ def index():
 
 @app.route("/apps", methods=["POST"])
 def create_application():
-    with open('/Users/cheriemeyer/analyzer/workloads/tech-demo-app.json', 'r') \
-            as f:
-        doc = json.load(f)
-        result = configdb[app_collection].insert_one(doc)
-        return ensure_document_written(result)
+	 with open("workloads/tech-demo-app.json", "r") as f:
+		  doc = json.load(f)
+		  result = configdb[app_collection].insert_one(doc)
+		  return util.handle_result(result, "Could not create application.")
 
 
 @app.route("/apps", methods=["GET"])
@@ -66,16 +62,22 @@ def get_all_apps():
 @app.route("/apps/<string:app_name>")
 def get_app_info(app_id):
     application = configdb[app_collection].find_one({"name": app_name})
-    return ensure_document_found(application)
+    return util.ensure_document_found(application)
 
 
 @app.route("/apps/<string:app_name>/slo")
 def get_app_slo(app_name):
     application = configdb[app_collection].find_one({"name": app_name})
-    return ensure_document_found(application, ['slo'])
+    return util.ensure_document_found(application, ['slo'])
 
 
-#@app.route("/apps/<string:app_name>/diagnosis")
+@app.route("/apps/<string:app_id>", methods=["PUT"])
+def update_app(app_id):
+	 with open("workloads/tech_demo_partial.json", "r") as f:
+		  doc = json.load(f)
+		  return util.do_partial_update(app_id, doc)
+
+    #@app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
 #    application = configdb[app_collection].find_one({"name": app_name})
 #    if application is None:
@@ -92,7 +94,7 @@ def get_app_slo(app_name):
 def app_calibration(app_id):
     application = configdb[app_collection].find_one(app_id)
     if app is None:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
     cursor = metricdb[calibration_collection].find(
         {"appName": application["name"]},
@@ -100,19 +102,19 @@ def app_calibration(app_id):
     ).sort("_id", DESCENDING).limit(1)
     try:
         calibration = next(cursor)
-        data = get_calibration_dataframe(calibration)
+        data = util.get_calibration_dataframe(calibration)
         del calibration["testResult"]
         calibration["results"] = data
         return jsonify(calibration)
     except StopIteration:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/profiling")
 def service_profiling(app_id, service_name):
     application = configdb[app_collection].find_one(app_id)
     if app is None:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
     cursor = metricdb[profiling_collection].find(
         {"appName": application["name"], "serviceInTest": service_name},
@@ -120,30 +122,30 @@ def service_profiling(app_id, service_name):
     ).sort("_id", DESCENDING).limit(1)
     try:
         profiling = next(cursor)
-        data = get_profiling_dataframe(profiling)
+        data = util.get_profiling_dataframe(profiling)
         del profiling["testResult"]
         profiling["results"] = data
         return jsonify(profiling)
     except StopIteration:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/interference")
 def interference_scores(app_id, service_name):
     application = configdb[app_collection].find_one(app_id)
     if application is None:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
     cursor = metricdb[profiling_collection].find(
         {"appName": application["name"], "serviceInTest": service_name}
     ).sort("_id", DESCENDING).limit(1)
     try:
         profiling = next(cursor)
-        data = get_radar_dataframe(profiling)
+        data = util.get_radar_dataframe(profiling)
         del profiling["testResult"]
         return jsonify(data)
     except StopIteration:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
 
 @app.route("/cross-app/predict", methods=["POST"])
@@ -205,11 +207,40 @@ def get_task_status(session_id):
     return response
 
 
+@app.route("/modify-slo", methods=["GET"])
+def modification_form():
+    return render_template("modification_form.html", apps=configdb.applications.find())
+
+
+@app.route("/modify-slo", methods=["POST"])
+def modify_slo():
+    updated = []
+    for name, value in request.form.items():
+        match = parse("slo-{name}-{metric}", name)
+        if match is not None:
+            app_name = match["name"]
+            metric = match["metric"]
+            if metric == "value":
+                try:
+                    value = int(value)
+                except ValueError:
+                    value = float(value)
+            update_result = configdb.applications.update_one(
+                {"name": app_name},
+                {"$set": {f"slo.{metric}": value}}
+            )
+            if update_result.modified_count > 0:
+                updated.append(app_name)
+    if updated:
+        flash("Successfully updated SLO values for %s" % ", ".join(updated))
+    return redirect(url_for("index"))
+
+
 @app.route("/cluster")
 def cluster_service_placement():
     with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
-    result = shape_service_placement(deploy_json)
+    result = util.shape_service_placement(deploy_json)
     return jsonify(result)
 
 
@@ -217,5 +248,5 @@ def cluster_service_placement():
 def recommended_service_placement():
     with open(my_config.get("ANALYZER", "RECOMMENDED_DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
-    result = shape_service_placement(deploy_json)
+    result = util.shape_service_placement(deploy_json)
     return jsonify(result)

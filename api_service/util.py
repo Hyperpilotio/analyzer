@@ -51,11 +51,19 @@ class ObjectIdConverter(BaseConverter):
         return str(value)
 
 
-def ensure_document_written(result):
+def handle_result(result, error_msg):
     if result.acknowledged:
-        return jsonify({'success': True, 'response': 200})
+        return jsonify({"Error": False, "response": 200})
     else:
-        return jsonify({'success': False, 'response': 500})
+        return jsonify({"Error": True, "response": 500, "Message:": f"Error: {error_msg}"})
+
+
+def do_partial_update(app_id, doc):
+    result = configdb.applications.update_one(
+        {"app_id": app_id},
+        {"$set": doc}
+    )
+    return handle_result(result, f"Partial update of app with appId {app_id} failed.")
 
 
 def ensure_document_found(document, **kwargs):
