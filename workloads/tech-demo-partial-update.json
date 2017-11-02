@@ -1,0 +1,20 @@
+{
+  "name": "tech-demo_updated",
+  "services": [
+    {
+      "name": "goddd_updated",
+      "deployment_template": {},
+      "state": "Running"
+    },
+    {
+      "name": "mongo-serve",
+      "deployment_template": {},
+      "state": "Pending"
+    },
+    {
+      "name": "pathfinder",
+      "deployment_template": {},
+      "state": "Running"
+    }
+  ]
+}
