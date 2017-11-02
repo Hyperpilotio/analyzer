@@ -1,6 +1,6 @@
 import json
 import traceback
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 from pymongo import DESCENDING
 
 from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
@@ -34,10 +34,13 @@ def index():
 
 @app.route("/apps", methods=["POST"])
 def create_application():
-	 with open("workloads/tech-demo-app.json", "r") as f:
-		  doc = json.load(f)
-		  result = configdb[app_collection].insert_one(doc)
-		  return util.handle_result(result, "Could not create application.")
+    with open("workloads/tech-demo-app.json", "r") as f:
+        doc = json.load(f)
+        result = configdb[app_collection].insert_one(doc)
+        try:
+            return jsonify(status="ok", object_id=result.inserted_id)
+        except InvalidOperation as e:
+            return jsonify(status="404", message="Could not create application.")
 
 
 @app.route("/apps", methods=["GET"])
@@ -73,9 +76,27 @@ def get_app_slo(app_name):
 
 @app.route("/apps/<string:app_id>", methods=["PUT"])
 def update_app(app_id):
-	 with open("workloads/tech_demo_partial.json", "r") as f:
-		  doc = json.load(f)
-		  return util.do_partial_update(app_id, doc)
+	with open("workloads/tech_demo_partial.json", "r") as f:
+		doc = json.load(f)
+		result = configdb.applications.update_one(
+			{"app_id": app_id},
+			{"$set": doc}
+			)
+		try:
+			if result.modified_count > 0:
+				return jsonify(status="ok", app_id=app_id)
+		except:
+			abort(404)
+
+
+@app.route("/apps/<string:app_id>", methods=["DELETE"])
+def delete_app(app_id):
+	result = configdb[app_collection].delete_one({"app_id": app_id})
+	try:
+		if result.deleted_count > 0:
+			 return jsonify(status="ok", deleted_id=app_id)
+	except:
+		 abort(404)
 
     #@app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
