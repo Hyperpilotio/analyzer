@@ -51,6 +51,12 @@ class ObjectIdConverter(BaseConverter):
         return str(value)
 
 
+def response(error_message):
+    response = jsonify(error=error_message)
+    response.status_code = 404
+    return response
+
+
 def ensure_document_found(document, **kwargs):
     if document is None:
         response = jsonify(error="Document not found")

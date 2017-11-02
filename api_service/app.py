@@ -37,14 +37,23 @@ def create_application():
     with open("workloads/tech-demo-app.json", "r") as f:
         doc = json.load(f)
         result = configdb[app_collection].insert_one(doc)
+
         try:
             return jsonify(status="ok", object_id=result.inserted_id)
         except InvalidOperation as e:
-            return jsonify(status="404", message="Could not create application.")
+            response = jsonify(error="Could not create application.")
+            response.status_code = 404
+            return response
 
 
 @app.route("/apps", methods=["GET"])
 def get_all_apps():
+    apps = configdb[app_collection].find()
+    return jsonify(apps)
+
+
+@app.route("/deprecated/apps", methods=["GET"])
+def _get_all_apps():
     with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
     apps = {}
@@ -62,8 +71,14 @@ def get_all_apps():
     return jsonify(apps)
 
 
-@app.route("/apps/<string:app_name>")
-def get_app_info(app_id):
+@app.route("/apps/<string:app_id>", methods=["GET"])
+def get_app_info_by_id(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    return util.ensure_document_found(application)
+
+
+@app.route("/apps/info/<string:app_name>")
+def get_app_info(app_name):
     application = configdb[app_collection].find_one({"name": app_name})
     return util.ensure_document_found(application)
 
@@ -76,27 +91,23 @@ def get_app_slo(app_name):
 
 @app.route("/apps/<string:app_id>", methods=["PUT"])
 def update_app(app_id):
-	with open("workloads/tech_demo_partial.json", "r") as f:
-		doc = json.load(f)
-		result = configdb.applications.update_one(
-			{"app_id": app_id},
-			{"$set": doc}
-			)
-		try:
-			if result.modified_count > 0:
-				return jsonify(status="ok", app_id=app_id)
-		except:
-			abort(404)
+    with open("workloads/tech_demo_partial.json", "r") as f:
+        doc = json.load(f)
+        result = configdb.applications.update_one(
+            {"app_id": app_id},
+            {"$set": doc}
+        )
+        if result.modified_count > 0:
+            return jsonify(status="ok", app_id=app_id)
+        return util.response("Could not update app.")
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
 def delete_app(app_id):
-	result = configdb[app_collection].delete_one({"app_id": app_id})
-	try:
-		if result.deleted_count > 0:
-			 return jsonify(status="ok", deleted_id=app_id)
-	except:
-		 abort(404)
+    result = configdb[app_collection].delete_one({"app_id": app_id})
+    if result.deleted_count > 0:
+        return jsonify(status="ok", deleted_id=app_id)
+    return util.response("Could not delete app.")
 
     #@app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
