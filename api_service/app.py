@@ -1,7 +1,8 @@
 import json
 import traceback
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request
 from pymongo import DESCENDING
+from pymongo.errors import InvalidOperation
 
 from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
 from sizing_service.linear_regression import LinearRegression1
@@ -40,10 +41,9 @@ def create_application():
 
         try:
             return jsonify(status="ok", object_id=result.inserted_id)
-        except InvalidOperation as e:
-            response = jsonify(error="Could not create application.")
-            response.status_code = 404
-            return response
+
+        except InvalidOperation:
+            return util.response("Could not create application.")
 
 
 @app.route("/apps", methods=["GET"])
@@ -97,17 +97,21 @@ def update_app(app_id):
             {"app_id": app_id},
             {"$set": doc}
         )
-        if result.modified_count > 0:
-            return jsonify(status="ok", app_id=app_id)
-        return util.response("Could not update app.")
+        try:
+            if result.modified_count > 0:
+                return jsonify(status="ok", app_id=app_id)
+        except InvalidOperation:
+            return util.response("Could not update app.")
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
 def delete_app(app_id):
     result = configdb[app_collection].delete_one({"app_id": app_id})
-    if result.deleted_count > 0:
-        return jsonify(status="ok", deleted_id=app_id)
-    return util.response("Could not delete app.")
+    try:
+        if result.deleted_count > 0:
+            return jsonify(status="ok", deleted_id=app_id)
+    except:
+        return util.response("Could not delete app.")
 
     #@app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
