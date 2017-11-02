@@ -91,7 +91,7 @@ def get_app_slo(app_name):
 
 @app.route("/apps/<string:app_id>", methods=["PUT"])
 def update_app(app_id):
-    with open("workloads/tech_demo_partial.json", "r") as f:
+    with open("workloads/tech-demo-partial-update.json", "r") as f:
         doc = json.load(f)
         result = configdb.applications.update_one(
             {"app_id": app_id},
