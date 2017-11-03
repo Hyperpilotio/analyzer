@@ -1,5 +1,7 @@
 import json
 import traceback
+from uuid import uuid1
+
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
 from pymongo.errors import InvalidOperation
@@ -26,7 +28,8 @@ sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BOP = BayesianOptimizerPool()
-
+APP_STATE = {"REGISTERED": "Registered",
+        "UNREGISTERED": "Unregistered"}
 
 @app.route("/")
 def index():
@@ -35,15 +38,27 @@ def index():
 
 @app.route("/apps", methods=["POST"])
 def create_application():
-    with open("workloads/tech-demo-app.json", "r") as f:
+    app_json_path = request.json["path"]
+    with open(app_json_path, "r") as f:
         doc = json.load(f)
+
+        name = doc.get("name")
+        if name == None:
+            return util.response("App name not found in application json.", 400)
+        if doc.get("type") == None:
+            return util.response("App type not found in application json.", 400)
+
+        app_id = name + "-" + str(uuid1())
+        doc["app_id"] = app_id
+        doc["state"] = APP_STATE["REGISTERED"]
         result = configdb[app_collection].insert_one(doc)
 
         try:
-            return jsonify(status="ok", object_id=result.inserted_id)
+            inserted_id = result.inserted_id
+            return jsonify(status="ok", app_id=app_id)
 
         except InvalidOperation:
-            return util.response("Could not create application.")
+            return util.response("Could not create application.", 404)
 
 
 @app.route("/apps", methods=["GET"])
@@ -93,7 +108,7 @@ def get_app_slo(app_name):
 def update_app(app_id):
     with open("workloads/tech-demo-partial-update.json", "r") as f:
         doc = json.load(f)
-        result = configdb.applications.update_one(
+        result = configdb[app_collection].update_one(
             {"app_id": app_id},
             {"$set": doc}
         )
@@ -101,19 +116,22 @@ def update_app(app_id):
             if result.modified_count > 0:
                 return jsonify(status="ok", app_id=app_id)
         except InvalidOperation:
-            return util.response("Could not update app.")
+            return util.response("Could not update app.", 404)
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
 def delete_app(app_id):
-    result = configdb[app_collection].delete_one({"app_id": app_id})
+    result = configdb[app_collection].update_one(
+            {"app_id": app_id},
+            {"$set": {"state": APP_STATE["UNREGISTERED"]}}
+    )
     try:
-        if result.deleted_count > 0:
+        if result.modified_count > 0:
             return jsonify(status="ok", deleted_id=app_id)
     except:
-        return util.response("Could not delete app.")
+        return util.response("Could not delete app.", 404)
 
-    #@app.route("/apps/<string:app_name>/diagnosis")
+#@app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
 #    application = configdb[app_collection].find_one({"name": app_name})
 #    if application is None:

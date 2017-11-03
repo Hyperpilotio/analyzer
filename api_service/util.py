@@ -51,9 +51,9 @@ class ObjectIdConverter(BaseConverter):
         return str(value)
 
 
-def response(error_message):
+def response(error_message, code):
     response = jsonify(error=error_message)
-    response.status_code = 404
+    response.status_code = code
     return response
 
 
