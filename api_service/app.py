@@ -112,11 +112,9 @@ def update_app(app_id):
             {"app_id": app_id},
             {"$set": doc}
         )
-        try:
-            if result.modified_count > 0:
-                return jsonify(status="ok", app_id=app_id)
-        except InvalidOperation:
-            return util.response("Could not update app.", 404)
+        if result.modified_count > 0:
+            return jsonify(status="ok", app_id=app_id)
+        return util.response("Could not update app.", 404)
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
@@ -125,11 +123,9 @@ def delete_app(app_id):
             {"app_id": app_id},
             {"$set": {"state": APP_STATE["UNREGISTERED"]}}
     )
-    try:
-        if result.modified_count > 0:
-            return jsonify(status="ok", deleted_id=app_id)
-    except:
-        return util.response("Could not delete app.", 404)
+    if result.modified_count > 0:
+        return jsonify(status="ok", deleted_id=app_id)
+    util.response("Could not delete app.", 404)
 
 #@app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
