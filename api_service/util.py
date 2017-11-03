@@ -3,6 +3,7 @@ from functools import lru_cache
 import bson
 from flask.json import JSONEncoder
 from flask import jsonify
+from pymongo import ReturnDocument
 from pymongo.cursor import Cursor
 from werkzeug.routing import BaseConverter, ValidationError
 import numpy as np
@@ -68,7 +69,33 @@ def ensure_document_found(document, **kwargs):
                 new_key: document[original_key]
                 for new_key, original_key in kwargs.items()
             }
-        return jsonify(document)
+        response = jsonify(data=document)
+        response.status_code = 200
+        return response
+
+
+def update_and_return_doc(app_id, update_doc):
+    updated_doc = configdb[app_collection].find_one_and_update(
+        {"app_id": app_id},
+        {"$set": update_doc},
+        return_document=ReturnDocument.AFTER
+    )
+    if updated_doc:
+        result = jsonify(data=updated_doc)
+        result.status_code = 200
+        return result
+    return util.response("Could not update app.", 404)
+
+
+def ensure_application_updated(app_id, update_doc):
+    result = configdb[app_collection].update_one(
+        {"app_id": app_id},
+        {"$set": update_doc}
+    )
+
+    if result.modified_count > 0:
+        return jsonify(status=200)
+    return util.response("Could not update app.", 404)
 
 
 def shape_service_placement(deploy_json):

@@ -55,7 +55,9 @@ def create_application():
 
         try:
             inserted_id = result.inserted_id
-            return jsonify(status="ok", app_id=app_id)
+            response = jsonify(data=app_id)
+            response.status_code = 200
+            return response
 
         except InvalidOperation:
             return util.response("Could not create application.", 404)
@@ -64,7 +66,7 @@ def create_application():
 @app.route("/apps", methods=["GET"])
 def get_all_apps():
     apps = configdb[app_collection].find()
-    return jsonify(apps)
+    return jsonify(data=apps)
 
 
 @app.route("/deprecated/apps", methods=["GET"])
@@ -108,13 +110,7 @@ def get_app_slo(app_name):
 def update_app(app_id):
     with open("workloads/tech-demo-partial-update.json", "r") as f:
         doc = json.load(f)
-        result = configdb[app_collection].update_one(
-            {"app_id": app_id},
-            {"$set": doc}
-        )
-        if result.modified_count > 0:
-            return jsonify(status="ok", app_id=app_id)
-        return util.response("Could not update app.", 404)
+        return util.update_and_return_doc(app_id, doc)
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
@@ -127,7 +123,15 @@ def delete_app(app_id):
         return jsonify(status="ok", deleted_id=app_id)
     util.response("Could not delete app.", 404)
 
-#@app.route("/apps/<string:app_name>/diagnosis")
+
+@app.route("/apps/<string:app_id>/services", methods=["POST"])
+def add_service(app_id):
+    with open("workloads/services.json", "r") as f:
+        doc = json.load(f)
+        return util.ensure_application_updated(app_id, doc)
+
+
+#app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
 #    application = configdb[app_collection].find_one({"name": app_name})
 #    if application is None:
