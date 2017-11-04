@@ -126,9 +126,28 @@ def delete_app(app_id):
 
 @app.route("/apps/<string:app_id>/services", methods=["POST"])
 def add_service(app_id):
+    services = _get_app_services(app_id)
     with open("workloads/services.json", "r") as f:
         doc = json.load(f)
-        return util.ensure_application_updated(app_id, doc)
+        if services:
+            doc["services"] += services
+        return util.update_and_return_doc(app_id, doc)
+
+
+@app.route("/apps/<string:app_id>/services", methods=["GET"])
+def get_app_services(app_id):
+    services = _get_app_services(app_id)
+    if services:
+        response = jsonify(data=services)
+        response.status_code = 200
+        return response
+    return util.response("Could not find application services.", 404)
+
+
+def _get_app_services(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application:
+        return application.get("services")
 
 
 #app.route("/apps/<string:app_name>/diagnosis")
