@@ -52,7 +52,7 @@ class ObjectIdConverter(BaseConverter):
         return str(value)
 
 
-def response(error_message, code):
+def error_response(error_message, code):
     response = jsonify(error=error_message)
     response.status_code = code
     return response

@@ -29,7 +29,8 @@ logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BOP = BayesianOptimizerPool()
 APP_STATE = {"REGISTERED": "Registered",
-        "UNREGISTERED": "Unregistered"}
+             "UNREGISTERED": "Unregistered"}
+
 
 @app.route("/")
 def index():
@@ -38,29 +39,27 @@ def index():
 
 @app.route("/apps", methods=["POST"])
 def create_application():
-    app_json_path = request.json["path"]
-    with open(app_json_path, "r") as f:
-        doc = json.load(f)
+    app_json = request.get_json()
 
-        name = doc.get("name")
-        if name == None:
-            return util.response("App name not found in application json.", 400)
-        if doc.get("type") == None:
-            return util.response("App type not found in application json.", 400)
+    try:
+        app_name = app_json["name"]
+    except KeyError:
+        return util.error_response("App name not found in application json.", 400)
 
-        app_id = name + "-" + str(uuid1())
-        doc["app_id"] = app_id
-        doc["state"] = APP_STATE["REGISTERED"]
-        result = configdb[app_collection].insert_one(doc)
+    if "type" not in app_json:
+        return util.error_response("App type not found in application json.", 400)
 
-        try:
-            inserted_id = result.inserted_id
-            response = jsonify(data=app_id)
-            response.status_code = 200
-            return response
+    app_id = app_name + "-" + str(uuid1())
+    app_json["app_id"] = app_id
+    app_json["state"] = APP_STATE["REGISTERED"]
 
-        except InvalidOperation:
-            return util.response("Could not create application.", 404)
+    try:
+        result = configdb[app_collection].insert_one(app_json)
+        response = jsonify(data=app_id)
+        response.status_code = 200
+        return response
+    except InvalidOperation:
+        return util.error_response("Could not create application.", 404)
 
 
 @app.route("/apps", methods=["GET"])
@@ -108,49 +107,47 @@ def get_app_slo(app_name):
 
 @app.route("/apps/<string:app_id>", methods=["PUT"])
 def update_app(app_id):
-    with open("workloads/tech-demo-partial-update.json", "r") as f:
-        doc = json.load(f)
-        return util.update_and_return_doc(app_id, doc)
+    app_json = request.get_json()
+    return util.update_and_return_doc(app_id, app_json)
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
 def delete_app(app_id):
     result = configdb[app_collection].update_one(
-            {"app_id": app_id},
-            {"$set": {"state": APP_STATE["UNREGISTERED"]}}
+        {"app_id": app_id},
+        {"$set": {"state": APP_STATE["UNREGISTERED"]}}
     )
     if result.modified_count > 0:
         return jsonify(status="ok", deleted_id=app_id)
-    util.response("Could not delete app.", 404)
+    util.error_response("Could not delete app.", 404)
 
 
 @app.route("/apps/<string:app_id>/services", methods=["POST"])
 def add_service(app_id):
-    services = _get_app_services(app_id)
-    with open("workloads/services.json", "r") as f:
-        doc = json.load(f)
-        if services:
-            doc["services"] += services
-        return util.update_and_return_doc(app_id, doc)
+    app_json = request.get_json()
+    services = get_app_services(app_id)
+    if services:
+        app_json["services"] += services
+    return util.update_and_return_doc(app_id, app_json)
 
 
 @app.route("/apps/<string:app_id>/services", methods=["GET"])
-def get_app_services(app_id):
-    services = _get_app_services(app_id)
+def create_services_response(app_id):
+    services = get_app_services(app_id)
     if services:
         response = jsonify(data=services)
         response.status_code = 200
         return response
-    return util.response("Could not find application services.", 404)
+    return util.error_response("Could not find application services.", 404)
 
 
-def _get_app_services(app_id):
+def get_app_services(app_id):
     application = configdb[app_collection].find_one({"app_id": app_id})
     if application:
         return application.get("services")
 
 
-#app.route("/apps/<string:app_name>/diagnosis")
+# app.route("/apps/<string:app_name>/diagnosis")
 # def get_app_slo(app_name):
 #    application = configdb[app_collection].find_one({"name": app_name})
 #    if application is None:

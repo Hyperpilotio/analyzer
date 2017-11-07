@@ -41,9 +41,5 @@
       "policy": []
     }
   ],
-  "budget": {
-    "value": 300,
-    "unit": "dollar"
-  },
   "state": "Registered"
 }
