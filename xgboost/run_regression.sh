@@ -18,11 +18,11 @@ $MY_XGBOOST $MODEL_TYPE num_round=$NUM_ROUNDS
 $MY_XGBOOST $MODEL_TYPE task=pred model_in=$MODEL_NAME
 
 # print the structure of the last model in dump.raw.txt
-$MY_XGBOOST $MODEL_TYPE task=dump model_in=$MODEL_NAME name_dump=dump.raw.txt
+$MY_XGBOOST $MODEL_TYPE task=dump model_in=$MODEL_NAME name_dump=model.raw.txt
 echo "Estimated raw decision tree model:"
-cat dump.raw.txt
+cat model.raw.txt
 
 # print the structure of the last model in dump.nice.txt with feature map
-$MY_XGBOOST $MODEL_TYPE task=dump model_in=$MODEL_NAME fmap=xgboost_keys.txt name_dump=dump.nice.txt
+$MY_XGBOOST $MODEL_TYPE task=dump model_in=$MODEL_NAME fmap=xgboost_keys.txt name_dump=model.nice.txt
 echo "Estimated decision tree model with feature names:"
-cat dump.nice.txt
+cat model.nice.txt
