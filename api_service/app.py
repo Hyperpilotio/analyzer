@@ -34,7 +34,7 @@ APP_STATE = {"REGISTERED": "Registered",
 
 @app.route("/")
 def index():
-    return jsonify(status="ok")
+    return jsonify(status=200)
 
 
 @app.route("/apps", methods=["POST"])
@@ -59,13 +59,15 @@ def create_application():
         response.status_code = 200
         return response
     except InvalidOperation:
-        return util.error_response("Could not create application.", 404)
+        return util.error_response(f"Could not create application {app_name}.", 404)
 
 
 @app.route("/apps", methods=["GET"])
 def get_all_apps():
     apps = configdb[app_collection].find()
-    return jsonify(data=apps)
+    response = jsonify(data=apps)
+    response.status_code = 200
+    return response
 
 
 @app.route("/deprecated/apps", methods=["GET"])
@@ -93,13 +95,13 @@ def get_app_info_by_id(app_id):
     return util.ensure_document_found(application)
 
 
-@app.route("/apps/info/<string:app_name>")
+@app.route("/apps/info/<string:app_name>", methods=["GET"])
 def get_app_info(app_name):
     application = configdb[app_collection].find_one({"name": app_name})
     return util.ensure_document_found(application)
 
 
-@app.route("/apps/<string:app_name>/slo")
+@app.route("/apps/<string:app_name>/slo", methods=["GET"])
 def get_app_slo(app_name):
     application = configdb[app_collection].find_one({"name": app_name})
     return util.ensure_document_found(application, ['slo'])
@@ -113,38 +115,38 @@ def update_app(app_id):
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
 def delete_app(app_id):
+    # Method to keep app in internal system but with unregistered state.
+
+    # Check for existence
+    app = configdb[app_collection].find_one({"app_id": app_id})
+    if not app:
+        return util.error_response(f"Tried to delete app {app_id} but app not found.", 404)
     result = configdb[app_collection].update_one(
         {"app_id": app_id},
         {"$set": {"state": APP_STATE["UNREGISTERED"]}}
     )
     if result.modified_count > 0:
-        return jsonify(status="ok", deleted_id=app_id)
-    util.error_response("Could not delete app.", 404)
+        return jsonify(status=200, deleted_id=app_id)
+    return util.error_response(f"Could not delete app {app_id}.", 404)
 
 
 @app.route("/apps/<string:app_id>/services", methods=["POST"])
-def add_service(app_id):
+def add_app_services(app_id):
     app_json = request.get_json()
-    services = get_app_services(app_id)
+    services = util.get_app_services(app_id)
     if services:
         app_json["services"] += services
     return util.update_and_return_doc(app_id, app_json)
 
 
 @app.route("/apps/<string:app_id>/services", methods=["GET"])
-def create_services_response(app_id):
-    services = get_app_services(app_id)
+def get_app_services(app_id):
+    services = util.get_app_services(app_id)
     if services:
         response = jsonify(data=services)
         response.status_code = 200
         return response
     return util.error_response("Could not find application services.", 404)
-
-
-def get_app_services(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
-    if application:
-        return application.get("services")
 
 
 # app.route("/apps/<string:app_name>/diagnosis")
@@ -277,33 +279,33 @@ def get_task_status(session_id):
     return response
 
 
-@app.route("/modify-slo", methods=["GET"])
-def modification_form():
-    return render_template("modification_form.html", apps=configdb.applications.find())
-
-
-@app.route("/modify-slo", methods=["POST"])
-def modify_slo():
-    updated = []
-    for name, value in request.form.items():
-        match = parse("slo-{name}-{metric}", name)
-        if match is not None:
-            app_name = match["name"]
-            metric = match["metric"]
-            if metric == "value":
-                try:
-                    value = int(value)
-                except ValueError:
-                    value = float(value)
-            update_result = configdb.applications.update_one(
-                {"name": app_name},
-                {"$set": {f"slo.{metric}": value}}
-            )
-            if update_result.modified_count > 0:
-                updated.append(app_name)
-    if updated:
-        flash("Successfully updated SLO values for %s" % ", ".join(updated))
-    return redirect(url_for("index"))
+# @app.route("/modify-slo", methods=["GET"])
+# def modification_form():
+#     return render_template("modification_form.html", apps=configdb.applications.find())
+#
+#
+# @app.route("/modify-slo", methods=["POST"])
+# def modify_slo():
+#     updated = []
+#     for name, value in request.form.items():
+#         match = parse("slo-{name}-{metric}", name)
+#         if match is not None:
+#             app_name = match["name"]
+#             metric = match["metric"]
+#             if metric == "value":
+#                 try:
+#                     value = int(value)
+#                 except ValueError:
+#                     value = float(value)
+#             update_result = configdb.applications.update_one(
+#                 {"name": app_name},
+#                 {"$set": {f"slo.{metric}": value}}
+#             )
+#             if update_result.modified_count > 0:
+#                 updated.append(app_name)
+#     if updated:
+#         flash("Successfully updated SLO values for %s" % ", ".join(updated))
+#     return redirect(url_for("index"))
 
 
 @app.route("/cluster")

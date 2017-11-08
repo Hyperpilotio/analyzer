@@ -84,7 +84,7 @@ def update_and_return_doc(app_id, update_doc):
         result = jsonify(data=updated_doc)
         result.status_code = 200
         return result
-    return util.response("Could not update app.", 404)
+    return error_response(f"Could not update app {app_id}.", 404)
 
 
 def ensure_application_updated(app_id, update_doc):
@@ -96,6 +96,12 @@ def ensure_application_updated(app_id, update_doc):
     if result.modified_count > 0:
         return jsonify(status=200)
     return util.response("Could not update app.", 404)
+
+
+def get_app_services(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application:
+        return application.get("services")
 
 
 def shape_service_placement(deploy_json):
