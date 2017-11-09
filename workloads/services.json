@@ -1,0 +1,10 @@
+{
+    "services": [    
+        {
+            "name": "mysql",
+            "deployment_template": "mysql-spec.json",
+            "state": "Running"
+        }
+    ]
+}
+

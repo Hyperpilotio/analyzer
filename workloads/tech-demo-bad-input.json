@@ -17,7 +17,6 @@
       "state": "Running"
     }
   ],
-  "type": "long-running",
   "slo": {
     "metric": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
     "type": "latency",
@@ -42,8 +41,5 @@
       "policy": []
     }
   ],
-  "budget": {
-    "value": 300,
-    "unit": "dollar"
-  }
+  "state": "Registered"
 }
