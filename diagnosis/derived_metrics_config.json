@@ -1,0 +1,236 @@
+[
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%steal",
+    "type": "vm_interference",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 5
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%user",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 80
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%user",
+    "type": "under_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 40
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%iowait",
+    "type": "resource_bottleneck",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 10
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%idle",
+    "type": "resource_bottleneck",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 5
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%idle",
+    "type": "under_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 70
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/device/*/r_per_sec",
+    "type": "over_utilization",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 75
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+    {
+    "metric_name": "/intel/iostat/device/*/w_per_sec",
+    "type": "over_utilization",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 150
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/device/*/rkB_per_sec",
+    "type": "over_utilization",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 12000
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/device/*/wkB_per_sec",
+    "type": "over_utilization",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 12000
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/device/*/await",
+    "type": "resource_bottleneck",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 30
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/device/*/r_wait",
+    "type": "resource_bottleneck",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 30
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/device/*/w_wait",
+    "type": "resource_bottleneck",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 30
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/device/*/%util",
+    "type": "resource_bottleneck",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 40
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/cpu/cpu-total/softirq",
+    "type": "resource_bottleneck",
+    "resource": "network",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 10
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/disk/*/percent",
+    "type": "resource_bottleneck",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 90
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/used_percent",
+    "type": "over_utilization",
+    "resource_type": "memory",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 70
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/used_percent",
+    "type": "under_utilization",
+    "resource_type": "memory",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 30
+    },
+    "labels": {
+      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  }
+]
