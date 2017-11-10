@@ -1,7 +1,7 @@
 import time
 
 import pandas as pd
-import numpy as np
+from numpy import NaN
 from influxdb import DataFrameClient
 
 from . import data_source as ds
@@ -47,10 +47,12 @@ class MetricConsumer(object):
         print('Using time filter:', time_filter)
 
         # query metrics by tag and time filters
-        query_metric = "select value from \"%s\" where %s AND %s order by time asc" % \
+        query_metric = "select value from \"%s\" where %s AND %s order by time desc" % \
             (app_metric, tag_filter, time_filter)
         print("Query to get app metric: \n " + query_metric)
         rs_app = df_client.query(query_metric)
+
+
         N = len(rs_app[app_metric])
 
         timestamps = [ts.timestamp() * 1000000000 for ts in rs_app[app_metric].index]
@@ -67,15 +69,18 @@ class MetricConsumer(object):
         ]
         print("Number of system metrics to be fetched", len(measurement_list))
 
-
+        
         for measurement in measurement_list:
-            query_measurements = 'select * from "%s" where %s order by time asc' % (measurement, time_filter)
+            ts_dict = {}
+            query_measurements = 'select * from "%s" where %s order by time desc' % (measurement, time_filter)
             print("Query to get system metric: \n " + query_measurements)
             result = df_client.query(query_measurements)
             if len(result) == 0:
                 print("No items found for measurement %s" % measurement)
                 continue
-            result[measurement]
+            df = result[measurement]
+            #for ts in df.index:
+
 
 
     def shift_and_update(self):
