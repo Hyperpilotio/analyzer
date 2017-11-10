@@ -19,7 +19,7 @@ import json
 import sys
 import time
 import operator
-from . import util
+from api_service import util
 from . import bayesian_optimizer_pool
 
 # a couple of globals

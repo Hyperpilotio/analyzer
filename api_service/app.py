@@ -1,25 +1,23 @@
 import json
-import sys
 import traceback
+from uuid import uuid1
+
 from flask import Flask, jsonify, request
 from pymongo import DESCENDING
+from pymongo.errors import InvalidOperation
 
 from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
-from sizing_service.session_worker_pool import Status, SessionStatus
 from sizing_service.linear_regression import LinearRegression1
-from sizing_service.util import (get_calibration_dataframe, get_profiling_dataframe,
-                           get_radar_dataframe)
+import api_service.util as util
 from config import get_config
 from logger import get_logger
 
 from .db import configdb, metricdb
-from .util import (JSONEncoderWithMongo, ObjectIdConverter,
-                   ensure_document_found, shape_service_placement)
 
 app = Flask(__name__)
 
-app.json_encoder = JSONEncoderWithMongo
-app.url_map.converters["objectid"] = ObjectIdConverter
+app.json_encoder = util.JSONEncoderWithMongo
+app.url_map.converters["objectid"] = util.ObjectIdConverter
 
 my_config = get_config()
 app_collection = my_config.get("ANALYZER", "APP_COLLECTION")
@@ -30,30 +28,50 @@ sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BOP = BayesianOptimizerPool()
+APP_STATE = {"REGISTERED": "Registered",
+             "UNREGISTERED": "Unregistered"}
+
 
 @app.route("/")
 def index():
-    return jsonify(status="ok")
+    return jsonify(status=200)
 
 
-@app.route("/cluster")
-def cluster_service_placement():
-    with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
-        deploy_json = json.load(f)
-    result = shape_service_placement(deploy_json)
-    return jsonify(result)
+@app.route("/apps", methods=["POST"])
+def create_application():
+    app_json = request.get_json()
+
+    try:
+        app_name = app_json["name"]
+    except KeyError:
+        return util.error_response("App name not found in application json.", 400)
+
+    if "type" not in app_json:
+        return util.error_response("App type not found in application json.", 400)
+
+    app_id = app_name + "-" + str(uuid1())
+    app_json["app_id"] = app_id
+    app_json["state"] = APP_STATE["REGISTERED"]
+
+    try:
+        result = configdb[app_collection].insert_one(app_json)
+        response = jsonify(data=app_id)
+        response.status_code = 200
+        return response
+    except InvalidOperation:
+        return util.error_response(f"Could not create application {app_name}.", 404)
 
 
-@app.route("/cluster/recommended")
-def recommended_service_placement():
-    with open(my_config.get("ANALYZER", "RECOMMENDED_DEPLOY_JSON")) as f:
-        deploy_json = json.load(f)
-    result = shape_service_placement(deploy_json)
-    return jsonify(result)
-
-
-@app.route("/apps")
+@app.route("/apps", methods=["GET"])
 def get_all_apps():
+    apps = configdb[app_collection].find()
+    response = jsonify(data=apps)
+    response.status_code = 200
+    return response
+
+
+@app.route("/deprecated/apps", methods=["GET"])
+def _get_all_apps():
     with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
         deploy_json = json.load(f)
     apps = {}
@@ -71,20 +89,68 @@ def get_all_apps():
     return jsonify(apps)
 
 
-@app.route("/apps/<string:app_name>")
-def get_app_info(app_id):
+@app.route("/apps/<string:app_id>", methods=["GET"])
+def get_app_info_by_id(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    return util.ensure_document_found(application)
+
+
+@app.route("/apps/info/<string:app_name>", methods=["GET"])
+def get_app_info(app_name):
     application = configdb[app_collection].find_one({"name": app_name})
-    return ensure_document_found(application)
+    return util.ensure_document_found(application)
 
 
-@app.route("/apps/<string:app_name>/slo")
+@app.route("/apps/<string:app_name>/slo", methods=["GET"])
 def get_app_slo(app_name):
     application = configdb[app_collection].find_one({"name": app_name})
-    return ensure_document_found(application, ['slo'])
+    return util.ensure_document_found(application, ['slo'])
 
 
-#@app.route("/apps/<string:app_name>/diagnosis")
-#def get_app_slo(app_name):
+@app.route("/apps/<string:app_id>", methods=["PUT"])
+def update_app(app_id):
+    app_json = request.get_json()
+    return util.update_and_return_doc(app_id, app_json)
+
+
+@app.route("/apps/<string:app_id>", methods=["DELETE"])
+def delete_app(app_id):
+    # Method to keep app in internal system but with unregistered state.
+
+    # Check for existence
+    app = configdb[app_collection].find_one({"app_id": app_id})
+    if not app:
+        return util.error_response(f"Tried to delete app {app_id} but app not found.", 404)
+    result = configdb[app_collection].update_one(
+        {"app_id": app_id},
+        {"$set": {"state": APP_STATE["UNREGISTERED"]}}
+    )
+    if result.modified_count > 0:
+        return jsonify(status=200, deleted_id=app_id)
+    return util.error_response(f"Could not delete app {app_id}.", 404)
+
+
+@app.route("/apps/<string:app_id>/services", methods=["POST"])
+def add_app_services(app_id):
+    app_json = request.get_json()
+    services = util.get_app_services(app_id)
+    if services:
+        app_json["services"] += services
+    return util.update_and_return_doc(app_id, app_json)
+
+
+@app.route("/apps/<string:app_id>/services", methods=["GET"])
+def get_app_services(app_id):
+    services = util.get_app_services(app_id)
+    if services:
+        response = jsonify(data=services)
+        response.status_code = 200
+        return response
+    return util.error_response("Could not find application services.", 404)
+
+
+# app.route("/apps/<string:app_name>/diagnosis")
+# def get_app_slo(app_name):
 #    application = configdb[app_collection].find_one({"name": app_name})
 #    if application is None:
 #        response = jsonify({"status": "bad_request",
@@ -100,7 +166,7 @@ def get_app_slo(app_name):
 def app_calibration(app_id):
     application = configdb[app_collection].find_one(app_id)
     if app is None:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
     cursor = metricdb[calibration_collection].find(
         {"appName": application["name"]},
@@ -108,19 +174,19 @@ def app_calibration(app_id):
     ).sort("_id", DESCENDING).limit(1)
     try:
         calibration = next(cursor)
-        data = get_calibration_dataframe(calibration)
+        data = util.get_calibration_dataframe(calibration)
         del calibration["testResult"]
         calibration["results"] = data
         return jsonify(calibration)
     except StopIteration:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/profiling")
 def service_profiling(app_id, service_name):
     application = configdb[app_collection].find_one(app_id)
     if app is None:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
     cursor = metricdb[profiling_collection].find(
         {"appName": application["name"], "serviceInTest": service_name},
@@ -128,30 +194,30 @@ def service_profiling(app_id, service_name):
     ).sort("_id", DESCENDING).limit(1)
     try:
         profiling = next(cursor)
-        data = get_profiling_dataframe(profiling)
+        data = util.get_profiling_dataframe(profiling)
         del profiling["testResult"]
         profiling["results"] = data
         return jsonify(profiling)
     except StopIteration:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/interference")
 def interference_scores(app_id, service_name):
     application = configdb[app_collection].find_one(app_id)
     if application is None:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
     cursor = metricdb[profiling_collection].find(
         {"appName": application["name"], "serviceInTest": service_name}
     ).sort("_id", DESCENDING).limit(1)
     try:
         profiling = next(cursor)
-        data = get_radar_dataframe(profiling)
+        data = util.get_radar_dataframe(profiling)
         del profiling["testResult"]
         return jsonify(data)
     except StopIteration:
-        return ensure_document_found(None)
+        return util.ensure_document_found(None)
 
 
 @app.route("/cross-app/predict", methods=["POST"])
@@ -189,13 +255,15 @@ def get_next_instance_types(session_id):
                             "error": "Optimization process still running"})
         return response
 
-    logger.info(f"Starting a new sizing session {session_id} for app {app_name}")
+    logger.info(
+        f"Starting a new sizing session {session_id} for app {app_name}")
     try:
-        response = jsonify(BOP.get_candidates(session_id, request_body).to_dict())
+        response = jsonify(BOP.get_candidates(
+            session_id, request_body).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
-                            "error":"Error in getting candidates from the sizing service: " + str(e)})
+                            "error": "Error in getting candidates from the sizing service: " + str(e)})
 
     return response
 
@@ -209,3 +277,48 @@ def get_task_status(session_id):
         response = jsonify({"status": "server_error",
                             "error": str(e)})
     return response
+
+
+# @app.route("/modify-slo", methods=["GET"])
+# def modification_form():
+#     return render_template("modification_form.html", apps=configdb.applications.find())
+#
+#
+# @app.route("/modify-slo", methods=["POST"])
+# def modify_slo():
+#     updated = []
+#     for name, value in request.form.items():
+#         match = parse("slo-{name}-{metric}", name)
+#         if match is not None:
+#             app_name = match["name"]
+#             metric = match["metric"]
+#             if metric == "value":
+#                 try:
+#                     value = int(value)
+#                 except ValueError:
+#                     value = float(value)
+#             update_result = configdb.applications.update_one(
+#                 {"name": app_name},
+#                 {"$set": {f"slo.{metric}": value}}
+#             )
+#             if update_result.modified_count > 0:
+#                 updated.append(app_name)
+#     if updated:
+#         flash("Successfully updated SLO values for %s" % ", ".join(updated))
+#     return redirect(url_for("index"))
+
+
+@app.route("/cluster")
+def cluster_service_placement():
+    with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
+        deploy_json = json.load(f)
+    result = util.shape_service_placement(deploy_json)
+    return jsonify(result)
+
+
+@app.route("/cluster/recommended")
+def recommended_service_placement():
+    with open(my_config.get("ANALYZER", "RECOMMENDED_DEPLOY_JSON")) as f:
+        deploy_json = json.load(f)
+    result = util.shape_service_placement(deploy_json)
+    return jsonify(result)
