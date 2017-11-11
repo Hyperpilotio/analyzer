@@ -7,35 +7,6 @@
     "threshold": {
       "type": "UB",
       "value": 5
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
-    }
-  },
-  {
-    "metric_name": "/intel/iostat/avg-cpu/%user",
-    "type": "over_utilization",
-    "resource": "cpu",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 80
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
-    }
-  },
-  {
-    "metric_name": "/intel/iostat/avg-cpu/%user",
-    "type": "under_utilization",
-    "resource": "cpu",
-    "observation_window": 60,
-    "threshold": {
-      "type": "LB",
-      "value": 40
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -46,22 +17,36 @@
     "threshold": {
       "type": "UB",
       "value": 10
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
-    "metric_name": "/intel/iostat/avg-cpu/%idle",
-    "type": "resource_bottleneck",
+    "metric_name": "/intel/iostat/avg-cpu/%user",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 80
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%user",
+    "type": "under_utilization",
     "resource": "cpu",
     "observation_window": 60,
     "threshold": {
       "type": "LB",
-      "value": 5
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
+      "value": 40
+    }
+  },
+  {
+    "metric_name": "/intel/iostat/avg-cpu/%idle",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 10
     }
   },
   {
@@ -71,10 +56,7 @@
     "observation_window": 60,
     "threshold": {
       "type": "UB",
-      "value": 70
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
+      "value": 60
     }
   },
   {
@@ -85,9 +67,6 @@
     "threshold": {
       "type": "UB",
       "value": 75
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
     {
@@ -98,9 +77,6 @@
     "threshold": {
       "type": "UB",
       "value": 150
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -111,9 +87,6 @@
     "threshold": {
       "type": "UB",
       "value": 12000
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -124,9 +97,6 @@
     "threshold": {
       "type": "UB",
       "value": 12000
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -137,9 +107,6 @@
     "threshold": {
       "type": "UB",
       "value": 30
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -150,9 +117,6 @@
     "threshold": {
       "type": "UB",
       "value": 30
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -163,9 +127,6 @@
     "threshold": {
       "type": "UB",
       "value": 30
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -176,9 +137,6 @@
     "threshold": {
       "type": "UB",
       "value": 40
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -189,9 +147,6 @@
     "threshold": {
       "type": "UB",
       "value": 10
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
     }
   },
   {
@@ -202,9 +157,78 @@
     "threshold": {
       "type": "UB",
       "value": 90
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/net/*/bytes_recv",
+    "type": "over_utilization",
+    "resource_type": "network",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 100000000
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/net/*/bytes_sent",
+    "type": "over_utilization",
+    "resource_type": "network",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 100000000
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/net/*/bytes_recv",
+    "type": "over_utilization",
+    "resource_type": "network",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 100000000
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/net/all/errin",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 50
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/net/all/errout",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 50
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/net/all/dropin",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "normalizer": "/intel/psutil/net/all/packets_recv",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 1.0
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/net/all/dropout",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "normalizer": "/intel/psutil/net/all/packets_sent",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 1.0
     }
   },
   {
@@ -214,10 +238,7 @@
     "observation_window": 60,
     "threshold": {
       "type": "UB",
-      "value": 70
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
+      "value": 80
     }
   },
   {
@@ -227,10 +248,73 @@
     "observation_window": 60,
     "threshold": {
       "type": "LB",
+      "value": 40
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/free",
+    "type": "over_utilization",
+    "resource_type": "memory",
+    "normalizer": "/intel/psutil/vm/total",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 20
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/free",
+    "type": "under_utilization",
+    "resource_type": "memory",
+    "normalizer": "/intel/psutil/vm/total",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 60
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/active",
+    "type": "over_utilization",
+    "resource_type": "memory",
+    "normalizer": "/intel/psutil/vm/total",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 70
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/active",
+    "type": "under_utilization",
+    "resource_type": "memory",
+    "normalizer": "/intel/psutil/vm/total",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
       "value": 30
-    },
-    "labels": {
-      "node_id": "nodename-xxxxxxxx-xxxx"
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/available",
+    "type": "over_utilization",
+    "resource_type": "memory",
+    "normalizer": "/intel/psutil/vm/total",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 30
+    }
+  },
+  {
+    "metric_name": "/intel/psutil/vm/available",
+    "type": "under_utilization",
+    "resource_type": "memory",
+    "normalizer": "/intel/psutil/vm/total",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 70
     }
   }
 ]
