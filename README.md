@@ -34,3 +34,20 @@ then connect to: [http://localhost:5000/api](http://localhost:5000/api)
 - `make serve` (don't forget to connect to VPN first)
 
 Please install Python 3.6.1 or later if you see the message from running `make init` saying that the Python version is outdated.
+
+
+
+### Running correlation coefficient calculation from influxdb data
+
+pipenv shell
+[run mongod]
+
+cd mongo-service/
+# initialize mongo
+mongo -u admin -p hyperpilot create-dbuser.js
+
+cd ../
+# main driver
+python3 -u -m diagnosis.metric_consumer
+
+Results will be written to the resultdb correlations collection in mongo. 
