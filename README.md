@@ -46,7 +46,7 @@ Please install Python 3.6.1 or later if you see the message from running `make i
 `cd mongo-service/`
 
 #### initialize mongo:
-`mongo -u admin -p hyperpilot create-dbuser.js` (Drop users in create-dbuser.js from databases if they already exist in mongo instance.)
+`mongo -u admin -p hyperpilot create-dbuser.js` (Drop users specified in create-dbuser.js from databases if they already exist in mongo instance.)
 
 `cd ../`
 #### main driver:
