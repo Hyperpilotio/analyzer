@@ -4,7 +4,6 @@ import pandas as pd
 from numpy import NaN
 from influxdb import DataFrameClient
 
-
 from logger import get_logger
 from config import get_config
 from api_service.db import Database
