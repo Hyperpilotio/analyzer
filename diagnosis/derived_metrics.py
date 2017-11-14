@@ -59,56 +59,60 @@ class DerivedMetrics(object):
                 "root",
                 "root",
                 "snapaverage")
-            # TODO: Get container_metrics_prefix
-            # self.container_metrics_prefix = {'/intel/docker/' => "docker_id"}
 
     def get_derived_metrics(self, start_time, end_time):
         derived_metrics_nodes = {}
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
             metric_type = metric_config["type"]
+            new_metric_name = metric_source + "/" + metric_type
             threshold = metric_config["threshold"]
             if metric_source.startswith("/"):
                 metric_source = metric_source[1:]
 
+            normalizer_metrics = None
+            normalizer = ""
+            if "normalizer" in metric_config:
+                normalizer = metric_config["normalizer"]
+                normalizer_metrics = self.influx_client.query("SELECT * FROM \"%s\" WHERE time >= %d AND time <= %d" % (normalizer, start_time, end_time))
+            raw_metrics = self.influx_client.query("SELECT * FROM \"%s\" WHERE time >= %d AND time <= %d" % (metric_source, start_time, end_time))
             node_thresholds = {}
-            raw_metrics = self.influx_client.query(
-                "SELECT * FROM \"%s\" WHERE time >= %d AND time <= %d" % (metric_source, start_time, end_time))
-            if len(raw_metrics) > 0:
-                print("Find data for %s" % (metric_source))
-                # TODO: First check which node this metric is from, and then use the right threshold state.
-                # TODO: Later check for container metrics.
-                for node_name in raw_metrics[metric_source]["nodename"].unique():
-                    if not node_name or node_name == "":
-                        print("Node name not found in metric %s", metric_source)
-                        continue
-                    if node_name not in node_thresholds:
-                        state = ThresholdState(
-                            metric_config["observation_window"], threshold["value"], threshold["type"], 5000000000)
-                        node_thresholds[node_name] = state
-                    if node_name not in derived_metrics_nodes:
-                        derived_metrics_nodes[node_name] = []
+            raw_metrics_len = len(raw_metrics)
+            if raw_metrics_len == 0:
+                print("Unable to find data for %s, skipping..." % (metric_source))
+                continue
+            elif normalizer_metrics and len(normalizer_metrics) != raw_metrics_len:
+                print("Normalizer metric is not equal length to raw metrics")
+                continue
 
-                df = raw_metrics[metric_source]
-                df["derived_metric_value"] = df.apply(
-                    lambda row: node_thresholds[row["nodename"]].compute(
-                        row.name.value,
-                        row["value"]
-                    ),
-                    axis=1,
-                )
-                df = df.reset_index().rename(columns={"index": "time"})
-                df = df.sort_values(["nodename", "time"])
-                print(df[["nodename", "time", "value", "derived_metric_value"]])
+            print("Deriving data from %s into %s" % (metric_source, new_metric_name))
+            # TODO: Later check for container metrics.
+            for node_name in raw_metrics[metric_source]["nodename"].unique():
+                if not node_name or node_name == "":
+                    print("Node name not found in metric %s", metric_source)
+                    continue
+                if node_name not in node_thresholds:
+                    state = ThresholdState(
+                        metric_config["observation_window"], threshold["value"], threshold["type"], 5000000000)
+                    node_thresholds[node_name] = state
 
-                # TODO filter df data by nodename, and append to
-                # derived_metrics_nodes
-            else:
-                print("Unable to find data for %s, skipping..." %
-                      (metric_source))
+            df = raw_metrics[metric_source]
+            df["value"] = df.apply(
+                lambda row: node_thresholds[row["nodename"]].compute(
+                    row.name.value,
+                    row["value"]
+                ),
+                axis=1,
+            )
+            df = df.reset_index().rename(columns={"index": "time"})
+            dfg = df.groupby("nodename")
+            node_map = {}
+            for d in dfg:
+                node_map[d[0]] = d[1]
+            derived_metrics_nodes[new_metric_name] = node_map
+            print(derived_metrics_nodes)
 
-            # TODO: Return a map of nodes, and values is a list of dataframes
-            return derived_metrics_nodes
+        return derived_metrics_nodes
 
 
 if __name__ == '__main__':
