@@ -41,7 +41,7 @@ Please install Python 3.6.1 or later if you see the message from running `make i
 
 `pipenv shell`
 
-[run mongod]
+[run mongod and influxd]
 
 `cd mongo-service/`
 
