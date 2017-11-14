@@ -4,7 +4,8 @@ db.createUser ( {
     pwd: "hyperpilot",
     roles: [ 
 	     { role: "readWrite", db: "configdb" },
-	     { role: "readWrite", db: "metricdb" }
+	     { role: "readWrite", db: "metricdb" },
+	     { role: "readWrite", db: "resultdb" }
            ]
   }
 );
@@ -14,7 +15,8 @@ db.createUser ( {
     pwd: "hyperpilot",
     roles: [
 	     { role: "readWrite", db: "configdb" },
-	     { role: "readWrite", db: "metricdb" }
+	     { role: "readWrite", db: "metricdb" },
+         { role: "readWrite", db: "resultdb" }
            ]
   }
 );
@@ -25,7 +27,8 @@ db.createUser ( {
     pwd: "hyperpilot",
     roles: [ 
 	     { role: "readWrite", db: "configdb" },
-	     { role: "readWrite", db: "metricdb" }
+	     { role: "readWrite", db: "metricdb" },
+	     { role: "readWrite", db: "resultdb" }
            ]
   }
 );
@@ -35,7 +38,31 @@ db.createUser ( {
     pwd: "hyperpilot",
     roles: [
 	     { role: "readWrite", db: "configdb" },
-	     { role: "readWrite", db: "metricdb" }
+	     { role: "readWrite", db: "metricdb" },
+	     { role: "readWrite", db: "resultdb" }
+           ]
+  }
+);
+
+db = db.getSiblingDB('resultdb');
+db.createUser ( {
+    user: "analyzer",
+    pwd: "hyperpilot",
+    roles: [
+	     { role: "readWrite", db: "configdb" },
+	     { role: "readWrite", db: "metricdb" },
+	     { role: "readWrite", db: "resultdb" }
+           ]
+  }
+);
+
+db.createUser ( {
+    user: "profiler",
+    pwd: "hyperpilot",
+    roles: [
+	     { role: "readWrite", db: "configdb" },
+	     { role: "readWrite", db: "metricdb" },
+	     { role: "readWrite", db: "resultdb" }
            ]
   }
 );

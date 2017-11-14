@@ -8,6 +8,7 @@ from influxdb import DataFrameClient
 from logger import get_logger
 from config import get_config
 from api_service.db import Database
+import diagnosis.data_source as ds
 
 config = get_config()
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
@@ -64,7 +65,7 @@ class MetricConsumer(object):
         #time_filter = "%s AND time < %d" % (time_filter, start_time + 5 * 60 * M)
 
         time_filter = "%s AND time < %d" % (time_filter, end_time)
-        logger.info('Using time filter:', time_filter)
+        logger.info('Using time filter: ' + time_filter)
 
         # query metrics by tag and time filters
         query_metric = "select value from \"%s\" where %s AND %s order by time desc" % \
@@ -77,7 +78,7 @@ class MetricConsumer(object):
         time_buckets = range(int(end_time), int(start_time), -5 * M)
         df = self.match_timestamps(time_buckets, sl_data)
 
-        logger.info("Number of app metric samples fetched: ", len(sl_data))
+        logger.info("Number of app metric samples fetched: %d" % len(sl_data))
 
         show_measurements = "SHOW MEASUREMENTS"
 
@@ -86,7 +87,7 @@ class MetricConsumer(object):
             x['name'] for x in rs_measurement['measurements']
             if "hyperpilot" not in x['name'] and x['name'] not in ds.EXCLUDE_MEASUREMENTS
         ]
-        logger.info("Number of system metrics to be fetched", len(measurement_list))
+        logger.info("Number of system metrics to be fetched: %d" % len(measurement_list))
 
         for measurement in measurement_list:
             measurements_query = 'select value from "%s" where %s order by time desc' % (
@@ -116,12 +117,15 @@ class MetricConsumer(object):
 
     def write_result(self):
         # todo: write to result db
-        corr = df.corr()
+        corr_matrix = self.df.corr()
         print("Correlation coefficients:")
-        print(corr.sort_values(by=0, ascending=False).iloc[:, 0])
+        corr_vector = corr_matrix.sort_values(by=0, ascending=False).iloc[:, 0]
+        print(corr_vector)
         # jsonify a list of the top features for the current timestamp.
 
-        doc = {"timestamp": corr.to_json()}
+        doc = {"timestamp": time.time(),
+                "coefficients": corr_vector.iloc[1:4].to_json()}
+        print(doc)
         resultdb["correlations"].insert_one(doc)
 
 
@@ -151,6 +155,6 @@ class MetricConsumer(object):
 
         return pd.DataFrame(data=matched_data, index=time_buckets)
     
+
 if __name__ == "__main__":
-    # for testing purposes: 
     mc = MetricConsumer()
