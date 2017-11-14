@@ -1,4 +1,3 @@
-
 from influxdb import DataFrameClient
 import json
 
@@ -15,25 +14,23 @@ class ThresholdState(object):
         self.hits = []
         self.total_count = window / sample_interval
 
+    def compare_value(bound_type, threshold, value):
+        if bound_type == "UB":
+            return value - threshold >= 0
+        else:
+            return value - threshold <= 0
+
     def compute(self, new_time, new_value):
         if self.last_was_hit and len(self.hits) > 0:
             if new_time-self.hits[len(self.hits)-1] >= 2 * self.sample_interval:
                 filled_hit_time = self.hits[len(self.hits)-1] + self.sample_interval
                 self.hits.append(filled_hit_time)
 
-        # TODO: Check bound type and see if we should check data to be higher or lower than threshold.
-        if self.bound_type == "UB":  
-            if (new_value - self.threshold) >= 0:
-                self.hits.append(new_time)
-                self.last_was_hit = True
-            else:
-                self.last_was_hit = False
-        if self.bound_type == "LB":  
-            if (new_value - self.threshold) <= 0:
-                self.hits.append(new_time)
-                self.last_was_hit = True
-            else:
-                self.last_was_hit = False
+        if compare_value(self.bound_type, self.threshold, new_value):
+            self.hits.append(new_time)
+            self.last_was_hit = True
+        else:
+            self.last_was_hit = False
 
         window_begin_time = new_time - self.window
         last_good_idx = len(self.hits)
@@ -73,6 +70,10 @@ class DerivedMetrics(object):
                     # TODO: First check which node this metric is from, and then use the right threshold state.
                     # TODO: Later check for container metrics.
                     node_name = metric["nodename"]
+                    if not node_name or node_name == "":
+                        print("Node name not found in metric %s", metric_source)
+                        next
+
                     if node_name not in node_thresholds:
                         state = ThresholdState(metric_config["observation_window"], threshold["value"], threshold["type"], 5000000000)
                         node_thresholds[node_name] = state
@@ -80,7 +81,7 @@ class DerivedMetrics(object):
                     state = node_thresholds[node_name]
                     new_value = state.compute(metric.timestamp() * 1000000000, metric.value())
             else:
-                print("Unable to find %s data" % (metric_source))
+                print("Unable to find data for %s, skipping..." % (metric_source))
 
             # TODO: Return a map of nodes, and values is a list of dataframes
 
