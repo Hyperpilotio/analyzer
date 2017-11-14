@@ -1,5 +1,7 @@
 from influxdb import DataFrameClient
 import json
+import pandas as pd
+
 
 class ThresholdState(object):
     def __init__(self, window, threshold, bound_type, sample_interval):
@@ -14,7 +16,7 @@ class ThresholdState(object):
         self.hits = []
         self.total_count = window / sample_interval
 
-    def compare_value(bound_type, threshold, value):
+    def compare_value(self, bound_type, threshold, value):
         if bound_type == "UB":
             return value - threshold >= 0
         else:
@@ -22,11 +24,12 @@ class ThresholdState(object):
 
     def compute(self, new_time, new_value):
         if self.last_was_hit and len(self.hits) > 0:
-            if new_time-self.hits[len(self.hits)-1] >= 2 * self.sample_interval:
-                filled_hit_time = self.hits[len(self.hits)-1] + self.sample_interval
+            if new_time - self.hits[len(self.hits) - 1] >= 2 * self.sample_interval:
+                filled_hit_time = self.hits[len(
+                    self.hits) - 1] + self.sample_interval
                 self.hits.append(filled_hit_time)
 
-        if compare_value(self.bound_type, self.threshold, new_value):
+        if self.compare_value(self.bound_type, self.threshold, new_value):
             self.hits.append(new_time)
             self.last_was_hit = True
         else:
@@ -45,6 +48,7 @@ class ThresholdState(object):
 
         return float(len(self.hits)) / float(self.total_count)
 
+
 class DerivedMetrics(object):
     def __init__(self, config_file):
         with open(config_file) as json_data:
@@ -59,34 +63,56 @@ class DerivedMetrics(object):
             # self.container_metrics_prefix = {'/intel/docker/' => "docker_id"}
 
     def get_derived_metrics(self, start_time, end_time):
+        derived_metrics_nodes = {}
         for metric_config in self.config:
-            metric_source = metric_config["metric_name"]
+            metric_source = str(metric_config["metric_name"])
             metric_type = metric_config["type"]
             threshold = metric_config["threshold"]
-            raw_metrics = self.influx_client.query("SELECT * FROM \"%s\" WHERE time >= %d AND time <= %d" % (metric_source, start_time, end_time))
+            if metric_source.startswith("/"):
+                metric_source = metric_source[1:]
+
             node_thresholds = {}
+            raw_metrics = self.influx_client.query(
+                "SELECT * FROM \"%s\" WHERE time >= %d AND time <= %d" % (metric_source, start_time, end_time))
             if len(raw_metrics) > 0:
-                for metric in raw_metrics[metric_source].index:
-                    # TODO: First check which node this metric is from, and then use the right threshold state.
-                    # TODO: Later check for container metrics.
-                    node_name = metric["nodename"]
+                print("Find data for %s" % (metric_source))
+                # TODO: First check which node this metric is from, and then use the right threshold state.
+                # TODO: Later check for container metrics.
+                for node_name in raw_metrics[metric_source]["nodename"].unique():
                     if not node_name or node_name == "":
                         print("Node name not found in metric %s", metric_source)
-                        next
-
+                        continue
                     if node_name not in node_thresholds:
-                        state = ThresholdState(metric_config["observation_window"], threshold["value"], threshold["type"], 5000000000)
+                        state = ThresholdState(
+                            metric_config["observation_window"], threshold["value"], threshold["type"], 5000000000)
                         node_thresholds[node_name] = state
+                    if node_name not in derived_metrics_nodes:
+                        derived_metrics_nodes[node_name] = []
 
-                    state = node_thresholds[node_name]
-                    new_value = state.compute(metric.timestamp() * 1000000000, metric.value())
+                df = raw_metrics[metric_source]
+                df["derived_metric_value"] = df.apply(
+                    lambda row: node_thresholds[row["nodename"]].compute(
+                        row.name.value,
+                        row["value"]
+                    ),
+                    axis=1,
+                )
+                df = df.reset_index().rename(columns={"index": "time"})
+                df = df.sort_values(["nodename", "time"])
+                print(df[["nodename", "time", "value", "derived_metric_value"]])
+
+                # TODO filter df data by nodename, and append to
+                # derived_metrics_nodes
             else:
-                print("Unable to find data for %s, skipping..." % (metric_source))
+                print("Unable to find data for %s, skipping..." %
+                      (metric_source))
 
             # TODO: Return a map of nodes, and values is a list of dataframes
+            return derived_metrics_nodes
 
 
 if __name__ == '__main__':
     nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
-    print(len(nodeAnalyzer.config))
-    nodeAnalyzer.get_derived_metrics(0,9999999999999999)
+    result = nodeAnalyzer.get_derived_metrics(
+        -9223372036854775806, 9223372036854775806)
+    print(result)
