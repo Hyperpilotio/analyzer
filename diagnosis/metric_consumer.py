@@ -38,7 +38,6 @@ class MetricConsumer(object):
         self.df = self.get_data(app_metric, tags)
         self.write_result()
 
-
     def get_data(self, start_time=None, end_time=None):
         """ Returns a dataframe of cleaned, interpolated data for the time specified.
         If no period is specified, it returns a dataframe from the last five minutes
@@ -48,7 +47,6 @@ class MetricConsumer(object):
                                     for k, v in tags.items()])
         q = "select last(*) from \"%s\" where %s" % \
             (app_metric, tag_filter)
-        print(q)
         last_sample = df_client_app.query(q)
 
         last_time = last_sample[app_metric].index[0].timestamp() * M
@@ -77,6 +75,7 @@ class MetricConsumer(object):
 
         time_buckets = range(int(end_time), int(start_time), -5 * M)
         df = self.match_timestamps(time_buckets, sl_data)
+        df.columns = [app_metric]
 
         logger.info("Number of app metric samples fetched: %d" % len(sl_data))
 
@@ -87,7 +86,8 @@ class MetricConsumer(object):
             x['name'] for x in rs_measurement['measurements']
             if "hyperpilot" not in x['name'] and x['name'] not in ds.EXCLUDE_MEASUREMENTS
         ]
-        logger.info("Number of system metrics to be fetched: %d" % len(measurement_list))
+        logger.info("Number of system metrics to be fetched: %d" %
+                    len(measurement_list))
 
         for measurement in measurement_list:
             measurements_query = 'select value from "%s" where %s order by time desc' % (
@@ -103,31 +103,24 @@ class MetricConsumer(object):
                 logger.info("Query incorrect for measurement %s" % measurement)
                 continue
 
-            node_data_matched = self.match_timestamps(time_buckets, node_data)
-            df[measurement] = node_data_matched.iloc[:, 0]
+            df[measurement] = self.match_timestamps(
+                time_buckets, node_data).iloc[:, 0]
 
         return df.interpolate()
-        
 
     def shift_and_update(self):
         new_df = self.get_data()
         self.df = self.df.iloc[:54].append(new_df).interpolate()
 
-
-
     def write_result(self):
-        # todo: write to result db
-        corr_matrix = self.df.corr()
-        print("Correlation coefficients:")
-        corr_vector = corr_matrix.sort_values(by=0, ascending=False).iloc[:, 0]
-        print(corr_vector)
+        correlations = self.df.drop(
+            labels=app_metric, axis=1).corrwith(self.df[app_metric])
+        correlations = correlations.sort_values(ascending=False)
+
         # jsonify a list of the top features for the current timestamp.
-
         doc = {"timestamp": time.time(),
-                "coefficients": corr_vector.iloc[1:4].to_json()}
-        print(doc)
+               "coefficients": correlations[:3].to_json()}
         resultdb["correlations"].insert_one(doc)
-
 
     def match_timestamps(self, time_buckets, df):
         """ Grab one measurement value for each five second window. """
@@ -154,7 +147,7 @@ class MetricConsumer(object):
                 matched_data.append(NaN)
 
         return pd.DataFrame(data=matched_data, index=time_buckets)
-    
+
 
 if __name__ == "__main__":
     mc = MetricConsumer()
