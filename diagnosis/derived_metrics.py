@@ -70,22 +70,42 @@ class DerivedMetrics(object):
             if metric_source.startswith("/"):
                 metric_source = metric_source[1:]
 
-            normalizer_metrics = None
+            normalizer_node_map = {}
             normalizer = ""
             if "normalizer" in metric_config:
-                normalizer = metric_config["normalizer"]
-                normalizer_metrics = self.influx_client.query("SELECT * FROM \"%s\" WHERE time >= %d AND time <= %d" % (normalizer, start_time, end_time))
-            raw_metrics = self.influx_client.query("SELECT * FROM \"%s\" WHERE time >= %d AND time <= %d" % (metric_source, start_time, end_time))
+                normalizer = str(metric_config["normalizer"])
+                if normalizer.startswith("/"):
+                    normalizer = normalizer[1:]
+                normalizer_metrics = self.influx_client.query(
+                    "SELECT * FROM \"%s\" "
+                    "WHERE time >= %d "
+                    "AND time <= %d" % (normalizer, start_time, end_time))
+                normalizer_metrics_len = len(normalizer_metrics)
+                if normalizer_metrics_len == 0:
+                    print("Unable to find data for %s, skipping..." %
+                          (normalizer))
+                else:
+                    normalizer_df = normalizer_metrics[normalizer]
+                    normalizer_dfg = normalizer_df.groupby("nodename").first()
+                    for node_name in normalizer_dfg.value.index:
+                        normalizer_node_map[node_name] = normalizer_dfg.value[1]
+
+            raw_metrics = self.influx_client.query(
+                "SELECT * FROM \"%s\" "
+                "WHERE time >= %d "
+                "AND time <= %d" % (metric_source, start_time, end_time))
             node_thresholds = {}
             raw_metrics_len = len(raw_metrics)
             if raw_metrics_len == 0:
-                print("Unable to find data for %s, skipping..." % (metric_source))
+                print("Unable to find data for %s, skipping..." %
+                      (metric_source))
                 continue
             elif normalizer_metrics and len(normalizer_metrics) != raw_metrics_len:
                 print("Normalizer metric is not equal length to raw metrics")
                 continue
 
-            print("Deriving data from %s into %s" % (metric_source, new_metric_name))
+            print("Deriving data from %s into %s" %
+                  (metric_source, new_metric_name))
             # TODO: Later check for container metrics.
             for node_name in raw_metrics[metric_source]["nodename"].unique():
                 if not node_name or node_name == "":
@@ -93,10 +113,15 @@ class DerivedMetrics(object):
                     continue
                 if node_name not in node_thresholds:
                     state = ThresholdState(
-                        metric_config["observation_window"], threshold["value"], threshold["type"], 5000000000)
+                        metric_config["observation_window"],
+                        threshold["value"],
+                        threshold["type"],
+                        5000000000,
+                    )
                     node_thresholds[node_name] = state
 
             df = raw_metrics[metric_source]
+            normalizer_df = df.copy()
             df["value"] = df.apply(
                 lambda row: node_thresholds[row["nodename"]].compute(
                     row.name.value,
@@ -104,13 +129,21 @@ class DerivedMetrics(object):
                 ),
                 axis=1,
             )
-            df = df.reset_index().rename(columns={"index": "time"})
             dfg = df.groupby("nodename")
             node_map = {}
             for d in dfg:
                 node_map[d[0]] = d[1]
             derived_metrics_nodes[new_metric_name] = node_map
-            print(derived_metrics_nodes)
+
+            if len(normalizer_node_map) > 0:
+                new_normalizer_name = metric_source + "_percentage/" + metric_type
+                total = normalizer_df["nodename"].map(normalizer_node_map)
+                normalizer_df["value"] = 100. * normalizer_df["value"] / total
+                normalizer_df = normalizer_df.groupby("nodename")
+                node_map = {}
+                for d in normalizer_df:
+                    node_map[d[0]] = d[1]
+                derived_metrics_nodes[new_normalizer_name] = node_map
 
         return derived_metrics_nodes
 
@@ -119,4 +152,4 @@ if __name__ == '__main__':
     nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
     result = nodeAnalyzer.get_derived_metrics(
         -9223372036854775806, 9223372036854775806)
-    print(result)
+    # print(result)
