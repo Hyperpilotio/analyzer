@@ -139,9 +139,9 @@ class DerivedMetrics(object):
                 new_normalizer_name = metric_source + "_percentage/" + metric_type
                 total = normalizer_df["nodename"].map(normalizer_node_map)
                 normalizer_df["value"] = 100. * normalizer_df["value"] / total
-                normalizer_df = normalizer_df.groupby("nodename")
+                normalizer_dfg = normalizer_df.groupby("nodename")
                 node_map = {}
-                for d in normalizer_df:
+                for d in normalizer_dfg:
                     node_map[d[0]] = d[1]
                 derived_metrics_nodes[new_normalizer_name] = node_map
 
