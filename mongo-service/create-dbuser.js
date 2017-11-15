@@ -16,7 +16,7 @@ db.createUser ( {
     roles: [
 	     { role: "readWrite", db: "configdb" },
 	     { role: "readWrite", db: "metricdb" },
-         { role: "readWrite", db: "resultdb" }
+	     { role: "readWrite", db: "resultdb" }
            ]
   }
 );
