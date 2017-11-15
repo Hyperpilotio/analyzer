@@ -60,8 +60,11 @@ class DerivedMetrics(object):
                 "root",
                 "snapaverage")
 
-    def get_derived_metrics(self, start_time, end_time):
-        derived_metrics_nodes = {}
+    def get_derived_metrics(self, start_time, end_time, group_name=None):
+        if not group_name:
+            group_name = "nodename"
+
+        derived_metrics_result = {}
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
             metric_type = metric_config["type"]
@@ -95,7 +98,7 @@ class DerivedMetrics(object):
                 "SELECT * FROM \"%s\" "
                 "WHERE time >= %d "
                 "AND time <= %d" % (metric_source, start_time, end_time))
-            node_thresholds = {}
+            metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
             if raw_metrics_len == 0:
                 print("Unable to find data for %s, skipping..." %
@@ -108,33 +111,34 @@ class DerivedMetrics(object):
             print("Deriving data from %s into %s" %
                   (metric_source, new_metric_name))
             # TODO: Later check for container metrics.
-            for node_name in raw_metrics[metric_source]["nodename"].unique():
-                if not node_name or node_name == "":
-                    print("Node name not found in metric %s", metric_source)
+            for metric_group_name in raw_metrics[metric_source][group_name].unique():
+                if not metric_group_name or metric_group_name == "":
+                    print("Unable to find %s in metric %s" %
+                          (metric_group_name, metric_source))
                     continue
-                if node_name not in node_thresholds:
+                if metric_group_name not in metrics_thresholds:
                     state = ThresholdState(
                         metric_config["observation_window"],
                         threshold["value"],
                         threshold["type"],
                         5000000000,
                     )
-                    node_thresholds[node_name] = state
+                    metrics_thresholds[metric_group_name] = state
 
             df = raw_metrics[metric_source]
             normalizer_df = df.copy()
             df["value"] = df.apply(
-                lambda row: node_thresholds[row["nodename"]].compute(
+                lambda row: metrics_thresholds[row[group_name]].compute(
                     row.name.value,
                     row["value"]
                 ),
                 axis=1,
             )
-            dfg = df.groupby("nodename")
+            dfg = df.groupby(group_name)
             node_map = {}
             for d in dfg:
                 node_map[d[0]] = d[1]
-            derived_metrics_nodes[new_metric_name] = node_map
+            derived_metrics_result[new_metric_name] = node_map
 
             if len(normalizer_node_map) > 0:
                 new_normalizer_name = metric_source + "_percentage/" + metric_type
@@ -144,13 +148,18 @@ class DerivedMetrics(object):
                 node_map = {}
                 for d in normalizer_dfg:
                     node_map[d[0]] = d[1]
-                derived_metrics_nodes[new_normalizer_name] = node_map
+                derived_metrics_result[new_normalizer_name] = node_map
 
-        return derived_metrics_nodes
+        return derived_metrics_result
 
 
 if __name__ == '__main__':
     nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
+    '''
+    nodename  data: nodeAnalyzer.get_derived_metrics(startTime, endTime)
+    container data: nodeAnalyzer.get_derived_metrics(startTime, endTime, docker_id)
+    '''
+    # TODO: test get data by container, now assume will get docker_id columns
     result = nodeAnalyzer.get_derived_metrics(
         -9223372036854775806, 9223372036854775806)
     print(result)
