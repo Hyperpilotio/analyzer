@@ -70,6 +70,7 @@ class DerivedMetrics(object):
             if metric_source.startswith("/"):
                 metric_source = metric_source[1:]
 
+            normalizer_metrics = None
             normalizer_node_map = {}
             normalizer = ""
             if "normalizer" in metric_config:
@@ -152,4 +153,4 @@ if __name__ == '__main__':
     nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
     result = nodeAnalyzer.get_derived_metrics(
         -9223372036854775806, 9223372036854775806)
-    # print(result)
+    print(result)
