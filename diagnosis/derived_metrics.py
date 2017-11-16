@@ -107,7 +107,6 @@ class DerivedMetrics(object):
                     group_name = v
                     is_container_metric = True
                     break
-            print("%s group_name %s" % (metric_source, group_name))
 
             metric_type = metric_config["type"]
             new_metric_name = metric_source + "/" + metric_type
