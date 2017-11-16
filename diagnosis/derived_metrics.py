@@ -73,9 +73,9 @@ class DerivedMetricsResults(object):
 
         nodes[node_name][container_id] = df
 
-    def add_derived_metric(self, metric_name, group_name, dfg):
+    def add_derived_metric(self, metric_name, is_container_metric, dfg):
         for d in dfg:
-            if group_name == "docker_id":
+            if is_container_metric:
                 nodename = d[1]["nodename"][1]
                 self.add_container_metric(
                     metric_name, nodename, d[0], d[1])
@@ -179,7 +179,7 @@ class DerivedMetrics(object):
 
             dfg = df.groupby(group_name)
             derived_metrics_result.add_derived_metric(
-                new_metric_name, group_name, dfg)
+                new_metric_name, is_container_metric, dfg)
 
             if len(normalizer_node_map) > 0:
                 new_normalizer_name = metric_source + "_percent/" + metric_type
@@ -188,7 +188,7 @@ class DerivedMetrics(object):
 
                 normalizer_dfg = normalizer_df.groupby(group_name)
                 derived_metrics_result.add_derived_metric(
-                    new_normalizer_name, group_name, normalizer_dfg)
+                    new_normalizer_name, is_container_metric, normalizer_dfg)
 
         return derived_metrics_result
 
