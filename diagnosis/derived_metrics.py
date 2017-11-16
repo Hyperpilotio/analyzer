@@ -50,7 +50,7 @@ class ThresholdState(object):
 
 
 class DerivedMetricsResults(object):
-    def __init__(self, node_metrics, container_metrics):
+    def __init__(self, node_metrics=None, container_metrics=None):
         # { derived metric name -> { node name -> data frame } }
         self.node_metrics = {}
 
@@ -73,6 +73,16 @@ class DerivedMetricsResults(object):
 
         nodes[node_name][container_id] = df
 
+    def add_derived_metric(self, metric_name, group_name, dfg):
+        for d in dfg:
+            if group_name == "docker_id":
+                nodename = d[1]["nodename"][1]
+                self.add_container_metric(
+                    metric_name, nodename, d[0], d[1])
+            else:
+                self.add_node_metric(metric_name, d[0], d[1])
+
+
 class DerivedMetrics(object):
     def __init__(self, config_file):
         with open(config_file) as json_data:
@@ -83,7 +93,7 @@ class DerivedMetrics(object):
                 "root",
                 "root",
                 "snapaverage")
-            self.group_keys = {"/intel/docker" => "docker_id"}
+            self.group_keys = {"/intel/docker": "docker_id"}
             self.default_group_key = "nodename"
 
     def get_derived_metrics(self, start_time, end_time):
@@ -92,11 +102,12 @@ class DerivedMetrics(object):
             metric_source = str(metric_config["metric_name"])
             group_name = self.default_group_key
             is_container_metric = False
-            for k, v in self.group_keys:
+            for k, v in self.group_keys.items():
                 if k in metric_source:
                     group_name = v
                     is_container_metric = True
                     break
+            print("%s group_name %s" % (metric_source, group_name))
 
             metric_type = metric_config["type"]
             new_metric_name = metric_source + "/" + metric_type
@@ -139,7 +150,8 @@ class DerivedMetrics(object):
                 print("Normalizer metric is not equal length to raw metrics")
                 continue
 
-            print("Deriving data from %s into %s" % (metric_source, new_metric_name))
+            print("Deriving data from %s into %s" %
+                  (metric_source, new_metric_name))
             # TODO: Later check for container metrics.
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
@@ -164,21 +176,19 @@ class DerivedMetrics(object):
                 ),
                 axis=1,
             )
+
             dfg = df.groupby(group_name)
-            node_map = {}
-            for d in dfg:
-                node_map[d[0]] = d[1]
-            derived_metrics_result[new_metric_name] = node_map
+            derived_metrics_result.add_derived_metric(
+                new_metric_name, group_name, dfg)
 
             if len(normalizer_node_map) > 0:
-                new_normalizer_name = metric_source + "_percentage/" + metric_type
+                new_normalizer_name = metric_source + "_percent/" + metric_type
                 total = normalizer_df[group_name].map(normalizer_node_map)
                 normalizer_df["value"] = 100. * normalizer_df["value"] / total
+
                 normalizer_dfg = normalizer_df.groupby(group_name)
-                node_map = {}
-                for d in normalizer_dfg:
-                    node_map[d[0]] = d[1]
-                derived_metrics_result[new_normalizer_name] = node_map
+                derived_metrics_result.add_derived_metric(
+                    new_normalizer_name, group_name, normalizer_dfg)
 
         return derived_metrics_result
 
