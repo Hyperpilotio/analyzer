@@ -4,7 +4,7 @@
     "metric_name": "/intel/procfs/cpu/utilization_percentage",
     "type": "over_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 80
@@ -14,7 +14,7 @@
     "metric_name": "/intel/procfs/cpu/utilization_percentage",
     "type": "under_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "LB",
       "value": 40
@@ -24,7 +24,7 @@
     "metric_name": "/intel/procfs/cpu/active_percentage",
     "type": "over_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 90
@@ -34,7 +34,7 @@
     "metric_name": "/intel/procfs/cpu/active_percentage",
     "type": "under_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "LB",
       "value": 50
@@ -44,7 +44,7 @@
     "metric_name": "/intel/procfs/cpu/idle_percentage",
     "type": "over_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "LB",
       "value": 10
@@ -54,17 +54,17 @@
     "metric_name": "/intel/procfs/cpu/idle_percentage",
     "type": "under_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 60
     }
   },
   {
     "metric_name": "/intel/procfs/cpu/iowait_percentage",
     "type": "resource_bottleneck",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 10
@@ -74,7 +74,7 @@
     "metric_name": "/intel/procfs/cpu/softirq_percentage",
     "type": "over_utilization",
     "resource": "network",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 5
@@ -84,7 +84,7 @@
     "metric_name": "/intel/procfs/cpu/steal_percentage",
     "type": "vm_interference",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 5
@@ -94,7 +94,7 @@
     "metric_name": "/intel/procfs/cpu/user_percentage",
     "type": "over_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 60
@@ -105,7 +105,7 @@
     "metric_name": "/intel/procfs/disk/octets_read",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 12M
@@ -115,7 +115,7 @@
     "metric_name": "/intel/procfs/disk/octets_write",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 12M
@@ -125,7 +125,7 @@
     "metric_name": "/intel/procfs/disk/ops_read",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 75
@@ -135,7 +135,7 @@
     "metric_name": "/intel/procfs/disk/ops_write",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 150
@@ -145,7 +145,7 @@
     "metric_name": "/intel/procfs/disk/read_time",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 50
@@ -156,6 +156,7 @@
     "type": "over_utilization",
     "resource": "disk",
     "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 50
@@ -165,7 +166,7 @@
     "metric_name": "/intel/procfs/disk/pending_ops",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 32
@@ -175,7 +176,7 @@
     "metric_name": "/intel/psutil/disk/*/percent",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 90
@@ -185,7 +186,7 @@
     "metric_name": "/intel/psutil/net/all/bytes_recv",
     "type": "over_utilization",
     "resource_type": "network",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 100000000
@@ -195,7 +196,7 @@
     "metric_name": "/intel/psutil/net/all/bytes_sent",
     "type": "over_utilization",
     "resource_type": "network",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 100000000
@@ -205,7 +206,7 @@
     "metric_name": "/intel/psutil/net/all/errin",
     "type": "resource_bottleneck",
     "resource_type": "network",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 50
@@ -215,7 +216,7 @@
     "metric_name": "/intel/psutil/net/all/errout",
     "type": "resource_bottleneck",
     "resource_type": "network",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 50
@@ -226,7 +227,7 @@
     "type": "resource_bottleneck",
     "resource_type": "network",
     "normalizer": "/intel/psutil/net/all/packets_recv",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 1.0
@@ -237,7 +238,7 @@
     "type": "resource_bottleneck",
     "resource_type": "network",
     "normalizer": "/intel/psutil/net/all/packets_sent",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 1.0
@@ -247,7 +248,7 @@
     "metric_name": "/intel/psutil/vm/used_percent",
     "type": "over_utilization",
     "resource_type": "memory",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 80
@@ -257,7 +258,7 @@
     "metric_name": "/intel/psutil/vm/used_percent",
     "type": "under_utilization",
     "resource_type": "memory",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "LB",
       "value": 40
@@ -268,7 +269,7 @@
     "type": "over_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "LB",
       "value": 10
@@ -279,7 +280,7 @@
     "type": "under_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 50
@@ -290,7 +291,7 @@
     "type": "over_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 70
@@ -301,7 +302,7 @@
     "type": "under_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "LB",
       "value": 30
@@ -312,7 +313,7 @@
     "type": "over_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "LB",
       "value": 30
@@ -323,7 +324,7 @@
     "type": "under_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
-    "observation_window": 60,
+    "observation_window": 60000000000,
     "threshold": {
       "type": "UB",
       "value": 70
