@@ -8,7 +8,7 @@ from logger import get_logger
 from config import get_config
 from api_service.db import Database
 import xgboost.data_source as ds
-import diagnosis.derived_metrics as dm
+from diagnosis.derived_metrics import DerivedMetrics
 
 
 config = get_config()
@@ -183,5 +183,5 @@ class MetricConsumer(object):
 
 if __name__ == "__main__":
     MetricConsumer("RAW", "RAW")
-    MetricConsumer("RAW", "DERIVED")
-    #mc = MetricConsumer("DERIVED", "DERIVED")
+    #MetricConsumer("RAW", "DERIVED")
+    #MetricConsumer("DERIVED", "DERIVED")
