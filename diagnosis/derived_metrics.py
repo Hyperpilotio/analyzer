@@ -49,6 +49,30 @@ class ThresholdState(object):
         return float(len(self.hits)) / float(self.total_count)
 
 
+class DerivedMetricsResults(object):
+    def __init__(self, node_metrics, container_metrics):
+        # { derived metric name -> { node name -> data frame } }
+        self.node_metrics = {}
+
+        # { derived metric name -> { node name -> container id -> data frame } }
+        self.container_metrics = {}
+
+    def add_node_metric(self, metric_name, node_name, df):
+        if metric_name not in self.node_metrics:
+            self.node_metrics[metric_name] = {}
+
+        self.node_metrics[metric_name][node_name] = df
+
+    def add_container_metric(self, metric_name, node_name, container_id, df):
+        if metric_name not in self.container_metrics:
+            self.container_metrics[metric_name] = {}
+
+        nodes = self.container_metrics[metric_name]
+        if node_name not in nodes:
+            nodes[node_name] = {}
+
+        nodes[node_name][container_id] = df
+
 class DerivedMetrics(object):
     def __init__(self, config_file):
         with open(config_file) as json_data:
@@ -59,14 +83,21 @@ class DerivedMetrics(object):
                 "root",
                 "root",
                 "snapaverage")
+            self.group_keys = {"/intel/docker" => "docker_id"}
+            self.default_group_key = "nodename"
 
-    def get_derived_metrics(self, start_time, end_time, group_name=None):
-        if not group_name:
-            group_name = "nodename"
-
-        derived_metrics_result = {}
+    def get_derived_metrics(self, start_time, end_time):
+        derived_metrics_result = DerivedMetricsResults()
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
+            group_name = self.default_group_key
+            is_container_metric = False
+            for k, v in self.group_keys:
+                if k in metric_source:
+                    group_name = v
+                    is_container_metric = True
+                    break
+
             metric_type = metric_config["type"]
             new_metric_name = metric_source + "/" + metric_type
             threshold = metric_config["threshold"]
@@ -108,8 +139,7 @@ class DerivedMetrics(object):
                 print("Normalizer metric is not equal length to raw metrics")
                 continue
 
-            print("Deriving data from %s into %s" %
-                  (metric_source, new_metric_name))
+            print("Deriving data from %s into %s" % (metric_source, new_metric_name))
             # TODO: Later check for container metrics.
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
@@ -142,9 +172,9 @@ class DerivedMetrics(object):
 
             if len(normalizer_node_map) > 0:
                 new_normalizer_name = metric_source + "_percentage/" + metric_type
-                total = normalizer_df["nodename"].map(normalizer_node_map)
+                total = normalizer_df[group_name].map(normalizer_node_map)
                 normalizer_df["value"] = 100. * normalizer_df["value"] / total
-                normalizer_dfg = normalizer_df.groupby("nodename")
+                normalizer_dfg = normalizer_df.groupby(group_name)
                 node_map = {}
                 for d in normalizer_dfg:
                     node_map[d[0]] = d[1]
@@ -155,11 +185,6 @@ class DerivedMetrics(object):
 
 if __name__ == '__main__':
     nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
-    '''
-    nodename  data: nodeAnalyzer.get_derived_metrics(startTime, endTime)
-    container data: nodeAnalyzer.get_derived_metrics(startTime, endTime, docker_id)
-    '''
-    # TODO: test get data by container, now assume will get docker_id columns
     result = nodeAnalyzer.get_derived_metrics(
         -9223372036854775806, 9223372036854775806)
     print(result)
