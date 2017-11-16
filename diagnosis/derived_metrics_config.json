@@ -1,26 +1,7 @@
 [
+  // /intel/procfs/cpu/*
   {
-    "metric_name": "/intel/iostat/avg-cpu/%steal",
-    "type": "vm_interference",
-    "resource": "cpu",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 5
-    }
-  },
-  {
-    "metric_name": "/intel/iostat/avg-cpu/%iowait",
-    "type": "resource_bottleneck",
-    "resource": "disk",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 10
-    }
-  },
-  {
-    "metric_name": "/intel/iostat/avg-cpu/%user",
+    "metric_name": "/intel/procfs/cpu/utilization_percentage",
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window": 60,
@@ -30,7 +11,7 @@
     }
   },
   {
-    "metric_name": "/intel/iostat/avg-cpu/%user",
+    "metric_name": "/intel/procfs/cpu/utilization_percentage",
     "type": "under_utilization",
     "resource": "cpu",
     "observation_window": 60,
@@ -40,7 +21,27 @@
     }
   },
   {
-    "metric_name": "/intel/iostat/avg-cpu/%idle",
+    "metric_name": "/intel/procfs/cpu/active_percentage",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 90
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/cpu/active_percentage",
+    "type": "under_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 50
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/cpu/idle_percentage",
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window": 60,
@@ -50,8 +51,48 @@
     }
   },
   {
-    "metric_name": "/intel/iostat/avg-cpu/%idle",
+    "metric_name": "/intel/procfs/cpu/idle_percentage",
     "type": "under_utilization",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 50
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/cpu/iowait_percentage",
+    "type": "resource_bottleneck",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 10
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/cpu/softirq_percentage",
+    "type": "over_utilization",
+    "resource": "network",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 5
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/cpu/steal_percentage",
+    "type": "vm_interference",
+    "resource": "cpu",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 5
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/cpu/user_percentage",
+    "type": "over_utilization",
     "resource": "cpu",
     "observation_window": 60,
     "threshold": {
@@ -59,8 +100,29 @@
       "value": 60
     }
   },
+  // /intel/procfs/disk/*
   {
-    "metric_name": "/intel/iostat/device/*/r_per_sec",
+    "metric_name": "/intel/procfs/disk/octets_read",
+    "type": "over_utilization",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 12M
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/disk/octets_write",
+    "type": "over_utilization",
+    "resource": "disk",
+    "observation_window": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 12M
+    }
+  },
+  {
+    "metric_name": "/intel/procfs/disk/ops_read",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window": 60,
@@ -69,8 +131,8 @@
       "value": 75
     }
   },
-    {
-    "metric_name": "/intel/iostat/device/*/w_per_sec",
+  {
+    "metric_name": "/intel/procfs/disk/ops_write",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window": 60,
@@ -80,78 +142,38 @@
     }
   },
   {
-    "metric_name": "/intel/iostat/device/*/rkB_per_sec",
+    "metric_name": "/intel/procfs/disk/read_time",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window": 60,
     "threshold": {
       "type": "UB",
-      "value": 12000
+      "value": 50
     }
   },
   {
-    "metric_name": "/intel/iostat/device/*/wkB_per_sec",
+    "metric_name": "/intel/procfs/disk/write_time",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window": 60,
     "threshold": {
       "type": "UB",
-      "value": 12000
+      "value": 50
     }
   },
   {
-    "metric_name": "/intel/iostat/device/*/await",
-    "type": "resource_bottleneck",
+    "metric_name": "/intel/procfs/disk/pending_ops",
+    "type": "over_utilization",
     "resource": "disk",
     "observation_window": 60,
     "threshold": {
       "type": "UB",
-      "value": 30
-    }
-  },
-  {
-    "metric_name": "/intel/iostat/device/*/r_wait",
-    "type": "resource_bottleneck",
-    "resource": "disk",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 30
-    }
-  },
-  {
-    "metric_name": "/intel/iostat/device/*/w_wait",
-    "type": "resource_bottleneck",
-    "resource": "disk",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 30
-    }
-  },
-  {
-    "metric_name": "/intel/iostat/device/*/%util",
-    "type": "resource_bottleneck",
-    "resource": "disk",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 40
-    }
-  },
-  {
-    "metric_name": "/intel/psutil/cpu/cpu-total/softirq",
-    "type": "resource_bottleneck",
-    "resource": "network",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 10
+      "value": 32
     }
   },
   {
     "metric_name": "/intel/psutil/disk/*/percent",
-    "type": "resource_bottleneck",
+    "type": "over_utilization",
     "resource": "disk",
     "observation_window": 60,
     "threshold": {
@@ -160,7 +182,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/*/bytes_recv",
+    "metric_name": "/intel/psutil/net/all/bytes_recv",
     "type": "over_utilization",
     "resource_type": "network",
     "observation_window": 60,
@@ -170,17 +192,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/*/bytes_sent",
-    "type": "over_utilization",
-    "resource_type": "network",
-    "observation_window": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 100000000
-    }
-  },
-  {
-    "metric_name": "/intel/psutil/net/*/bytes_recv",
+    "metric_name": "/intel/psutil/net/all/bytes_sent",
     "type": "over_utilization",
     "resource_type": "network",
     "observation_window": 60,
@@ -259,7 +271,7 @@
     "observation_window": 60,
     "threshold": {
       "type": "LB",
-      "value": 20
+      "value": 10
     }
   },
   {
@@ -270,7 +282,7 @@
     "observation_window": 60,
     "threshold": {
       "type": "UB",
-      "value": 60
+      "value": 50
     }
   },
   {
