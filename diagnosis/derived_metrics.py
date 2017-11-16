@@ -2,16 +2,17 @@ from influxdb import DataFrameClient
 import json
 import pandas as pd
 
+NANOSECONDS_PER_SECOND = 1000000000
 
 class ThresholdState(object):
-    def __init__(self, window, threshold, bound_type, sample_interval):
+    def __init__(self, window_seconds, threshold, bound_type, sample_interval_seconds):
         '''
-        e.g: window=30000000000, threshold=10, bound_type=UB, sample_interval=5000000000
+        e.g: window_seconds=30, threshold=10, bound_type=UB, sample_interval=5
         '''
-        self.window = window
+        self.window = window_seconds * NANOSECONDS_PER_SECOND
         self.threshold = threshold
         self.bound_type = bound_type
-        self.sample_interval = sample_interval
+        self.sample_interval = sample_interval_seconds * NANOSECONDS_PER_SECOND
         self.last_was_hit = False
         self.hits = []
         self.total_count = window / sample_interval
@@ -159,10 +160,10 @@ class DerivedMetrics(object):
                     continue
                 if metric_group_name not in metrics_thresholds:
                     state = ThresholdState(
-                        metric_config["observation_window"],
+                        metric_config["observation_window_sec"],
                         threshold["value"],
                         threshold["type"],
-                        5000000000,
+                        5,
                     )
                     metrics_thresholds[metric_group_name] = state
 
@@ -184,7 +185,6 @@ class DerivedMetrics(object):
                 new_normalizer_name = metric_source + "_percent/" + metric_type
                 total = normalizer_df[group_name].map(normalizer_node_map)
                 normalizer_df["value"] = 100. * normalizer_df["value"] / total
-
                 normalizer_dfg = normalizer_df.groupby(group_name)
                 derived_metrics_result.add_derived_metric(
                     new_normalizer_name, is_container_metric, normalizer_dfg)
@@ -196,4 +196,7 @@ if __name__ == '__main__':
     nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
     result = nodeAnalyzer.get_derived_metrics(
         -9223372036854775806, 9223372036854775806)
-    print(result)
+    print("Container metrics:")
+    print(result.container_metrics)
+    print("Node metrics:")
+    print(result.node_metrics)
