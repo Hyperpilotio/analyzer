@@ -2,7 +2,7 @@
     "services": [    
         {
             "name": "mysql",
-            "deployment_template": "mysql-spec.json",
+            "service_id": "service-0004",
             "state": "Running"
         }
     ]

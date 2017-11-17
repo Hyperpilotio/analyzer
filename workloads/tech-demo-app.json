@@ -3,18 +3,18 @@
   "services": [
     {
       "name": "goddd",
-      "deployment_template": {},
-      "state": "Running"
+      "service_id": "service-0001",
+      "status": "Running"
     },
     {
       "name": "mongo-serve",
-      "deployment_template": {},
-      "state": "Pending"
+      "service_id": "service-0002",
+      "status": "Pending"
     },
     {
       "name": "pathfinder",
-      "deployment_template": {},
-      "state": "Running"
+      "service_id": "service-0003",
+      "status": "Running"
     }
   ],
   "type": "long-running",
@@ -28,22 +28,17 @@
   "management_features": [
     {
       "name": "interference_management",
-      "mode": "Disabled",
-      "policy": []
+      "mode": "Enabled",
+      "remediation_policy": []
     },
     {
       "name": "bottleneck_management",
-      "mode": "Semi-Auto",
-      "policy": []
+      "mode": "Enabled",
+      "remediation_policy": []
     },
     {
       "name": "efficiency_management",
-      "mode": "Auto",
-      "policy": []
+      "mode": "Disabled"
     }
-  ],
-  "budget": {
-    "value": 300,
-    "unit": "dollar"
-  }
+  ]
 }

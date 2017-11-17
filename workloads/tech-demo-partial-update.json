@@ -1,20 +1,10 @@
 {
   "name": "tech-demo",
-  "services": [
-    {
-      "name": "goddd_updated",
-      "deployment_template": {},
-      "state": "Running"
-    },
-    {
-      "name": "mongo-serve",
-      "deployment_template": {},
-      "state": "Pending"
-    },
-    {
-      "name": "pathfinder",
-      "deployment_template": {},
-      "state": "Running"
-    }
-  ]
+  "slo": {
+    "metric": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
+    "type": "latency",
+    "summary": "quantile_90",
+    "value": 500,
+    "unit": "milliseconds"
+  }
 }
