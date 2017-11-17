@@ -15,7 +15,7 @@ class ThresholdState(object):
         self.sample_interval = sample_interval_seconds * NANOSECONDS_PER_SECOND
         self.last_was_hit = False
         self.hits = []
-        self.total_count = window / sample_interval
+        self.total_count = self.window / self.sample_interval
 
     def compare_value(self, bound_type, threshold, value):
         if bound_type == "UB":

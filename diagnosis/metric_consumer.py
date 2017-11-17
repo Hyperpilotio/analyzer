@@ -117,9 +117,22 @@ class MetricConsumer(object):
         return df
 
     def get_derived_input_data(self):
-        nodeAnalyzer = DerivedMetrics("./diagnosis/derived_metrics_config.json")
-        return nodeAnalyzer.get_derived_metrics(
+        nodeAnalyzer = DerivedMetrics(
+            "./diagnosis/derived_metrics_config.json")
+        metric_results = nodeAnalyzer.get_derived_metrics(
             -9223372036854775806, 9223372036854775806)
+        result_dfs = {metric_name + "_" + node_name:
+                      metric_results.node_metrics[metric_name][node_name] for
+                      metric_name in metric_results.node_metrics
+                      for node_name in metric_results.node_metrics[metric_name]}
+
+        df = pd.DataFrame()
+        for df_name in result_dfs:
+            result_df = result_dfs[df_name]
+            result_df.index = pd.to_datetime(result_df.index, unit="s")
+            df[df_name] = self.match_timestamps(
+                self.time_buckets, result_df).iloc[:, 0]
+        return df
 
     def compute_correlation(self):
         correlations = self.input_df.corrwith(self.sl_df[app_metric])
@@ -182,6 +195,6 @@ class MetricConsumer(object):
 
 
 if __name__ == "__main__":
-    MetricConsumer("RAW", "RAW")
-    #MetricConsumer("RAW", "DERIVED")
+    #MetricConsumer("RAW", "RAW")
+    MetricConsumer("RAW", "DERIVED")
     #MetricConsumer("DERIVED", "DERIVED")
