@@ -125,7 +125,7 @@ class DerivedMetrics(object):
                 normalizer_metrics = self.influx_client.query(
                     "SELECT * FROM \"%s\" "
                     "WHERE time >= %d "
-                    "AND time <= %d" % (normalizer, start_time, end_time))
+                    "AND time <= %d order by time desc" % (normalizer, start_time, end_time))
                 normalizer_metrics_len = len(normalizer_metrics)
                 if normalizer_metrics_len == 0:
                     print("Unable to find data for %s, skipping..." %
@@ -139,7 +139,7 @@ class DerivedMetrics(object):
             raw_metrics = self.influx_client.query(
                 "SELECT * FROM \"%s\" "
                 "WHERE time >= %d "
-                "AND time <= %d" % (metric_source, start_time, end_time))
+                "AND time <= %d order by time desc" % (metric_source, start_time, end_time))
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
             if raw_metrics_len == 0:
