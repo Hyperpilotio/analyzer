@@ -143,7 +143,7 @@ class DerivedMetrics(object):
                 "WHERE time >= %d "
                 "AND time <= %d" % (metric_source, start_time, end_time))
             if is_container_metric:
-                raw_metrics_query += self.docker_type_filter 
+                raw_metrics_query += self.docker_type_filter
             raw_metrics = self.influx_client.query(raw_metrics_query)
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
