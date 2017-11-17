@@ -1,5 +1,5 @@
 {
-    "services": [    
+    "microservices": [    
         {
             "name": "mysql",
             "service_id": "service-0004",

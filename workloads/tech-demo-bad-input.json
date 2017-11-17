@@ -1,6 +1,6 @@
 {
   "name": "tech-demo",
-  "services": [
+  "microservices": [
     {
       "name": "goddd",
       "service_id": "service-0001",
