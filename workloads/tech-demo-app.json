@@ -3,17 +3,17 @@
   "microservices": [
     {
       "name": "goddd",
-      "service_id": "service-0001",
+      "service_id": "%SERVICE_ID1%",
       "status": "Running"
     },
     {
       "name": "mongo-serve",
-      "service_id": "service-0002",
+      "service_id": "%SERVICE_ID2%",
       "status": "Pending"
     },
     {
       "name": "pathfinder",
-      "service_id": "service-0003",
+      "service_id": "%SERVICE_ID3%",
       "status": "Running"
     }
   ],
