@@ -1,0 +1,58 @@
+[
+    {
+        "namespace": "default",
+        "kind": "Service",
+        "k8s_spec": {
+    	    "metadata": {
+	        "name": "mysql-service"
+	   },
+	   "spec": {
+	        "selector": {
+	            "app": "mysql"
+	        },
+	        "ports": [
+	            {
+		        "protocol": "TCP",
+		        "port": 3306,
+		        "targetPort": 3306
+	            }
+	        ]
+            },
+            "status": {}
+        }
+    },
+    {
+        "namespace": "default",
+        "kind": "Deployment",
+        "k8s_spec": {
+      	    "metadata": {
+	        "name": "nginx"    
+	    },
+	    "spec": {
+	        "replicas": 3,
+	        "template": {
+	            "metadata": {
+		        "labels": {
+		            "service": "http-server"
+	                }
+		    },
+	            "spec": {
+		        "containers": [
+		            {
+		                "name": "nginx",
+		                "image": "nginx:1.10.2",
+		                "imagePullPolicy": "IfNotPresent",
+		                "ports": [
+		                    {
+		                        "containerPort": 80
+		 	            }
+		                ]
+		            }
+		        ]
+	            }
+	        }
+	    },
+            "status": {}
+         }
+    }
+]
