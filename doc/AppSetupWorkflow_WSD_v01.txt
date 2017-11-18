@@ -1,0 +1,44 @@
+title Application Setup Workflow
+
+note right of Operator: Start up and deploy HP services
+
+note right of UI: Get new app name & type from user
+UI->Operator: GET /cluster/mappings
+note right of Operator: Query K8s to get objects of requested types
+Operator->UI: Resp: Map of Namespace->Services/Deployments/StatefulSets
+
+note right of UI: Get names of the app-related objects from user
+UI->Operator: GET /cluster/specs
+note right of Operator: Query K8s to get specs for requested objects
+Operator->UI: Resp: Map of Namespace->specs for requested objects
+
+note right of UI: Construct array of k8s_services
+UI->Analyzer: POST /v1/k8s_services
+note right of Analyzer: Store new k8s_services to DB
+Analyzer->UI: Resp: New k8s_service json w/ service_id
+
+note right of UI: Construct application.json w/ name/type/microservices
+UI->Analyzer: POST /v1/apps
+note right of Analyzer: Store new app to DB
+Analyzer->UI: Resp: New app json w/ app_id & Registered state
+
+note right of UI: Get SLO source info from user
+UI->Operator: GET /cluster/appmetrics
+note right of Operator: Query APM endpoint to get list of metrics
+Operator->UI: Resp: List of app metrics collected
+
+note right of UI: Get SLO metric and other info from user
+UI->Analyzer: POST /v1/apps/{app_id}/SLO
+note right of Analyzer: Add new SLO to app w/ app_id
+Analyzer->UI: Resp: Updated app json including SLO 
+
+note right of UI: Get management features settings from user
+UI->Analyzer: POST /v1/apps/{app_id}/management_features
+note right of Analyzer: Add management features to app w/ app_id
+Analyzer->UI: Resp: Updated app json including management features
+
+UI->Analyzer: PUT /v1/apps/{app_id}/state
+note right of Analyzer: Set state=Active for app w/ app_id
+Analyzer->UI: Resp: Updated app json w/ Active state
+
+note right of Analyzer: Start hyperpiloting application
