@@ -1,0 +1,62 @@
+{
+    "apiVersion": "extensions\/v1beta1",
+    "kind": "Deployment",
+    "metadata": {
+        "labels": {
+            "app": "pathfinder"
+        },
+        "name": "pathfinder",
+        "namespace": "default"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "matchLabels": {
+                "app": "pathfinder"
+            }
+        },
+        "template": {
+            "metadata": {
+                "labels": {
+                    "app": "pathfinder"
+                }
+            },
+            "spec": {
+                "hostname": "pathfinder",
+                "containers": [
+                    {
+                        "image": "hyperpilot\/pathfinder",
+                        "name": "pathfinder",
+                        "env": [
+                            {
+                                "value": "http:\/\/influxsrv.hyperpilot:8086",
+                                "name": "INFLUXDB_URL"
+                            },
+                            {
+                                "value": "root",
+                                "name": "INFLUXDB_USERNAME"
+                            },
+                            {
+                                "value": "default",
+                                "name": "INFLUXDB_PASSWORD"
+                            }
+                        ],
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "hostPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "1000m",
+                                "memory": "100Mi"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
