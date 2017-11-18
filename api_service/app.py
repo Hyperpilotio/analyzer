@@ -24,6 +24,7 @@ app_collection = my_config.get("ANALYZER", "APP_COLLECTION")
 calibration_collection = my_config.get("ANALYZER", "CALIBRATION_COLLECTION")
 profiling_collection = my_config.get("ANALYZER", "PROFILING_COLLECTION")
 sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
+k8s_service_collection = my_config.get("ANALYZER", "K8S_SERVICE_COLLECTION")
 
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
@@ -322,3 +323,24 @@ def recommended_service_placement():
         deploy_json = json.load(f)
     result = util.shape_service_placement(deploy_json)
     return jsonify(result)
+
+@app.route("/k8s_services/<string:service_id>", methods=["GET"])
+def get_k8s_service(service_id):
+    service = configdb[k8s_service_collection].find_one({"service_id": service_id})
+    service.pop("_id")
+    return util.ensure_document_found(service)
+
+@app.route("/k8s_services", methods=["POST"])
+def create_k8s_service():
+    service_json = request.get_json()
+    # TODO: Pick a better service id name
+    service_id = "service-" + str(uuid1())
+    service_json["service_id"] = service_id
+    # TODO: Validate the json?
+    try:
+        result = configdb[k8s_service_collection].insert_one(service_json)
+        response = jsonify(data=service_id)
+        response.status_code = 200
+        return response
+    except InvalidOperation as e:
+        return util.error_response(f"Could not create service: " + str(e), 500)

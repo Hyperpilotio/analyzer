@@ -1,0 +1,74 @@
+{
+    "apiVersion": "extensions\/v1beta1",
+    "kind": "Deployment",
+    "metadata": {
+        "labels": {
+            "app": "goddd"
+        },
+        "name": "goddd",
+        "namespace": "default"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "matchLabels": {
+                "app": "goddd"
+            }
+        },
+        "template": {
+            "metadata": {
+                "labels": {
+                    "app": "goddd"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "env": [
+                            {
+                                "name": "BOOKING_MAXAGE",
+                                "value": "5"
+                            },
+                            {
+                                "name": "NO_PADDING",
+                                "value": "True"
+                            },
+                            {
+                                "name": "ROUTINGSERVICE_URL",
+                                "value": "http:\/\/pathfinder:8080"
+                            },
+                            {
+                                "name": "MONGO_MAXPOOLSIZE",
+                                "value": "120"
+                            },
+                            {
+                                "name": "MONGODB_URL",
+                                "value": "mongo:27017"
+                            },
+                            {
+                                "name": "DB_NAME",
+                                "value": "goddd"
+                            }
+                        ],
+                        "image": "hyperpilot\/goddd",
+                        "name": "goddd",
+                        "imagePullPolicy": "Always",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "hostPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "250m",
+                                "memory": "256Mi"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

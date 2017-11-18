@@ -1,0 +1,60 @@
+{
+    "apiVersion": "extensions\/v1beta1",
+    "kind": "Deployment",
+    "metadata": {
+        "labels": {
+            "app": "mongo"
+        },
+        "name": "mongo"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "matchLabels": {
+                "app": "mongo"
+            }
+        },
+        "template": {
+            "metadata": {
+                "labels": {
+                    "app": "mongo"
+                }
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "hostPath": {
+                            "path": "~\/mongo_data"
+                        },
+                        "name": "mongo-data"
+                    }
+                ],
+                "containers": [
+                    {
+                        "volumeMounts": [
+                            {
+                                "mountPath": "\/data\/db",
+                                "name": "mongo-data"
+                            }
+                        ],
+                        "image": "mongo",
+                        "name": "mongo",
+                        "ports": [
+                            {
+                                "containerPort": 27017,
+                                "hostPort": 27017,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
