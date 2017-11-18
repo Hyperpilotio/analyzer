@@ -327,6 +327,7 @@ def recommended_service_placement():
 @app.route("/k8s_services/<string:service_id>", methods=["GET"])
 def get_k8s_service(service_id):
     service = configdb[k8s_service_collection].find_one({"service_id": service_id})
+    service.pop("_id")
     return util.ensure_document_found(service)
 
 @app.route("/k8s_services", methods=["POST"])
