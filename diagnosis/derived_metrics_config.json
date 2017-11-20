@@ -1,6 +1,6 @@
 [
   {
-    "metric_name": "/intel/procfs/cpu/utilization_percentage",
+    "metric_name": "intel/procfs/cpu/utilization_percentage",
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -10,7 +10,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/utilization_percentage",
+    "metric_name": "intel/procfs/cpu/utilization_percentage",
     "type": "under_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -20,7 +20,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/active_percentage",
+    "metric_name": "intel/procfs/cpu/active_percentage",
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -30,7 +30,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/active_percentage",
+    "metric_name": "intel/procfs/cpu/active_percentage",
     "type": "under_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -40,7 +40,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/idle_percentage",
+    "metric_name": "intel/procfs/cpu/idle_percentage",
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -50,7 +50,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/idle_percentage",
+    "metric_name": "intel/procfs/cpu/idle_percentage",
     "type": "under_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -60,7 +60,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/iowait_percentage",
+    "metric_name": "intel/procfs/cpu/iowait_percentage",
     "type": "resource_bottleneck",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -70,7 +70,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/softirq_percentage",
+    "metric_name": "intel/procfs/cpu/softirq_percentage",
     "type": "over_utilization",
     "resource": "network",
     "observation_window_sec": 60,
@@ -80,7 +80,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/steal_percentage",
+    "metric_name": "intel/procfs/cpu/steal_percentage",
     "type": "vm_interference",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -90,7 +90,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/cpu/user_percentage",
+    "metric_name": "intel/procfs/cpu/user_percentage",
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -100,7 +100,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/disk/octets_read",
+    "metric_name": "intel/procfs/disk/octets_read",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -110,7 +110,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/disk/octets_write",
+    "metric_name": "intel/procfs/disk/octets_write",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -120,7 +120,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/disk/ops_read",
+    "metric_name": "intel/procfs/disk/ops_read",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -130,7 +130,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/disk/ops_write",
+    "metric_name": "intel/procfs/disk/ops_write",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -140,7 +140,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/disk/read_time",
+    "metric_name": "intel/procfs/disk/read_time",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -150,7 +150,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/disk/write_time",
+    "metric_name": "intel/procfs/disk/write_time",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -161,7 +161,7 @@
     }
   },
   {
-    "metric_name": "/intel/procfs/disk/pending_ops",
+    "metric_name": "intel/procfs/disk/pending_ops",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -171,7 +171,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/disk/*/percent",
+    "metric_name": "intel/psutil/disk/*/percent",
     "type": "over_utilization",
     "resource": "disk",
     "observation_window_sec": 60,
@@ -181,7 +181,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/all/bytes_recv",
+    "metric_name": "intel/psutil/net/all/bytes_recv",
     "type": "over_utilization",
     "resource_type": "network",
     "observation_window_sec": 60,
@@ -191,7 +191,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/all/bytes_sent",
+    "metric_name": "intel/psutil/net/all/bytes_sent",
     "type": "over_utilization",
     "resource_type": "network",
     "observation_window_sec": 60,
@@ -201,7 +201,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/all/errin",
+    "metric_name": "intel/psutil/net/all/errin",
     "type": "resource_bottleneck",
     "resource_type": "network",
     "observation_window_sec": 60,
@@ -211,7 +211,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/all/errout",
+    "metric_name": "intel/psutil/net/all/errout",
     "type": "resource_bottleneck",
     "resource_type": "network",
     "observation_window_sec": 60,
@@ -221,7 +221,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/all/dropin",
+    "metric_name": "intel/psutil/net/all/dropin",
     "type": "resource_bottleneck",
     "resource_type": "network",
     "normalizer": "/intel/psutil/net/all/packets_recv",
@@ -232,7 +232,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/net/all/dropout",
+    "metric_name": "intel/psutil/net/all/dropout",
     "type": "resource_bottleneck",
     "resource_type": "network",
     "normalizer": "/intel/psutil/net/all/packets_sent",
@@ -243,7 +243,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/used_percent",
+    "metric_name": "intel/psutil/vm/used_percent",
     "type": "over_utilization",
     "resource_type": "memory",
     "observation_window_sec": 60,
@@ -253,7 +253,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/used_percent",
+    "metric_name": "intel/psutil/vm/used_percent",
     "type": "under_utilization",
     "resource_type": "memory",
     "observation_window_sec": 60,
@@ -263,7 +263,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/free",
+    "metric_name": "intel/psutil/vm/free",
     "type": "over_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
@@ -274,7 +274,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/free",
+    "metric_name": "intel/psutil/vm/free",
     "type": "under_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
@@ -285,7 +285,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/active",
+    "metric_name": "intel/psutil/vm/active",
     "type": "over_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
@@ -296,7 +296,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/active",
+    "metric_name": "intel/psutil/vm/active",
     "type": "under_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
@@ -307,7 +307,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/available",
+    "metric_name": "intel/psutil/vm/available",
     "type": "over_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
@@ -318,7 +318,7 @@
     }
   },
   {
-    "metric_name": "/intel/psutil/vm/available",
+    "metric_name": "intel/psutil/vm/available",
     "type": "under_utilization",
     "resource_type": "memory",
     "normalizer": "/intel/psutil/vm/total",
@@ -502,6 +502,68 @@
     "threshold": {
       "type": "UB",
       "value": 50
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/network/rx_bytes",
+    "type": "over_utilization",
+    "resource_type": "network",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 40000000
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/network/tx_bytes",
+    "type": "over_utilization",
+    "resource_type": "network",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 40000000
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/network/rx_errors",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 25
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/network/tx_errors",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 25
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/network/rx_dropped",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "normalizer": "intel/docker/stats/network/rx_packets",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 1.0
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/network/tx_dropped",
+    "type": "resource_bottleneck",
+    "resource_type": "network",
+    "normalizer": "intel/docker/stats/network/tx_packets",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 1.0
     }
   }
 ]
