@@ -182,7 +182,7 @@
   {
     "metric_name": "intel/psutil/net/all/bytes_recv",
     "type": "over_utilization",
-    "resource_type": "network",
+    "resource": "network",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -192,7 +192,7 @@
   {
     "metric_name": "intel/psutil/net/all/bytes_sent",
     "type": "over_utilization",
-    "resource_type": "network",
+    "resource": "network",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -202,7 +202,7 @@
   {
     "metric_name": "intel/psutil/net/all/errin",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "/intel/psutil/net/all/packets_recv",
     "observation_window_sec": 60,
     "threshold": {
@@ -213,7 +213,7 @@
   {
     "metric_name": "intel/psutil/net/all/errout",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "/intel/psutil/net/all/packets_sent",
     "observation_window_sec": 60,
     "threshold": {
@@ -224,7 +224,7 @@
   {
     "metric_name": "intel/psutil/net/all/dropin",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "/intel/psutil/net/all/packets_recv",
     "observation_window_sec": 60,
     "threshold": {
@@ -235,7 +235,7 @@
   {
     "metric_name": "intel/psutil/net/all/dropout",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "/intel/psutil/net/all/packets_sent",
     "observation_window_sec": 60,
     "threshold": {
@@ -246,7 +246,7 @@
   {
     "metric_name": "intel/psutil/vm/used_percent",
     "type": "over_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -256,7 +256,7 @@
   {
     "metric_name": "intel/psutil/vm/used_percent",
     "type": "under_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "observation_window_sec": 60,
     "threshold": {
       "type": "LB",
@@ -266,7 +266,7 @@
   {
     "metric_name": "intel/psutil/vm/free",
     "type": "over_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "/intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -277,7 +277,7 @@
   {
     "metric_name": "intel/psutil/vm/free",
     "type": "under_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "/intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -288,7 +288,7 @@
   {
     "metric_name": "intel/psutil/vm/active",
     "type": "over_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "/intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -299,7 +299,7 @@
   {
     "metric_name": "intel/psutil/vm/active",
     "type": "under_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "/intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -310,7 +310,7 @@
   {
     "metric_name": "intel/psutil/vm/available",
     "type": "over_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "/intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -321,7 +321,7 @@
   {
     "metric_name": "intel/psutil/vm/available",
     "type": "under_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "/intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -541,7 +541,7 @@
   {
     "metric_name": "intel/docker/stats/network/rx_bytes",
     "type": "over_utilization",
-    "resource_type": "network",
+    "resource": "network",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -551,7 +551,7 @@
   {
     "metric_name": "intel/docker/stats/network/tx_bytes",
     "type": "over_utilization",
-    "resource_type": "network",
+    "resource": "network",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -561,7 +561,7 @@
   {
     "metric_name": "intel/docker/stats/network/rx_errors",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/docker/stats/network/rx_packets",
     "observation_window_sec": 60,
     "threshold": {
@@ -572,7 +572,7 @@
   {
     "metric_name": "intel/docker/stats/network/tx_errors",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/docker/stats/network/tx_packets",
     "observation_window_sec": 60,
     "threshold": {
@@ -583,7 +583,7 @@
   {
     "metric_name": "intel/docker/stats/network/rx_dropped",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/docker/stats/network/rx_bytes",
     "observation_window_sec": 60,
     "threshold": {
@@ -594,7 +594,7 @@
   {
     "metric_name": "intel/docker/stats/network/tx_dropped",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/docker/stats/network/tx_bytes",
     "observation_window_sec": 60,
     "threshold": {
