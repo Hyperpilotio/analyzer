@@ -57,6 +57,8 @@ class MetricResult(object):
         self.source = source # e.g: node, container
         self.resource_type = resource_type # e.g: network, cpu, memory
         self.confidence_score = 0.0 # will be updated by diagnosis
+        self.average = 0.0
+        self.correlation = 0.0
 
 class MetricsResults(object):
     def __init__(self):
