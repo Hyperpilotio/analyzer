@@ -177,9 +177,7 @@ class MetricsConsumer(object):
             return metrics_result
 
     # Convert NaN to 0.
-    def convert_value(self, row, p):
-        if p:
-            print(row)
+    def convert_value(self, row):
         value = row["value"]
         if math.isnan(value):
             value = 0.
@@ -266,7 +264,7 @@ class MetricsConsumer(object):
                 df["value"] = 100. * df["value"] / total
 
             df["value"] = df.apply(
-                lambda row: metrics_thresholds[row[group_name]].compute(row.name.value, self.convert_value(row, False)),
+                lambda row: metrics_thresholds[row[group_name]].compute(row.name.value, self.convert_value(row)),
                 axis=1,
             )
 
@@ -285,7 +283,7 @@ class MetricsConsumer(object):
         app_metrics["value"] = app_metrics.apply(
             lambda row: app_state.compute(
                 row.name.value,
-                self.convert_value(row, True)
+                self.convert_value(row)
             ),
             axis=1,
         )
@@ -295,7 +293,7 @@ class MetricsConsumer(object):
 
 
 if __name__ == '__main__':
-    dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config.json")
+    dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config_simple.json")
     derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
