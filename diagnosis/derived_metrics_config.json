@@ -62,7 +62,7 @@
   {
     "metric_name": "intel/procfs/cpu/iowait_percentage",
     "type": "resource_bottleneck",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -102,7 +102,7 @@
   {
     "metric_name": "intel/procfs/disk/octets_read",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -112,7 +112,7 @@
   {
     "metric_name": "intel/procfs/disk/octets_write",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -122,7 +122,7 @@
   {
     "metric_name": "intel/procfs/disk/ops_read",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -132,7 +132,7 @@
   {
     "metric_name": "intel/procfs/disk/ops_write",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -142,7 +142,7 @@
   {
     "metric_name": "intel/procfs/disk/time_read",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -152,7 +152,7 @@
   {
     "metric_name": "intel/procfs/disk/time_write",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -162,7 +162,7 @@
   {
     "metric_name": "intel/procfs/disk/pending_ops",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -172,7 +172,7 @@
   {
     "metric_name": "intel/psutil/disk/percent",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskspace",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -330,6 +330,26 @@
     }
   },
   {
+    "metric_name": "intel/use/storage/sda/saturation",
+    "type": "over_utilization",
+    "resource_type": "diskio",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 32
+    }
+  },
+  {
+    "metric_name": "intel/use/storage/sda/utilization",
+    "type": "over_utilization",
+    "resource_type": "diskio",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 90
+    }
+  },
+  {
     "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/total",
     "type": "over_utilization",
     "resource": "cpu",
@@ -446,7 +466,7 @@
   {
     "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_dirty",
     "type": "resource_bottleneck",
-    "resource": "disk",
+    "resource": "diskio",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
     "observation_window_sec": 60,
     "threshold": {
@@ -457,7 +477,7 @@
   {
     "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_writeback",
     "type": "resource_bottleneck",
-    "resource": "disk",
+    "resource": "diskio",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
     "observation_window_sec": 60,
     "threshold": {
@@ -488,7 +508,7 @@
   {
     "metric_name": "intel/docker/stats/cgroups/blkio_stats/io_service_bytes_recursive/value",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -498,7 +518,7 @@
   {
     "metric_name": "intel/docker/stats/cgroups/blkio_stats/io_serviced_recursive/value",
     "type": "over_utilization",
-    "resource": "disk",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -508,7 +528,7 @@
   {
     "metric_name": "intel/docker/stats/filesystem/usage",
     "type": "resource_bottleneck",
-    "resource": "disk",
+    "resource": "diskspace",
     "normalizer": "intel/docker/stats/filesystem/capacity",
     "observation_window_sec": 60,
     "threshold": {
@@ -519,7 +539,7 @@
   {
     "metric_name": "intel/docker/stats/filesystem/read_time",
     "type": "resource_bottleneck",
-    "resource": "disk",
+    "resource": "diskio",
     "normalizer": "intel/docker/stats/filesystem/reads_completed",
     "observation_window_sec": 60,
     "threshold": {
@@ -530,7 +550,7 @@
   {
     "metric_name": "intel/docker/stats/filesystem/write_time",
     "type": "resource_bottleneck",
-    "resource": "disk",
+    "resource": "diskio",
     "normalizer": "intel/docker/stats/filesystem/writes_completed",
     "observation_window_sec": 60,
     "threshold": {
