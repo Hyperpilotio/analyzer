@@ -332,7 +332,7 @@
     "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/total",
     "type": "over_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 90
@@ -342,7 +342,7 @@
     "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/user_mode",
     "type": "over_utilization",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 80
@@ -352,7 +352,7 @@
     "metric_name": "intel/docker/stats/cgroups/cpu_stats/throttling_data/throttled_time",
     "type": "resource_bottleneck",
     "resource": "cpu",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 10
@@ -363,7 +363,7 @@
     "type": "resource_bottleneck",
     "resource": "cpu",
     "normalizer": "intel/docker/stats/cgroups/cpu_stats/throttling_data/nr_periods",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 10
@@ -373,7 +373,7 @@
     "metric_name": "intel/docker/stats/cgroups/memory_stats/usage/failcnt",
     "type": "resource_bottleneck",
     "resource": "memory",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 1
@@ -383,7 +383,7 @@
     "metric_name": "intel/docker/stats/cgroups/memory_stats/swap_usage/failcnt",
     "type": "resource_bottleneck",
     "resource": "memory",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 1
@@ -393,7 +393,7 @@
     "metric_name": "intel/docker/stats/cgroups/memory_stats/kernel_usage/failcnt",
     "type": "resource_bottleneck",
     "resource": "memory",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 1
@@ -403,7 +403,7 @@
     "metric_name": "intel/docker/stats/cgroups/hugetlb_stats/failcnt",
     "type": "resource_bottleneck",
     "resource": "memory",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 1
@@ -414,7 +414,7 @@
     "type": "over_utilization",
     "resource": "memory",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 70
@@ -425,7 +425,7 @@
     "type": "over_utilization",
     "resource": "memory",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 70
@@ -436,7 +436,7 @@
     "type": "over_utilization",
     "resource": "memory",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 60
@@ -447,7 +447,7 @@
     "type": "resource_bottleneck",
     "resource": "disk",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 10
@@ -458,7 +458,7 @@
     "type": "resource_bottleneck",
     "resource": "disk",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 5
@@ -468,7 +468,7 @@
     "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_pgfault",
     "type": "resource_bottleneck",
     "resource": "memory",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 15000
@@ -478,7 +478,7 @@
     "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_pgmajfault",
     "type": "resource_bottleneck",
     "resource": "memory",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 10
@@ -488,7 +488,7 @@
     "metric_name": "intel/docker/stats/cgroups/blkio_stats/io_service_bytes_recursive/value",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 3000000
@@ -498,7 +498,7 @@
     "metric_name": "intel/docker/stats/cgroups/blkio_stats/io_serviced_recursive/value",
     "type": "over_utilization",
     "resource": "disk",
-    "observation_window": 60,
+    "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
       "value": 50
