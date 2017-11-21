@@ -1,8 +1,10 @@
 from influxdb import DataFrameClient
 import json
 import pandas as pd
+import math
 
 NANOSECONDS_PER_SECOND = 1000000000
+SAMPLE_INTERVAL_SECOND = 5
 
 class ThresholdState(object):
     def __init__(self, window_seconds, threshold, bound_type, sample_interval_seconds):
@@ -47,24 +49,34 @@ class ThresholdState(object):
 
         self.hits = self.hits[last_good_idx:]
 
-        return float(len(self.hits)) / float(self.total_count)
+        return 100. * (float(len(self.hits)) / float(self.total_count))
 
+class MetricResult(object):
+    def __init__(self, df, source, resource_type):
+        self.df = df
+        self.source = source
+        self.resource_type = resource_type
 
-class DerivedMetricsResults(object):
-    def __init__(self, node_metrics=None, container_metrics=None):
-        # { derived metric name -> { node name -> data frame } }
+class MetricsResults(object):
+    def __init__(self):
+        self.app_metrics = None
+
+        # { derived metric name -> { node name -> metric result } }
         self.node_metrics = {}
 
-        # { derived metric name -> { node name -> container id -> data frame } }
+        # { derived metric name -> { node name -> pod name -> data frame } }
         self.container_metrics = {}
 
-    def add_node_metric(self, metric_name, node_name, df):
+    def set_app_metrics(self, app_metrics):
+        self.app_metrics = app_metrics
+
+    def add_node_metric(self, metric_name, node_name, df, resource_type):
         if metric_name not in self.node_metrics:
             self.node_metrics[metric_name] = {}
 
-        self.node_metrics[metric_name][node_name] = df
+        self.node_metrics[metric_name][node_name] = MetricResult(df, "node", resource_type)
 
-    def add_container_metric(self, metric_name, node_name, container_id, df):
+    def add_container_metric(self, metric_name, node_name, pod_name, df, resource_type):
         if metric_name not in self.container_metrics:
             self.container_metrics[metric_name] = {}
 
@@ -72,33 +84,109 @@ class DerivedMetricsResults(object):
         if node_name not in nodes:
             nodes[node_name] = {}
 
-        nodes[node_name][container_id] = df
+        nodes[node_name][pod_name] = MetricResult(df, "container", resource_type)
 
-    def add_derived_metric(self, metric_name, is_container_metric, dfg):
+    def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
         for d in dfg:
             if is_container_metric:
                 nodename = d[1]["nodename"][1]
                 self.add_container_metric(
-                    metric_name, nodename, d[0], d[1])
+                    metric_name, nodename, d[0], d[1], resource_type)
             else:
-                self.add_node_metric(metric_name, d[0], d[1])
+                self.add_node_metric(metric_name, d[0], d[1], resource_type)
 
 
-class DerivedMetrics(object):
-    def __init__(self, config_file):
+class MetricsConsumer(object):
+    def __init__(self, app_config_file, config_file):
         with open(config_file) as json_data:
             self.config = json.load(json_data)
-            self.influx_client = DataFrameClient(
-                "localhost",
-                8086,
-                "root",
-                "root",
-                "snapaverage")
-            self.group_keys = {"/intel/docker": "docker_id"}
-            self.default_group_key = "nodename"
+
+        with open(app_config_file) as json_data:
+            self.app_metric_config = json.load(json_data)
+
+        self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
+        self.docker_type_filter = " AND \"io.kubernetes.docker.type\"=\'container\'"
+        self.default_group_key = "nodename"
+        # TODO(tnachen): influx connection based on config
+        self.influx_client = DataFrameClient(
+            "localhost",
+            8086,
+            "root",
+            "root",
+            "snapaverage")
+        self.app_influx_client = DataFrameClient(
+            "localhost",
+            8086,
+            "root",
+            "root",
+            "snap")
+
+    def get_app_metrics(self, start_time, end_time):
+        metric_name = self.app_metric_config["metric_name"]
+        summary = self.app_metric_config["summary"]
+        aggregation = self.app_metric_config["aggregation"]
+        query = "SELECT time, %s(value) as value FROM \"%s\" WHERE summary = '%s' AND time >= %d AND time <= %d GROUP BY time(%ds) fill(none)" \
+                % (aggregation, metric_name, summary, start_time, end_time, SAMPLE_INTERVAL_SECOND)
+        df = self.app_influx_client.query(query)
+        if metric_name not in df:
+            return None
+
+        return df[metric_name]
+
+    def get_raw_metrics(self, start_time, end_time):
+        metrics_result = MetricsResults()
+        for metric_config in self.config:
+            metric_source = str(metric_config["metric_name"])
+            group_name = self.default_group_key
+            is_container_metric = False
+            for k, v in self.group_keys.items():
+                if k in metric_source:
+                    group_name = v
+                    is_container_metric = True
+                    break
+
+            if metric_source.startswith("/"):
+                metric_source = metric_source[1:]
+
+            raw_metrics_query = ("SELECT * FROM \"%s\" "
+                "WHERE time >= %d "
+                "AND time <= %d" % (metric_source, start_time, end_time))
+            if is_container_metric:
+                raw_metrics_query += self.docker_type_filter
+            raw_metrics = self.influx_client.query(raw_metrics_query)
+            metrics_thresholds = {}
+            raw_metrics_len = len(raw_metrics)
+            if raw_metrics_len == 0:
+                print("Unable to find data for %s, skipping..." %
+                      (metric_source))
+                continue
+
+            for metric_group_name in raw_metrics[metric_source][group_name].unique():
+                if not metric_group_name or metric_group_name == "":
+                    print("Unable to find %s in metric %s" %
+                          (metric_group_name, metric_source))
+                    continue
+
+            df = raw_metrics[metric_source]
+            dfg = df.groupby(group_name)
+            metrics_result.add_metric(
+                metric_source, is_container_metric, dfg, metric_config["resource"])
+
+            app_metrics = self.get_app_metrics(start_time, end_time)
+            metrics_result.set_app_metrics(app_metrics)
+            return metrics_result
+
+    # Convert NaN to 0.
+    def convert_value(self, row, p):
+        if p:
+            print(row)
+        value = row["value"]
+        if math.isnan(value):
+            value = 0.
+        return value
 
     def get_derived_metrics(self, start_time, end_time):
-        derived_metrics_result = DerivedMetricsResults()
+        derived_metrics_result = MetricsResults()
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
             group_name = self.default_group_key
@@ -122,10 +210,12 @@ class DerivedMetrics(object):
                 normalizer = str(metric_config["normalizer"])
                 if normalizer.startswith("/"):
                     normalizer = normalizer[1:]
-                normalizer_metrics = self.influx_client.query(
-                    "SELECT * FROM \"%s\" "
+                normalizer_metrics_query = ("SELECT * FROM \"%s\" "
                     "WHERE time >= %d "
-                    "AND time <= %d order by time desc" % (normalizer, start_time, end_time))
+                    "AND time <= %d" % (normalizer, start_time, end_time))
+                if is_container_metric:
+                    normalizer_metrics_query += self.docker_type_filter
+                normalizer_metrics = self.influx_client.query(normalizer_metrics_query)
                 normalizer_metrics_len = len(normalizer_metrics)
                 if normalizer_metrics_len == 0:
                     print("Unable to find data for %s, skipping..." %
@@ -136,10 +226,12 @@ class DerivedMetrics(object):
                     for node_name in normalizer_dfg.value.index:
                         normalizer_node_map[node_name] = normalizer_dfg.value[1]
 
-            raw_metrics = self.influx_client.query(
-                "SELECT * FROM \"%s\" "
+            raw_metrics_query = ("SELECT * FROM \"%s\" "
                 "WHERE time >= %d "
-                "AND time <= %d order by time desc" % (metric_source, start_time, end_time))
+                "AND time <= %d" % (metric_source, start_time, end_time))
+            if is_container_metric:
+                          raw_metrics_query += self.docker_type_filter
+            raw_metrics = self.influx_client.query(raw_metrics_query)
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
             if raw_metrics_len == 0:
@@ -147,7 +239,7 @@ class DerivedMetrics(object):
                       (metric_source))
                 continue
             elif normalizer_metrics and len(normalizer_metrics) != raw_metrics_len:
-                print("Normalizer metric is not equal length to raw metrics")
+                print("Normalizer metrics do not have equal length as raw metrics")
                 continue
 
             print("Deriving data from %s into %s" %
@@ -163,40 +255,49 @@ class DerivedMetrics(object):
                         metric_config["observation_window_sec"],
                         threshold["value"],
                         threshold["type"],
-                        5,
+                        SAMPLE_INTERVAL_SECOND,
                     )
                     metrics_thresholds[metric_group_name] = state
 
             df = raw_metrics[metric_source]
-            normalizer_df = df.copy()
+            if len(normalizer_node_map) > 0:
+                new_metric_name = metric_source + "_percent/" + metric_type
+                total = df[group_name].map(normalizer_node_map)
+                df["value"] = 100. * df["value"] / total
+
             df["value"] = df.apply(
-                lambda row: metrics_thresholds[row[group_name]].compute(
-                    row.name.value,
-                    row["value"]
-                ),
+                lambda row: metrics_thresholds[row[group_name]].compute(row.name.value, self.convert_value(row, False)),
                 axis=1,
             )
 
             dfg = df.groupby(group_name)
-            derived_metrics_result.add_derived_metric(
-                new_metric_name, is_container_metric, dfg)
+            derived_metrics_result.add_metric(
+                new_metric_name, is_container_metric, dfg, metric_config["resource"])
 
-            if len(normalizer_node_map) > 0:
-                new_normalizer_name = metric_source + "_percent/" + metric_type
-                total = normalizer_df[group_name].map(normalizer_node_map)
-                normalizer_df["value"] = 100. * normalizer_df["value"] / total
-                normalizer_dfg = normalizer_df.groupby(group_name)
-                derived_metrics_result.add_derived_metric(
-                    new_normalizer_name, is_container_metric, normalizer_dfg)
+        print("Processing app metrics")
+        app_metrics = self.get_app_metrics(start_time, end_time)
+        app_state = ThresholdState(
+            self.app_metric_config["observation_window_sec"],
+            self.app_metric_config["threshold"]["value"],
+            self.app_metric_config["threshold"]["type"],
+            SAMPLE_INTERVAL_SECOND,
+        )
+        app_metrics["value"] = app_metrics.apply(
+            lambda row: app_state.compute(
+                row.name.value,
+                self.convert_value(row, True)
+            ),
+            axis=1,
+        )
 
+        derived_metrics_result.set_app_metrics(app_metrics)
         return derived_metrics_result
 
 
 if __name__ == '__main__':
-    nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
-    result = nodeAnalyzer.get_derived_metrics(
-        -9223372036854775806, 9223372036854775806)
-    print("Container metrics:")
-    print(result.container_metrics)
-    print("Node metrics:")
-    print(result.node_metrics)
+    dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config.json")
+    derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
+    print("Derived Container metrics:")
+    print(derived_result.container_metrics)
+    print(derived_result.node_metrics)
+    print(derived_result.app_metrics)

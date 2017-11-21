@@ -33,7 +33,7 @@ class Diagnosis(object):
 
     def filter_features(self, series, threshold=None):
         return series[series > threshold]
-        
+
     def compute_correlations(self):
         return self.metric_consumer.input_df.corrwith(
                          self.metric_consumer.sl_df[self.sl_metric])
@@ -56,4 +56,3 @@ if __name__ == "__main__":
     print(correlations.sort_values(ascending=False).to_string())
     print("cs")
     print(diagnosis.compute_score(averages, correlations).sort_values(ascending=False).to_string())
-

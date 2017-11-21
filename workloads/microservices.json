@@ -1,9 +1,8 @@
 {
-    "microservices": [    
+    "microservices": [
         {
-            "name": "mysql",
-            "service_id": "service-0004",
-            "state": "Running"
+            "name": "mysql-service",
+            "service_id": "service-0004"
         }
     ]
 }

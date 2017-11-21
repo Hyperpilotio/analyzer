@@ -53,7 +53,7 @@ class MetricConsumer(object):
         self.time_buckets = [self.end_time - pd.Timedelta(seconds=s) for s in range(0, 60, 5)]
         self.sl_df = self.get_sl_data(sl_metric_type)
         self.input_df = self.get_input_data(input_metric_type)
-        
+
         # self.compute_correlation()
 
         # self.write_result()
