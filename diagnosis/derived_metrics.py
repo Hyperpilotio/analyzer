@@ -15,7 +15,7 @@ class ThresholdState(object):
         self.sample_interval = sample_interval_seconds * NANOSECONDS_PER_SECOND
         self.last_was_hit = False
         self.hits = []
-        self.total_count = window / sample_interval
+        self.total_count = self.window / self.sample_interval
 
     def compare_value(self, bound_type, threshold, value):
         if bound_type == "UB":
@@ -55,7 +55,7 @@ class DerivedMetricsResults(object):
         # { derived metric name -> { node name -> data frame } }
         self.node_metrics = {}
 
-        # { derived metric name -> { node name -> container id -> data frame } }
+        # { derived metric name -> { node name -> pod name -> data frame } }
         self.container_metrics = {}
 
     def add_node_metric(self, metric_name, node_name, df):
@@ -64,7 +64,7 @@ class DerivedMetricsResults(object):
 
         self.node_metrics[metric_name][node_name] = df
 
-    def add_container_metric(self, metric_name, node_name, container_id, df):
+    def add_container_metric(self, metric_name, node_name, pod_name, df):
         if metric_name not in self.container_metrics:
             self.container_metrics[metric_name] = {}
 
@@ -72,7 +72,7 @@ class DerivedMetricsResults(object):
         if node_name not in nodes:
             nodes[node_name] = {}
 
-        nodes[node_name][container_id] = df
+        nodes[node_name][pod_name] = df
 
     def add_derived_metric(self, metric_name, is_container_metric, dfg):
         for d in dfg:
@@ -94,8 +94,9 @@ class DerivedMetrics(object):
                 "root",
                 "root",
                 "snapaverage")
-            self.group_keys = {"/intel/docker": "docker_id"}
             self.default_group_key = "nodename"
+            self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
+            self.docker_type_filter = " AND \"io.kubernetes.docker.type\"=\'container\'"
 
     def get_derived_metrics(self, start_time, end_time):
         derived_metrics_result = DerivedMetricsResults()
@@ -122,10 +123,12 @@ class DerivedMetrics(object):
                 normalizer = str(metric_config["normalizer"])
                 if normalizer.startswith("/"):
                     normalizer = normalizer[1:]
-                normalizer_metrics = self.influx_client.query(
-                    "SELECT * FROM \"%s\" "
+                normalizer_metrics_query = ("SELECT * FROM \"%s\" "
                     "WHERE time >= %d "
                     "AND time <= %d" % (normalizer, start_time, end_time))
+                if is_container_metric:
+                    normalizer_metrics_query += self.docker_type_filter
+                normalizer_metrics = self.influx_client.query(normalizer_metrics_query)
                 normalizer_metrics_len = len(normalizer_metrics)
                 if normalizer_metrics_len == 0:
                     print("Unable to find data for %s, skipping..." %
@@ -136,10 +139,12 @@ class DerivedMetrics(object):
                     for node_name in normalizer_dfg.value.index:
                         normalizer_node_map[node_name] = normalizer_dfg.value[1]
 
-            raw_metrics = self.influx_client.query(
-                "SELECT * FROM \"%s\" "
+            raw_metrics_query = ("SELECT * FROM \"%s\" "
                 "WHERE time >= %d "
                 "AND time <= %d" % (metric_source, start_time, end_time))
+            if is_container_metric:
+                raw_metrics_query += self.docker_type_filter 
+            raw_metrics = self.influx_client.query(raw_metrics_query)
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
             if raw_metrics_len == 0:
@@ -147,7 +152,7 @@ class DerivedMetrics(object):
                       (metric_source))
                 continue
             elif normalizer_metrics and len(normalizer_metrics) != raw_metrics_len:
-                print("Normalizer metric is not equal length to raw metrics")
+                print("Normalizer metrics do not have equal length as raw metrics")
                 continue
 
             print("Deriving data from %s into %s" %
@@ -196,7 +201,7 @@ if __name__ == '__main__':
     nodeAnalyzer = DerivedMetrics("./derived_metrics_config.json")
     result = nodeAnalyzer.get_derived_metrics(
         -9223372036854775806, 9223372036854775806)
-    print("Container metrics:")
+    print("Derived container metrics:")
     print(result.container_metrics)
-    print("Node metrics:")
+    print("Derived node metrics:")
     print(result.node_metrics)
