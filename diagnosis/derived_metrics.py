@@ -54,17 +54,18 @@ class ThresholdState(object):
 class MetricResult(object):
     def __init__(self, df, source, resource_type):
         self.df = df
-        self.source = source
-        self.resource_type = resource_type
+        self.source = source # e.g: node, container
+        self.resource_type = resource_type # e.g: network, cpu, memory
+        self.confidence_score = 0.0 # will be updated by diagnosis
 
 class MetricsResults(object):
     def __init__(self):
         self.app_metrics = None
 
-        # { derived metric name -> { node name -> metric result } }
+        # { metric name -> { node name -> metric result } }
         self.node_metrics = {}
 
-        # { derived metric name -> { node name -> pod name -> data frame } }
+        # { derived metric name -> { node name -> { pod name -> metric result } } }
         self.container_metrics = {}
 
     def set_app_metrics(self, app_metrics):
