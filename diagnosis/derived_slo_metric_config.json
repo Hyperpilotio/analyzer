@@ -1,0 +1,11 @@
+{
+    "metric_name": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
+    "type": "SLO_violation",
+    "summary": "quantile_90",
+    "aggregation": "max",
+    "observation_window_sec": 60,
+    "threshold": {
+        "type": "UB",
+        "value": 300
+    }
+}

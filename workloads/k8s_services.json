@@ -1,58 +1,88 @@
 [
     {
-        "namespace": "default",
+	"apiVersion": "v1",
         "kind": "Service",
-        "k8s_spec": {
-    	    "metadata": {
-	        "name": "mysql-service"
-	   },
-	   "spec": {
-	        "selector": {
-	            "app": "mysql"
-	        },
-	        "ports": [
-	            {
-		        "protocol": "TCP",
-		        "port": 3306,
-		        "targetPort": 3306
-	            }
-	        ]
-            },
-            "status": {}
-        }
+	"metadata": {
+	    "name": "mysql-service",
+	    "namespace": "default"
+	},
+	"spec": {
+	    "selector": {
+	        "app": "mysql"
+	    },
+	    "ports": [
+	        {
+		    "protocol": "TCP",
+		    "port": 3306,
+		    "targetPort": 3306
+	        }
+	    ]
+        },
+        "status": {}
     },
     {
-        "namespace": "default",
+	"apiVersion": "extensions/v1beta1",
         "kind": "Deployment",
-        "k8s_spec": {
-      	    "metadata": {
-	        "name": "nginx"    
-	    },
-	    "spec": {
-	        "replicas": 3,
-	        "template": {
-	            "metadata": {
-		        "labels": {
-		            "service": "http-server"
-	                }
-		    },
-	            "spec": {
-		        "containers": [
-		            {
-		                "name": "nginx",
-		                "image": "nginx:1.10.2",
-		                "imagePullPolicy": "IfNotPresent",
-		                "ports": [
-		                    {
-		                        "containerPort": 80
-		 	            }
-		                ]
-		            }
-		        ]
+	"metadata": {
+	    "name": "nginx",
+            "namespace": "default"
+	},
+	"spec": {
+	    "replicas": 3,
+	    "template": {
+	        "metadata": {
+	            "labels": {
+		        "service": "http-server"
 	            }
+		},
+	        "spec": {
+		    "containers": [
+		        {
+		            "name": "nginx",
+		            "image": "nginx:1.10.2",
+		            "imagePullPolicy": "IfNotPresent",
+		            "ports": [
+		                {
+		                    "containerPort": 80
+				}
+		            ]
+		        }
+		    ]
 	        }
+	    }
+	},
+        "status": {}
+    },
+    {
+	"apiVersion": "apps/v1beta2",
+        "kind": "StatefulSet",
+	"metadata": {
+            "name": "zk",
+            "namespace": "default"
+	},
+	"spec": {
+	    "selector": {},
+	    "serviceName": "zk-hs",
+	    "replicas": 3,
+	    "updateStrategy": {
+	        "type": "RollingUpdate"
 	    },
-            "status": {}
-         }
+	    "template": {
+		"metadata": {},
+		"spec": {
+		    "affinity": {},
+		    "containers": [
+		        {
+			    "name": "kubernetes-zookeeper",
+			    "imagePullPolicy": "Always",
+			    "image": "gcr.io/google_containers/kubernetes-zookeeper",
+			    "resources": {},
+			    "ports": []
+		        }
+		    ]
+		}
+	    }
+	},
+        "status": {}
     }
 ]
