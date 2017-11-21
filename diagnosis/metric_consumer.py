@@ -40,22 +40,21 @@ M = 1000000000
 class MetricConsumer(object):
     def __init__(self, sl_metric_type, input_metric_type, start_time=None, end_time=None):
         # load in initial data
-
         if start_time == None and end_time == None:
             # find the latest SL data and set the end_time.
             self.end_time = self.get_end_time_from_db()
-            self.start_time = self.end_time - 5 * 60 * M
+            self.start_time = self.end_time - pd.Timedelta(minutes=5)
         if start_time:
             self.start_time = start_time
 
         if end_time:
             self.end_time = end_time
 
-        self.time_buckets = range(
-            int(self.end_time), int(self.start_time), -5 * M)
+        self.time_buckets = [self.end_time - pd.Timedelta(seconds=s) for s in range(0, 60, 5)]
         self.sl_df = self.get_sl_data(sl_metric_type)
         self.input_df = self.get_input_data(input_metric_type)
-        self.compute_correlation()
+        
+        # self.compute_correlation()
 
         # self.write_result()
 
@@ -120,18 +119,21 @@ class MetricConsumer(object):
         nodeAnalyzer = DerivedMetrics(
             "./diagnosis/derived_metrics_config.json")
         metric_results = nodeAnalyzer.get_derived_metrics(
-            -9223372036854775806, 9223372036854775806)
+            self.start_time.value, self.end_time.value)
         result_dfs = {metric_name + "_" + node_name:
                       metric_results.node_metrics[metric_name][node_name] for
                       metric_name in metric_results.node_metrics
                       for node_name in metric_results.node_metrics[metric_name]}
-
+        #print(len(result_dfs))
         df = pd.DataFrame()
         for df_name in result_dfs:
             result_df = result_dfs[df_name]
             result_df.index = pd.to_datetime(result_df.index, unit="s")
             df[df_name] = self.match_timestamps(
                 self.time_buckets, result_df).iloc[:, 0]
+            #print()
+            #print(result_df.to_string())
+        #print(df.shape)
         return df
 
     def compute_correlation(self):
@@ -143,14 +145,12 @@ class MetricConsumer(object):
             (app_metric, tag_filter)
         last_sample = df_client_app.query(q)
 
-        last_time = last_sample[app_metric].index[0].timestamp() * M
-        # set the end time to now (or just past the last timestamp in the data)
-        end_time = last_time + M
-        return end_time
+        last_time = last_sample[app_metric].index[0]
+        return last_time
 
     def get_time_filter(self, end_time):
         # todo: take in computation window
-        start_time = end_time - 5 * 60 * M
+        start_time = end_time.value - 5 * 60 * M
         return "time > %d" % start_time
 
     def shift_and_update(self):
@@ -169,6 +169,8 @@ class MetricConsumer(object):
 
     def match_timestamps(self, time_buckets, df):
         """ Grab one measurement value for each five second window. """
+        #print(time_buckets)
+        #print(df)
         matched_data = []
         timestamps = (ts for ts in df.index)
         for time_bucket in time_buckets:
@@ -178,23 +180,22 @@ class MetricConsumer(object):
                     ts = next(timestamps)
                 except StopIteration:
                     break
-                ts_compare = ts.timestamp() * M
-                if ts_compare > time_bucket - 5 * M and ts_compare <= time_bucket:
+                if ts > time_bucket - pd.Timedelta(seconds=5) and ts <= time_bucket:
                     missing = False
                     if type(df.loc[ts]['value']) == pd.Series:
                         matched_data.append(df.loc[ts]['value'].iloc[0])
                     else:
                         matched_data.append(df.loc[ts]['value'])
                     break
-                if ts_compare < time_bucket - 5 * M:
+                if ts < time_bucket - pd.Timedelta(seconds=5):
                     break
             if missing:
                 matched_data.append(NaN)
-
+        #print(matched_data)
         return pd.DataFrame(data=matched_data, index=time_buckets)
 
 
 if __name__ == "__main__":
     #MetricConsumer("RAW", "RAW")
-    MetricConsumer("RAW", "DERIVED")
-    #MetricConsumer("DERIVED", "DERIVED")
+    #MetricConsumer("RAW", "DERIVED")
+    MetricConsumer("DERIVED", "DERIVED")
