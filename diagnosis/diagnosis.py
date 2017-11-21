@@ -29,20 +29,17 @@ class Diagnosis(object):
 
     def get_averages(self):
         """ Get a Series with average value over time window for each feature. """
-        #print(self.metric_consumer.input_df)
         return self.metric_consumer.input_df.mean(axis=0)
 
     def filter_features(self, series, threshold=None):
         return series[series > threshold]
         
     def compute_correlations(self):
-        #print(self.metric_consumer.input_df)
-        #print(self.metric_consumer.sl_df[self.sl_metric])
         return self.metric_consumer.input_df.corrwith(
                          self.metric_consumer.sl_df[self.sl_metric])
 
-    def compute_score(self, ):
-        return self.metric_consumer.input_df
+    def compute_score(self, averages, correlations):
+        return averages.multiply(correlations)
 
 
 if __name__ == "__main__":
@@ -51,15 +48,12 @@ if __name__ == "__main__":
             "RAW",
             "DERIVED")
     averages = diagnosis.get_averages()
-    #print(averages.to_string())
     #print(diagnosis.filter_features(averages, threshold=50))
     correlations = diagnosis.compute_correlations()
     print("aves")
     print(averages.sort_values(ascending=False).to_string())
-    #print(type(averages))
     print("corr")
     print(correlations.sort_values(ascending=False).to_string())
-    #print(type(correlations))
     print("cs")
-    print(averages.multiply(correlations).sort_values(ascending=False).to_string())
+    print(diagnosis.compute_score(averages, correlations).sort_values(ascending=False).to_string())
 
