@@ -38,7 +38,7 @@ class ThresholdState(object):
         else:
             self.last_was_hit = False
 
-        window_begin_time = new_time - self.window
+        window_begin_time = new_time - self.window + 1
         last_good_idx = len(self.hits)
         idx = -1
         for hit in self.hits:
@@ -293,7 +293,7 @@ class MetricsConsumer(object):
 
 
 if __name__ == '__main__':
-    dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config_simple.json")
+    dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config.json")
     derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
