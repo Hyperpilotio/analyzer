@@ -112,7 +112,7 @@ class MetricsConsumer(object):
             self.app_metric_config = json.load(json_data)
 
         self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
-        self.docker_type_filter = " AND \"io.kubernetes.docker.type\"=\'container\'"
+        self.docker_type_filter = " AND \"io.kubernetes.docker.type\"=\'container\' AND \"io.kubernetes.pod.namespace\"!=\'hyperpilot'"
         self.default_group_key = "nodename"
         # TODO(tnachen): influx connection based on config
         self.influx_client = DataFrameClient(
