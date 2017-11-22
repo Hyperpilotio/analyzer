@@ -202,7 +202,7 @@
   {
     "metric_name": "intel/psutil/net/all/errin",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/psutil/net/all/packets_recv",
     "observation_window_sec": 60,
     "threshold": {
@@ -213,7 +213,7 @@
   {
     "metric_name": "intel/psutil/net/all/errout",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/psutil/net/all/packets_sent",
     "observation_window_sec": 60,
     "threshold": {
@@ -224,7 +224,7 @@
   {
     "metric_name": "intel/psutil/net/all/dropin",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/psutil/net/all/packets_recv",
     "observation_window_sec": 60,
     "threshold": {
@@ -235,7 +235,7 @@
   {
     "metric_name": "intel/psutil/net/all/dropout",
     "type": "resource_bottleneck",
-    "resource_type": "network",
+    "resource": "network",
     "normalizer": "intel/psutil/net/all/packets_sent",
     "observation_window_sec": 60,
     "threshold": {
@@ -266,7 +266,7 @@
   {
     "metric_name": "intel/psutil/vm/free",
     "type": "over_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -277,7 +277,7 @@
   {
     "metric_name": "intel/psutil/vm/free",
     "type": "under_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -288,7 +288,7 @@
   {
     "metric_name": "intel/psutil/vm/active",
     "type": "over_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -299,7 +299,7 @@
   {
     "metric_name": "intel/psutil/vm/active",
     "type": "under_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -310,7 +310,7 @@
   {
     "metric_name": "intel/psutil/vm/available",
     "type": "over_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -321,7 +321,7 @@
   {
     "metric_name": "intel/psutil/vm/available",
     "type": "under_utilization",
-    "resource_type": "memory",
+    "resource": "memory",
     "normalizer": "intel/psutil/vm/total",
     "observation_window_sec": 60,
     "threshold": {
@@ -332,7 +332,7 @@
   {
     "metric_name": "intel/use/storage/sda/saturation",
     "type": "over_utilization",
-    "resource_type": "diskio",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
@@ -342,7 +342,7 @@
   {
     "metric_name": "intel/use/storage/sda/utilization",
     "type": "over_utilization",
-    "resource_type": "diskio",
+    "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
