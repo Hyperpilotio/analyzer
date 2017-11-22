@@ -84,9 +84,3 @@ class Diagnosis(object):
                 matched_data.append(NaN)
         return pd.DataFrame(data=matched_data, index=time_buckets)
 
-
-if __name__ == "__main__":
-    diagnosis = Diagnosis(
-            "hyperpilot/goddd/api_booking_service_request_latency_microseconds",
-            "RAW",
-            "DERIVED")
