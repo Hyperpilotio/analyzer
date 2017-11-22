@@ -19,19 +19,28 @@ class Diagnosis(object):
     def __init__(self):
         return
 
-    def get_averages(self):
+    def set_averages(self, metric_results):
         """ Get the average value over time window for each feature. """
-        return self.input_df.mean(axis=0)
+        for result in metric_results:
+            result.average = result.df.mean(axis=0)
+        return metric_results
 
     def filter_features(self, series, threshold=None):
         return series[series > threshold]
         
-    def compute_correlations(self):
-        return self.input_df.corrwith(
-                         self.sl_df[self.sl_metric])
+    def set_correlations(self, app_df, metric_results):
+        for result in metric_results:
+            result.correlation = result.df.corrwith(app_df)
+        return metric_results
 
-    def compute_score(self, averages, correlations):
-        return averages.multiply(correlations)
+        #return self.input_df.corrwith(
+                         #self.sl_df[self.sl_metric])
+
+    def set_confidence_score(self, metric_results):
+        for result in metric_results:
+            result.confidence_score = result.average * result.correlation
+        return metric_results
+        #return averages.multiply(correlations)
 
     def process_metrics(self, metrics):
         metric_results = [metrics.node_metrics[metric_name][node_name] for
@@ -46,19 +55,15 @@ class Diagnosis(object):
         start_time = metrics.app_metrics.index[0]
         time_buckets = [start_time + pd.Timedelta(seconds=s) for s in range(0, 60, 5)]
         app_df = self.match_timestamps(time_buckets, metrics.app_metrics)
-
         for metric_result in metric_results:
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
 
-        #averages = self.get_averages()
-        #correlations = self.compute_correlations()
-        #result = MetricResult()
-        #result.confidence_score = self.compute_score(averages, correlations)
+        metric_results = self.set_averages(metric_results)
+        metric_results = self.set_correlations(app_df, metric_results)
+        metric_results = self.set_confidence_score(metric_results)
 
     def match_timestamps(self, time_buckets, df):
         """ Grab one measurement value for each five second window. """
-        #print(time_buckets)
-        #print(df)
         matched_data = []
         timestamps = (ts for ts in df.index)
         for time_bucket in time_buckets:
