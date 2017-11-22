@@ -94,9 +94,11 @@ class MetricsResults(object):
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
         for d in dfg:
             if is_container_metric:
-                nodename = d[1]["nodename"][1]
-                self.add_container_metric(
-                    metric_name, nodename, d[0], d[1], resource_type)
+                n = d[1]["nodename"]
+                if 1 in n:
+                    nodename = d[1]["nodename"][1]
+                    self.add_container_metric(
+                        metric_name, nodename, d[0], d[1], resource_type)
             else:
                 self.add_node_metric(metric_name, d[0], d[1], resource_type)
 
@@ -227,7 +229,8 @@ class MetricsConsumer(object):
                     normalizer_df = normalizer_metrics[normalizer]
                     normalizer_dfg = normalizer_df.groupby("nodename").first()
                     for node_name in normalizer_dfg.value.index:
-                        normalizer_node_map[node_name] = normalizer_dfg.value[1]
+                        if 1 in normalizer_dfg.value:
+                            normalizer_node_map[node_name] = normalizer_dfg.value[1]
 
             raw_metrics_query = ("SELECT * FROM \"%s\" "
                 "WHERE time >= %d "

@@ -19,4 +19,6 @@ class ProblemsDetector(object):
             print("Node name: " + m.node_name)
             print("Pod name: " + str(m.pod_name))
             print("Score: " + str(m.confidence_score))
+            print("Average: " + str(m.average))
+            print("Correlated: " + str(m.correlation))
             i += 1

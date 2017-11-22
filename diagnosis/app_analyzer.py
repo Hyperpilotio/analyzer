@@ -31,4 +31,4 @@ class AppAnalyzer(object):
 
 if __name__ == "__main__":
     aa = AppAnalyzer(None)
-    aa.loop_all_app_metrics(1510965336326129038, WINDOW * 1000000000)
+    aa.loop_all_app_metrics(1510969424453702319 - 120 * 1000000000, WINDOW * 1000000000)
