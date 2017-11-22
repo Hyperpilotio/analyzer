@@ -52,9 +52,11 @@ class ThresholdState(object):
         return 100. * (float(len(self.hits)) / float(self.total_count))
 
 class MetricResult(object):
-    def __init__(self, df, source, resource_type):
+    def __init__(self, df, metric_name, resource_type, node_name, pod_name=None):
         self.df = df
-        self.source = source # e.g: node, container
+        self.metric_name = metric_name
+        self.node_name = node_name
+        self.pod_name = pod_name
         self.resource_type = resource_type # e.g: network, cpu, memory
         self.confidence_score = 0.0 # will be updated by diagnosis
         self.average = 0.0
@@ -77,7 +79,7 @@ class MetricsResults(object):
         if metric_name not in self.node_metrics:
             self.node_metrics[metric_name] = {}
 
-        self.node_metrics[metric_name][node_name] = MetricResult(df, "node", resource_type)
+        self.node_metrics[metric_name][node_name] = MetricResult(df, metric_name, resource_type, node_name)
 
     def add_container_metric(self, metric_name, node_name, pod_name, df, resource_type):
         if metric_name not in self.container_metrics:
@@ -87,7 +89,7 @@ class MetricsResults(object):
         if node_name not in nodes:
             nodes[node_name] = {}
 
-        nodes[node_name][pod_name] = MetricResult(df, "container", resource_type)
+        nodes[node_name][pod_name] = MetricResult(df, metric_name, resource_type, node_name, pod_name)
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
         for d in dfg:
@@ -277,21 +279,22 @@ class MetricsConsumer(object):
 
         print("Processing app metrics")
         app_metrics = self.get_app_metrics(start_time, end_time)
-        app_state = ThresholdState(
-            self.app_metric_config["observation_window_sec"],
-            self.app_metric_config["threshold"]["value"],
-            self.app_metric_config["threshold"]["type"],
-            SAMPLE_INTERVAL_SECOND,
-        )
-        app_metrics["value"] = app_metrics.apply(
-            lambda row: app_state.compute(
-                row.name.value,
-                self.convert_value(row)
-            ),
-            axis=1,
-        )
+        if app_metrics is not None:
+            app_state = ThresholdState(
+                self.app_metric_config["observation_window_sec"],
+                self.app_metric_config["threshold"]["value"],
+                self.app_metric_config["threshold"]["type"],
+                SAMPLE_INTERVAL_SECOND,
+            )
+            app_metrics["value"] = app_metrics.apply(
+                lambda row: app_state.compute(
+                    row.name.value,
+                    self.convert_value(row)
+                ),
+                axis=1,
+            )
+            derived_metrics_result.set_app_metrics(app_metrics)
 
-        derived_metrics_result.set_app_metrics(app_metrics)
         return derived_metrics_result
 
 

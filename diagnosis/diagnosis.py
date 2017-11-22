@@ -27,7 +27,7 @@ class Diagnosis(object):
 
     def filter_features(self, series, threshold=None):
         return series[series > threshold]
-        
+
     def set_correlations(self, app_df, metric_results):
         for result in metric_results:
             result.correlation = result.df.corrwith(app_df)
@@ -35,7 +35,7 @@ class Diagnosis(object):
 
     def set_confidence_score(self, metric_results):
         for result in metric_results:
-            result.confidence_score = result.average * result.correlation
+            result.confidence_score = (result.average * result.correlation)[0].item()
         return metric_results
 
     def process_metrics(self, metrics):
@@ -43,9 +43,9 @@ class Diagnosis(object):
                       metric_name in metrics.node_metrics
                       for node_name in metrics.node_metrics[metric_name]] \
                         + \
-                    [metrics.container_metrics[metric_name][node_name][container_name] 
+                    [metrics.container_metrics[metric_name][node_name][container_name]
                         for metric_name in metrics.container_metrics
-                        for node_name in metrics.container_metrics[metric_name] 
+                        for node_name in metrics.container_metrics[metric_name]
                         for container_name in metrics.container_metrics[metric_name][node_name]]
 
         start_time = metrics.app_metrics.index[0]
@@ -83,4 +83,3 @@ class Diagnosis(object):
             if missing:
                 matched_data.append(NaN)
         return pd.DataFrame(data=matched_data, index=time_buckets)
-

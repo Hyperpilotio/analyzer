@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1f7ba078321727a35bf5de980e29c525ab7e883e6a5f971c4ad3a077d062884e"
+            "sha256": "a34322ecaf89c4c13dd67fb88175a4bc6e934c03594049c7d0a5f9e3631d76cc"
         },
         "requires": {
             "python_full_version": "3.6.1",
@@ -16,7 +16,13 @@
     },
     "default": {
         "bayesian-optimization": {
-            "version": "==0.4.0"
+            "version": "==0.5.0"
+        },
+        "certifi": {
+            "version": "==2017.11.5"
+        },
+        "chardet": {
+            "version": "==3.0.4"
         },
         "click": {
             "version": "==6.7"
@@ -33,38 +39,50 @@
         "gunicorn": {
             "version": "==19.7.1"
         },
+        "idna": {
+            "version": "==2.6"
+        },
+        "influxdb": {
+            "version": "==5.0.0"
+        },
         "itsdangerous": {
             "version": "==0.24"
         },
         "jinja2": {
-            "version": "==2.9.6"
+            "version": "==2.10"
         },
         "markupsafe": {
             "version": "==1.0"
         },
         "numpy": {
-            "version": "==1.13.1"
+            "version": "==1.13.3"
         },
         "pandas": {
-            "version": "==0.20.3"
+            "version": "==0.21.0"
         },
         "pymongo": {
-            "version": "==3.5.0"
+            "version": "==3.5.1"
         },
         "python-dateutil": {
             "version": "==2.6.1"
         },
         "pytz": {
-            "version": "==2017.2"
+            "version": "==2017.3"
+        },
+        "requests": {
+            "version": "==2.18.4"
         },
         "scikit-learn": {
-            "version": "==0.19.0"
-        },
-        "scipy": {
             "version": "==0.19.1"
         },
+        "scipy": {
+            "version": "==1.0.0"
+        },
         "six": {
-            "version": "==1.10.0"
+            "version": "==1.11.0"
+        },
+        "urllib3": {
+            "version": "==1.22"
         },
         "werkzeug": {
             "version": "==0.12.2"
