@@ -33,14 +33,10 @@ class Diagnosis(object):
             result.correlation = result.df.corrwith(app_df)
         return metric_results
 
-        #return self.input_df.corrwith(
-                         #self.sl_df[self.sl_metric])
-
     def set_confidence_score(self, metric_results):
         for result in metric_results:
             result.confidence_score = result.average * result.correlation
         return metric_results
-        #return averages.multiply(correlations)
 
     def process_metrics(self, metrics):
         metric_results = [metrics.node_metrics[metric_name][node_name] for
@@ -61,6 +57,7 @@ class Diagnosis(object):
         metric_results = self.set_averages(metric_results)
         metric_results = self.set_correlations(app_df, metric_results)
         metric_results = self.set_confidence_score(metric_results)
+        return metric_results
 
     def match_timestamps(self, time_buckets, df):
         """ Grab one measurement value for each five second window. """
