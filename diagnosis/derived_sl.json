@@ -1,0 +1,10 @@
+{
+        "metric_name": "hyperpilot/goddd/api_booking_service_request_latency_microseconds",
+		"type": "latency",
+        "observation_window": 60000000000,
+        "threshold": {
+            "type": "UB",
+            "value": 300,
+			"unit": "milliseconds"
+        }
+}
