@@ -18,7 +18,8 @@ class ProblemsDetector(object):
             print("Metric name: " + m.metric_name)
             print("Node name: " + m.node_name)
             print("Pod name: " + str(m.pod_name))
-            print("Score: " + str(m.confidence_score))
+            print("Resource type: " + str(m.resource_type))
             print("Average: " + str(m.average))
-            print("Correlated: " + str(m.correlation))
+            print("Correlation: " + str(m.correlation))
+            print("Confidence score: " + str(m.confidence_score))
             i += 1

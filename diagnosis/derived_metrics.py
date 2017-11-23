@@ -142,6 +142,9 @@ class MetricsConsumer(object):
 
     def get_raw_metrics(self, start_time, end_time):
         metrics_result = MetricsResults()
+
+        time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
+
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
             group_name = self.default_group_key
@@ -161,9 +164,8 @@ class MetricsConsumer(object):
                 tags = metric_config["tags"]
                 tags_filter = " AND " .join(["\"%s\"='%s'" % (k, v) for k, v in tags.items()])
 
-            raw_metrics_query = ("SELECT * FROM \"%s\" "
-                "WHERE time >= %d "
-                "AND time <= %d" % (metric_source, start_time, end_time))
+            raw_metrics_query = ("SELECT * FROM \"%s\" %s" %
+                                 (metric_source, time_filter))
             if tags_filter:
                 raw_metrics_query += (" AND %s" % (tags_filter))
             raw_metrics = self.influx_client.query(raw_metrics_query)
@@ -199,10 +201,11 @@ class MetricsConsumer(object):
     def get_derived_metrics(self, start_time, end_time):
         derived_metrics_result = MetricsResults()
 
-        node_metric_keys = "value,nodename,source"
-        container_metric_keys = "value,\"docker_id\",\"io.kubernetes.container.name\",\"io.kubernetes.pod.name\",nodename,source"
-        time_filter = " WHERE time >= %d AND time <= %d" % (start_time, end_time)
+        node_metric_keys = "value,nodename"
+        container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename"
+        time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
 
+        print("Start processing infrastructure metrics")
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
             group_name = self.default_group_key
@@ -226,36 +229,33 @@ class MetricsConsumer(object):
                 tags_filter = " AND " .join(["\"%s\"='%s'" % (k, v) for k, v in tags.items()])
 
             normalizer_metrics = None
-            normalizer_node_map = {}
-            normalizer = ""
+            # TODO: sort normalizer_values using a node/pod map from the raw_metrics
+            #normalizer_node_map = {}
             if "normalizer" in metric_config:
                 normalizer = str(metric_config["normalizer"])
                 if normalizer.startswith("/"):
                     normalizer = normalizer[1:]
-                normalizer_metrics_query = ("SELECT * FROM \"%s\" "
-                    "WHERE time >= %d "
-                    "AND time <= %d" % (normalizer, start_time, end_time))
+
+                if is_container_metric:
+                    normalizer_metrics_query = ("SELECT %s FROM \"%s\" %s" %
+                        (container_metric_keys, normalizer, time_filter))
+                else:
+                    normalizer_metrics_query = ("SELECT %s FROM \"%s\" %s" %
+                        (node_metric_keys, normalizer, time_filter))
                 if tags_filter:
                     normalizer_metrics_query += (" AND %s" % (tags_filter))
+                #print("normalizer metrics query = %s" % (normalizer_metrics_query))
                 normalizer_metrics = self.influx_client.query(normalizer_metrics_query)
-                normalizer_metrics_len = len(normalizer_metrics)
-                if normalizer_metrics_len == 0:
+                if len(normalizer_metrics) == 0:
                     print("Unable to find data for %s, skipping..." %
                           (normalizer))
-                else:
-                    normalizer_df = normalizer_metrics[normalizer]
-                    normalizer_dfg = normalizer_df.groupby("nodename").first()
-                    for node_name in normalizer_dfg.value.index:
-                        if 1 in normalizer_dfg.value:
-                            normalizer_node_map[node_name] = normalizer_dfg.value[1]
 
             if is_container_metric:
-                raw_metrics_query = ("SELECT %s FROM \"%s\""
-                    % (container_metric_keys, metric_source))
+                raw_metrics_query = ("SELECT %s FROM \"%s\" %s" %
+                    (container_metric_keys, metric_source, time_filter))
             else:
-                raw_metrics_query = ("SELECT %s FROM \"%s\" "
-                    % (node_metric_keys, metric_source))
-            raw_metrics_query += time_filter
+                raw_metrics_query = ("SELECT %s FROM \"%s\" %s" %
+                    (node_metric_keys, metric_source, time_filter))
             if tags_filter:
                 raw_metrics_query += (" AND %s" % (tags_filter))
             #print("raw metrics query = %s" % (raw_metrics_query))
@@ -288,10 +288,12 @@ class MetricsConsumer(object):
                     metrics_thresholds[metric_group_name] = state
 
             df = raw_metrics[metric_source]
-            if len(normalizer_node_map) > 0:
+            if normalizer_metrics and len(normalizer_metrics) > 0:
                 new_metric_name = metric_source + "_percent/" + metric_type
-                total = df[group_name].map(normalizer_node_map)
-                df["value"] = 100. * df["value"] / total
+                #normalizer_values = df[group_name].map(normalizer_node_map)
+                # TODO: check for zeros in the normalizer_values
+                normalizer_df = normalizer_metrics[normalizer]
+                df["value"] = 100. * df["value"] / normalizer_df["value"].data
 
             df["value"] = df.apply(
                 lambda row: metrics_thresholds[row[group_name]].compute(row.name.value, self.convert_value(row)),
@@ -302,7 +304,7 @@ class MetricsConsumer(object):
             derived_metrics_result.add_metric(
                 new_metric_name, is_container_metric, dfg, metric_config["resource"])
 
-        print("Processing app metrics")
+        print("Start processing app metrics")
         app_metrics = self.get_app_metrics(start_time, end_time)
         if app_metrics is not None:
             app_state = ThresholdState(
@@ -325,7 +327,8 @@ class MetricsConsumer(object):
 
 if __name__ == '__main__':
     dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config.json")
-    derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
+    #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
+    derived_result = dm.get_derived_metrics(1510967731000482000-300000000000, 1510967731000482000)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")

@@ -271,17 +271,6 @@
     }
   },
   {
-    "metric_name": "intel/psutil/vm/active",
-    "type": "under_utilization",
-    "resource": "memory",
-    "normalizer": "intel/psutil/vm/total",
-    "observation_window_sec": 60,
-    "threshold": {
-      "type": "LB",
-      "value": 30
-    }
-  },
-  {
     "metric_name": "intel/psutil/vm/available",
     "type": "over_utilization",
     "resource": "memory",
@@ -290,17 +279,6 @@
     "threshold": {
       "type": "LB",
       "value": 30
-    }
-  },
-  {
-    "metric_name": "intel/psutil/vm/available",
-    "type": "under_utilization",
-    "resource": "memory",
-    "normalizer": "intel/psutil/vm/total",
-    "observation_window_sec": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 70
     }
   },
   {
