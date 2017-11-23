@@ -258,7 +258,7 @@ class MetricsConsumer(object):
             raw_metrics_query += time_filter
             if tags_filter:
                 raw_metrics_query += (" AND %s" % (tags_filter))
-            print("raw metrics query = %s" % (raw_metrics_query))
+            #print("raw metrics query = %s" % (raw_metrics_query))
             raw_metrics = self.influx_client.query(raw_metrics_query)
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)

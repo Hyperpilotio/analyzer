@@ -20,46 +20,6 @@
     }
   },
   {
-    "metric_name": "intel/procfs/cpu/active_percentage",
-    "type": "over_utilization",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 90
-    }
-  },
-  {
-    "metric_name": "intel/procfs/cpu/active_percentage",
-    "type": "under_utilization",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "threshold": {
-      "type": "LB",
-      "value": 50
-    }
-  },
-  {
-    "metric_name": "intel/procfs/cpu/idle_percentage",
-    "type": "over_utilization",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "threshold": {
-      "type": "LB",
-      "value": 10
-    }
-  },
-  {
-    "metric_name": "intel/procfs/cpu/idle_percentage",
-    "type": "under_utilization",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 50
-    }
-  },
-  {
     "metric_name": "intel/procfs/cpu/iowait_percentage",
     "type": "resource_bottleneck",
     "resource": "diskio",
@@ -87,16 +47,6 @@
     "threshold": {
       "type": "UB",
       "value": 5
-    }
-  },
-  {
-    "metric_name": "intel/procfs/cpu/user_percentage",
-    "type": "over_utilization",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "threshold": {
-      "type": "UB",
-      "value": 60
     }
   },
   {
@@ -196,7 +146,7 @@
     "resource": "diskspace",
     "observation_window_sec": 60,
     "tags": {
-        "disk": "sda"
+        "device": "/dev/sda1"
     },
     "threshold": {
       "type": "UB",
@@ -385,20 +335,6 @@
     "threshold": {
       "type": "UB",
       "value": 90
-    }
-  },
-  {
-    "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/user_mode",
-    "type": "over_utilization",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "tags": {
-        "io.kubernetes.docker.type": "container",
-        "io.kubernetes.pod.namespace": "default"
-    },
-    "threshold": {
-      "type": "UB",
-      "value": 80
     }
   },
   {
