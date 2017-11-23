@@ -104,6 +104,9 @@
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 12000000
@@ -114,6 +117,9 @@
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 12000000
@@ -124,6 +130,9 @@
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 75
@@ -134,26 +143,35 @@
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 150
     }
   },
   {
-    "metric_name": "intel/procfs/disk/read_time",
+    "metric_name": "intel/procfs/disk/time_read",
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 50
     }
   },
   {
-    "metric_name": "intel/procfs/disk/write_time",
+    "metric_name": "intel/procfs/disk/time_write",
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 50
@@ -164,6 +182,9 @@
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 32
@@ -174,6 +195,9 @@
     "type": "over_utilization",
     "resource": "diskspace",
     "observation_window_sec": 60,
+    "tags": {
+        "disk": "sda"
+    },
     "threshold": {
       "type": "UB",
       "value": 90
@@ -354,6 +378,10 @@
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 90
@@ -364,6 +392,10 @@
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 80
@@ -374,6 +406,10 @@
     "type": "resource_bottleneck",
     "resource": "cpu",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 10
@@ -385,6 +421,10 @@
     "resource": "cpu",
     "normalizer": "intel/docker/stats/cgroups/cpu_stats/throttling_data/nr_periods",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 10
@@ -395,6 +435,10 @@
     "type": "resource_bottleneck",
     "resource": "memory",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 1
@@ -405,6 +449,10 @@
     "type": "resource_bottleneck",
     "resource": "memory",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 1
@@ -415,6 +463,10 @@
     "type": "resource_bottleneck",
     "resource": "memory",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 1
@@ -425,6 +477,10 @@
     "type": "resource_bottleneck",
     "resource": "memory",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 1
@@ -436,6 +492,10 @@
     "resource": "memory",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 70
@@ -447,6 +507,10 @@
     "resource": "memory",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 70
@@ -458,6 +522,10 @@
     "resource": "memory",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 60
@@ -469,6 +537,10 @@
     "resource": "diskio",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 10
@@ -480,6 +552,10 @@
     "resource": "diskio",
     "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 5
@@ -490,6 +566,10 @@
     "type": "resource_bottleneck",
     "resource": "memory",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 15000
@@ -500,6 +580,10 @@
     "type": "resource_bottleneck",
     "resource": "memory",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 10
@@ -510,6 +594,10 @@
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 3000000
@@ -520,6 +608,10 @@
     "type": "over_utilization",
     "resource": "diskio",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 50
@@ -531,6 +623,10 @@
     "resource": "diskspace",
     "normalizer": "intel/docker/stats/filesystem/capacity",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 90
@@ -542,6 +638,10 @@
     "resource": "diskio",
     "normalizer": "intel/docker/stats/filesystem/reads_completed",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 30
@@ -553,6 +653,10 @@
     "resource": "diskio",
     "normalizer": "intel/docker/stats/filesystem/writes_completed",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
     "threshold": {
       "type": "UB",
       "value": 50
@@ -563,9 +667,14 @@
     "type": "over_utilization",
     "resource": "network",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default",
+        "network_interface": "total"
+    },
     "threshold": {
       "type": "UB",
-      "value": 40000000
+      "value": 20000000
     }
   },
   {
@@ -573,9 +682,14 @@
     "type": "over_utilization",
     "resource": "network",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default",
+        "network_interface": "total"
+    },
     "threshold": {
       "type": "UB",
-      "value": 40000000
+      "value": 20000000
     }
   },
   {
@@ -584,6 +698,11 @@
     "resource": "network",
     "normalizer": "intel/docker/stats/network/rx_packets",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default",
+        "network_interface": "total"
+    },
     "threshold": {
       "type": "UB",
       "value": 1.0
@@ -595,6 +714,11 @@
     "resource": "network",
     "normalizer": "intel/docker/stats/network/tx_packets",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default",
+        "network_interface": "total"
+    },
     "threshold": {
       "type": "UB",
       "value": 1.0
@@ -606,6 +730,11 @@
     "resource": "network",
     "normalizer": "intel/docker/stats/network/rx_bytes",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default",
+        "network_interface": "total"
+    },
     "threshold": {
       "type": "UB",
       "value": 1.0
@@ -617,6 +746,11 @@
     "resource": "network",
     "normalizer": "intel/docker/stats/network/tx_bytes",
     "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default",
+        "network_interface": "total"
+    },
     "threshold": {
       "type": "UB",
       "value": 1.0

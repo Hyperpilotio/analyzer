@@ -90,17 +90,18 @@ class MetricsResults(object):
             nodes[node_name] = {}
 
         nodes[node_name][pod_name] = MetricResult(df, metric_name, resource_type, node_name, pod_name)
+        #self.container_metrics[metric_name] = nodes
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
-        for d in dfg:
+        for df in dfg:
             if is_container_metric:
-                n = d[1]["nodename"]
-                if 1 in n:
-                    nodename = d[1]["nodename"][1]
+                node_col = df[1]["nodename"]
+                if len(node_col) > 0:
+                    nodename = node_col[0]
                     self.add_container_metric(
-                        metric_name, nodename, d[0], d[1], resource_type)
+                        metric_name, nodename, df[0], df[1], resource_type)
             else:
-                self.add_node_metric(metric_name, d[0], d[1], resource_type)
+                self.add_node_metric(metric_name, df[0], df[1], resource_type)
 
 
 class MetricsConsumer(object):
@@ -112,7 +113,6 @@ class MetricsConsumer(object):
             self.app_metric_config = json.load(json_data)
 
         self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
-        self.docker_type_filter = " AND \"io.kubernetes.docker.type\"=\'container\'"
         self.default_group_key = "nodename"
         # TODO(tnachen): influx connection based on config
         self.influx_client = DataFrameClient(
@@ -155,11 +155,17 @@ class MetricsConsumer(object):
             if metric_source.startswith("/"):
                 metric_source = metric_source[1:]
 
+            # construct tags_filter if needed for this metric
+            tags_filter = None
+            if "tags" in metric_config:
+                tags = metric_config["tags"]
+                tags_filter = " AND " .join(["\"%s\"='%s'" % (k, v) for k, v in tags.items()])
+
             raw_metrics_query = ("SELECT * FROM \"%s\" "
                 "WHERE time >= %d "
                 "AND time <= %d" % (metric_source, start_time, end_time))
-            if is_container_metric:
-                raw_metrics_query += self.docker_type_filter
+            if tags_filter:
+                raw_metrics_query += (" AND %s" % (tags_filter))
             raw_metrics = self.influx_client.query(raw_metrics_query)
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
@@ -192,6 +198,11 @@ class MetricsConsumer(object):
 
     def get_derived_metrics(self, start_time, end_time):
         derived_metrics_result = MetricsResults()
+
+        node_metric_keys = "value,nodename,source"
+        container_metric_keys = "value,\"docker_id\",\"io.kubernetes.container.name\",\"io.kubernetes.pod.name\",nodename,source"
+        time_filter = " WHERE time >= %d AND time <= %d" % (start_time, end_time)
+
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
             group_name = self.default_group_key
@@ -208,6 +219,12 @@ class MetricsConsumer(object):
             if metric_source.startswith("/"):
                 metric_source = metric_source[1:]
 
+            # construct tags_filter if needed for this metric
+            tags_filter = None
+            if "tags" in metric_config:
+                tags = metric_config["tags"]
+                tags_filter = " AND " .join(["\"%s\"='%s'" % (k, v) for k, v in tags.items()])
+
             normalizer_metrics = None
             normalizer_node_map = {}
             normalizer = ""
@@ -218,8 +235,8 @@ class MetricsConsumer(object):
                 normalizer_metrics_query = ("SELECT * FROM \"%s\" "
                     "WHERE time >= %d "
                     "AND time <= %d" % (normalizer, start_time, end_time))
-                if is_container_metric:
-                    normalizer_metrics_query += self.docker_type_filter
+                if tags_filter:
+                    normalizer_metrics_query += (" AND %s" % (tags_filter))
                 normalizer_metrics = self.influx_client.query(normalizer_metrics_query)
                 normalizer_metrics_len = len(normalizer_metrics)
                 if normalizer_metrics_len == 0:
@@ -232,11 +249,16 @@ class MetricsConsumer(object):
                         if 1 in normalizer_dfg.value:
                             normalizer_node_map[node_name] = normalizer_dfg.value[1]
 
-            raw_metrics_query = ("SELECT * FROM \"%s\" "
-                "WHERE time >= %d "
-                "AND time <= %d" % (metric_source, start_time, end_time))
             if is_container_metric:
-                          raw_metrics_query += self.docker_type_filter
+                raw_metrics_query = ("SELECT %s FROM \"%s\""
+                    % (container_metric_keys, metric_source))
+            else:
+                raw_metrics_query = ("SELECT %s FROM \"%s\" "
+                    % (node_metric_keys, metric_source))
+            raw_metrics_query += time_filter
+            if tags_filter:
+                raw_metrics_query += (" AND %s" % (tags_filter))
+            print("raw metrics query = %s" % (raw_metrics_query))
             raw_metrics = self.influx_client.query(raw_metrics_query)
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
@@ -306,5 +328,7 @@ if __name__ == '__main__':
     derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
+    print("Derived node metrics:")
     print(derived_result.node_metrics)
+    print("Derived SLO metric:")
     print(derived_result.app_metrics)
