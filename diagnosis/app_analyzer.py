@@ -72,7 +72,6 @@ class AppAnalyzer(object):
             tags["node_name"] = metric.node_name
             tags["pod_name"] = metric.pod_name
             point_json["tags"] = tags
-            point_json["time"] = int(time.time())
             points_json.append(point_json)
 
         self.influx_client.write_points(points_json)
