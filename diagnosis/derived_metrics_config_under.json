@@ -1,0 +1,44 @@
+[
+  {
+    "metric_name": "intel/procfs/cpu/utilization_percentage",
+    "type": "under_utilization",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 40
+    }
+  },
+  {
+    "metric_name": "intel/psutil/vm/used_percent",
+    "type": "under_utilization",
+    "resource": "memory",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 40
+    }
+  },
+  {
+    "metric_name": "intel/psutil/vm/free",
+    "type": "over_utilization",
+    "resource": "memory",
+    "normalizer": "intel/psutil/vm/total",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 10
+    }
+  },
+  {
+    "metric_name": "intel/psutil/vm/available",
+    "type": "over_utilization",
+    "resource": "memory",
+    "normalizer": "intel/psutil/vm/total",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "LB",
+      "value": 30
+    }
+  }
+]

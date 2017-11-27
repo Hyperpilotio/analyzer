@@ -7,49 +7,51 @@ NANOSECONDS_PER_SECOND = 1000000000
 SAMPLE_INTERVAL_SECOND = 5
 
 class ThresholdState(object):
-    def __init__(self, window_seconds, threshold, bound_type, sample_interval_seconds):
+    def __init__(self, window_seconds, threshold, sample_interval_seconds):
         '''
-        e.g: window_seconds=30, threshold=10, bound_type=UB, sample_interval=5
+        e.g: window_seconds=30, threshold=10, sample_interval=5
         '''
         self.window = window_seconds * NANOSECONDS_PER_SECOND
         self.threshold = threshold
-        self.bound_type = bound_type
         self.sample_interval = sample_interval_seconds * NANOSECONDS_PER_SECOND
-        self.last_was_hit = False
-        self.hits = []
-        self.total_count = self.window / self.sample_interval
+        self.values = []
+        self.total_count = (self.window / self.sample_interval) - 1
 
-    def compare_value(self, bound_type, threshold, value):
-        if bound_type == "UB":
-            return value - threshold >= 0
-        else:
-            return value - threshold <= 0
+    def compute_severity(self, threshold, value):
+        return value - threshold
 
     def compute(self, new_time, new_value):
-        if self.last_was_hit and len(self.hits) > 0:
-            if new_time - self.hits[len(self.hits) - 1] >= 2 * self.sample_interval:
-                filled_hit_time = self.hits[len(
-                    self.hits) - 1] + self.sample_interval
-                self.hits.append(filled_hit_time)
+        if len(self.values) > 0:
+            while new_time - self.values[len(self.values) - 1][0] >= 2 * self.sample_interval:
+                last_value = self.values[len(self.values) - 1]
+                filled_time = last_value[0] + self.sample_interval
+                self.values.append((filled_time, last_value[1], last_value[2]))
 
-        if self.compare_value(self.bound_type, self.threshold, new_value):
-            self.hits.append(new_time)
-            self.last_was_hit = True
-        else:
-            self.last_was_hit = False
+        severity = self.compute_severity(self.threshold, new_value)
+        self.values.append((new_time, new_value, severity))
 
         window_begin_time = new_time - self.window + 1
-        last_good_idx = len(self.hits)
+        last_good_idx = -1
         idx = -1
-        for hit in self.hits:
+        for time, value, severity in self.values:
             idx += 1
-            if hit >= window_begin_time:
+            if time >= window_begin_time:
                 last_good_idx = idx
                 break
 
-        self.hits = self.hits[last_good_idx:]
+        if last_good_idx != -1:
+            self.values = self.values[last_good_idx:]
 
-        return 100. * (float(len(self.hits)) / float(self.total_count))
+        if len(self.values) < self.total_count:
+            return 0
+
+        total = float(sum(p[1] for p in self.values))
+        if total == 0.0:
+            return 0
+
+        severity_total = float(sum(p[2] for p in self.values if p[2] > 0))
+
+        return 100. * (severity_total / total)
 
 class MetricResult(object):
     def __init__(self, df, metric_name, resource_type, node_name, pod_name=None):
@@ -282,7 +284,6 @@ class MetricsConsumer(object):
                     state = ThresholdState(
                         metric_config["observation_window_sec"],
                         threshold["value"],
-                        threshold["type"],
                         SAMPLE_INTERVAL_SECOND,
                     )
                     metrics_thresholds[metric_group_name] = state
@@ -310,7 +311,6 @@ class MetricsConsumer(object):
             app_state = ThresholdState(
                 self.app_metric_config["observation_window_sec"],
                 self.app_metric_config["threshold"]["value"],
-                self.app_metric_config["threshold"]["type"],
                 SAMPLE_INTERVAL_SECOND,
             )
             app_metrics["value"] = app_metrics.apply(
