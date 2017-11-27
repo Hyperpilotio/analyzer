@@ -1,4 +1,5 @@
 import time
+import requests
 from collections import namedtuple
 from math import isnan
 
@@ -21,13 +22,16 @@ class AppAnalyzer(object):
             "./diagnosis/derived_slo_metric_config.json", "./diagnosis/derived_metrics_config.json")
         self.diagnosis = Diagnosis()
         self.problems_detector = ProblemsDetector(config)
-
+        influx_host = config.get("INFLUXDB", "HOST")
+        influx_port = config.get("INFLUXDB", "PORT")
+        influx_db = config.get("INFLUXDB", "RESULT_DB_NAME")
+        requests.post("http://%s:%s/query" % (influx_host, influx_port), params="q=CREATE DATABASE %s" % influx_db)
         self.influx_client = InfluxDBClient(
-            "localhost",
-            8086,
-            "root",
-            "root",
-            "diagnosisresults")
+            influx_host,
+            influx_port,
+            config.get("INFLUXDB", "USER"),
+            config.get("INFLUXDB", "PASSWORD"),
+            influx_db)
 
     def loop_all_app_metrics(self, start_time, batch_window):
         it = 1
@@ -75,6 +79,6 @@ class AppAnalyzer(object):
 
 
 if __name__ == "__main__":
-    aa = AppAnalyzer(None)
-    aa.loop_all_app_metrics(1510593271081647191,
+    aa = AppAnalyzer(config)
+    aa.loop_all_app_metrics(1510967731000482000,
                             WINDOW * NANOSECONDS_PER_SECOND)
