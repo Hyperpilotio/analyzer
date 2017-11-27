@@ -294,6 +294,7 @@ class MetricsConsumer(object):
                 #normalizer_values = df[group_name].map(normalizer_node_map)
                 # TODO: check for zeros in the normalizer_values
                 normalizer_df = normalizer_metrics[normalizer]
+                normalizer_df = normalizer_df.iloc[:len(df)]
                 df["value"] = 100. * df["value"] / normalizer_df["value"].data
 
             df["value"] = df.apply(
