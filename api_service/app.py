@@ -56,7 +56,7 @@ def create_application():
 
     try:
         result = configdb[app_collection].insert_one(app_json)
-        response = jsonify(data=app_id)
+        response = jsonify(data=app_json)
         response.status_code = 200
         return response
     except InvalidOperation:
