@@ -302,7 +302,7 @@
     }
   },
   {
-    "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/total",
+    "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/user_mode",
     "type": "over_utilization",
     "resource": "cpu",
     "observation_window_sec": 60,
@@ -312,21 +312,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 90
-    }
-  },
-  {
-    "metric_name": "intel/docker/stats/cgroups/cpu_stats/throttling_data/throttled_time",
-    "type": "resource_bottleneck",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "tags": {
-        "io.kubernetes.docker.type": "container",
-        "io.kubernetes.pod.namespace": "default"
-    },
-    "threshold": {
-      "type": "UB",
-      "value": 10
+      "value": 80
     }
   },
   {
@@ -476,34 +462,6 @@
     }
   },
   {
-    "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_pgfault",
-    "type": "resource_bottleneck",
-    "resource": "memory",
-    "observation_window_sec": 60,
-    "tags": {
-        "io.kubernetes.docker.type": "container",
-        "io.kubernetes.pod.namespace": "default"
-    },
-    "threshold": {
-      "type": "UB",
-      "value": 15000
-    }
-  },
-  {
-    "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_pgmajfault",
-    "type": "resource_bottleneck",
-    "resource": "memory",
-    "observation_window_sec": 60,
-    "tags": {
-        "io.kubernetes.docker.type": "container",
-        "io.kubernetes.pod.namespace": "default"
-    },
-    "threshold": {
-      "type": "UB",
-      "value": 10
-    }
-  },
-  {
     "metric_name": "intel/docker/stats/cgroups/blkio_stats/io_service_bytes_recursive/value",
     "type": "over_utilization",
     "resource": "diskio",
@@ -558,7 +516,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 30
+      "value": 3000
     }
   },
   {
@@ -573,7 +531,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 5000
     }
   },
   {
