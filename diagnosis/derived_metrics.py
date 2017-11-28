@@ -69,7 +69,9 @@ class MetricResult(object):
         self.correlation = 0.0
 
 class MetricsResults(object):
-    def __init__(self):
+    def __init__(self, is_derived=False):
+        # for now, app and input data are either both raw or both derived.
+        self.is_derived = is_derived
         self.app_metrics = None
 
         # { metric name -> { node name -> metric result } }
@@ -85,15 +87,18 @@ class MetricsResults(object):
             config.get("INFLUXDB", "PASSWORD"),
             config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
 
-    def set_app_metrics(self, app_metrics):
+    def set_app_metrics(self, app_metrics, metric_name):
+        if self.is_derived:
+            self.influx_client.write_points(app_metrics, metric_name)
         self.app_metrics = app_metrics
 
     def add_node_metric(self, metric_name, node_name, df, resource_type):
         if metric_name not in self.node_metrics:
             self.node_metrics[metric_name] = {}
         self.node_metrics[metric_name][node_name] = MetricResult(df, metric_name, resource_type, node_name)
-        tags = {"node_name": node_name, "resource_type": resource_type}
-        self.influx_client.write_points(df.interpolate(), metric_name, tags)
+        if self.is_derived:
+            tags = {"node_name": node_name, "resource_type": resource_type}
+            self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_container_metric(self, metric_name, node_name, pod_name, df, resource_type):
         if metric_name not in self.container_metrics:
@@ -104,8 +109,9 @@ class MetricsResults(object):
             nodes[node_name] = {}
 
         nodes[node_name][pod_name] = MetricResult(df, metric_name, resource_type, node_name, pod_name)
-        tags = {"node_name": node_name, "pod_name": pod_name, "resource_type": resource_type}
-        self.influx_client.write_points(df.interpolate(), metric_name, tags)
+        if self.is_derived:
+            tags = {"node_name": node_name, "pod_name": pod_name, "resource_type": resource_type}
+            self.influx_client.write_points(df.interpolate(), metric_name, tags)
         #self.container_metrics[metric_name] = nodes
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
@@ -162,7 +168,7 @@ class MetricsConsumer(object):
         return df[metric_name]
 
     def get_raw_metrics(self, start_time, end_time):
-        metrics_result = MetricsResults()
+        metrics_result = MetricsResults(is_derived=False)
 
         time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
 
@@ -209,7 +215,7 @@ class MetricsConsumer(object):
                 metric_source, is_container_metric, dfg, metric_config["resource"])
 
             app_metrics = self.get_app_metrics(start_time, end_time)
-            metrics_result.set_app_metrics(app_metrics)
+            metrics_result.set_app_metrics(app_metrics, self.app_metric_config["metric_name"])
             return metrics_result
 
     # Convert NaN to 0.
@@ -220,7 +226,7 @@ class MetricsConsumer(object):
         return value
 
     def get_derived_metrics(self, start_time, end_time):
-        derived_metrics_result = MetricsResults()
+        derived_metrics_result = MetricsResults(is_derived=True)
 
         node_metric_keys = "value,nodename"
         container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename"
@@ -339,7 +345,7 @@ class MetricsConsumer(object):
                 ),
                 axis=1,
             )
-            derived_metrics_result.set_app_metrics(app_metrics)
+            derived_metrics_result.set_app_metrics(app_metrics, self.app_metric_config["metric_name"])
 
         return derived_metrics_result
 
