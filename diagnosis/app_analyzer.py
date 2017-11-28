@@ -20,7 +20,8 @@ class AppAnalyzer(object):
     def __init__(self, config):
         self.config = config
         self.metrics_consumer = MetricsConsumer(
-            "./diagnosis/derived_slo_metric_config.json", "./diagnosis/derived_metrics_config.json")
+            self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
+            self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
         self.diagnosis = Diagnosis()
         self.problems_detector = ProblemsDetector(config)
         influx_host = config.get("INFLUXDB", "HOST")
@@ -33,7 +34,6 @@ class AppAnalyzer(object):
             config.get("INFLUXDB", "USER"),
             config.get("INFLUXDB", "PASSWORD"),
             influx_db)
-        self.influx_client.create_database(influx_db)
         self.influx_client.create_retention_policy('result_policy', '2w', 1, default=True)
 
     def loop_all_app_metrics(self, start_time, batch_window, batch_interval):
@@ -57,7 +57,10 @@ class AppAnalyzer(object):
         points_json = []
         for metric in metrics:
             point_json = {}
-            point_json["measurement"] = metric.metric_name
+            # In Influx, measurements in two different databases cannot have the same name.
+            # Below, we avoid a name conflict with derivedmetrics database.
+            point_json["measurement"] = metric.metric_name + "_result"
+            point_json["time"] = end_time
             fields = {}
             fields["average"] = float(metric.average)
             fields["correlation"] = float(metric.correlation)
@@ -70,7 +73,6 @@ class AppAnalyzer(object):
                 continue
             point_json["fields"] = fields
             tags = {}
-            tags["end_time"] = end_time
             tags["resource_type"] = metric.resource_type
             tags["node_name"] = metric.node_name
             tags["pod_name"] = metric.pod_name

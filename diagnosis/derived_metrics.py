@@ -2,9 +2,13 @@ from influxdb import DataFrameClient
 import json
 import pandas as pd
 import math
+import requests
+
+from config import get_config
 
 NANOSECONDS_PER_SECOND = 1000000000
 SAMPLE_INTERVAL_SECOND = 5
+config = get_config()
 
 class ThresholdState(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
@@ -65,7 +69,9 @@ class MetricResult(object):
         self.correlation = 0.0
 
 class MetricsResults(object):
-    def __init__(self):
+    def __init__(self, is_derived=False):
+        # for now, app and input data are either both raw or both derived.
+        self.is_derived = is_derived
         self.app_metrics = None
 
         # { metric name -> { node name -> metric result } }
@@ -74,14 +80,26 @@ class MetricsResults(object):
         # { derived metric name -> { node name -> { pod name -> metric result } } }
         self.container_metrics = {}
 
-    def set_app_metrics(self, app_metrics):
+        self.influx_client = DataFrameClient(
+            config.get("INFLUXDB", "HOST"),
+            config.get("INFLUXDB", "PORT"),
+            config.get("INFLUXDB", "USERNAME"),
+            config.get("INFLUXDB", "PASSWORD"),
+            config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
+        self.influx_client.create_retention_policy('derived_metric_policy', '2w', 1, default=True)
+
+    def set_app_metrics(self, app_metrics, metric_name):
+        if self.is_derived:
+            self.influx_client.write_points(app_metrics, metric_name)
         self.app_metrics = app_metrics
 
     def add_node_metric(self, metric_name, node_name, df, resource_type):
         if metric_name not in self.node_metrics:
             self.node_metrics[metric_name] = {}
-
         self.node_metrics[metric_name][node_name] = MetricResult(df, metric_name, resource_type, node_name)
+        if self.is_derived:
+            tags = {"node_name": node_name, "resource_type": resource_type}
+            self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_container_metric(self, metric_name, node_name, pod_name, df, resource_type):
         if metric_name not in self.container_metrics:
@@ -92,6 +110,9 @@ class MetricsResults(object):
             nodes[node_name] = {}
 
         nodes[node_name][pod_name] = MetricResult(df, metric_name, resource_type, node_name, pod_name)
+        if self.is_derived:
+            tags = {"node_name": node_name, "pod_name": pod_name, "resource_type": resource_type}
+            self.influx_client.write_points(df.interpolate(), metric_name, tags)
         #self.container_metrics[metric_name] = nodes
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
@@ -116,19 +137,24 @@ class MetricsConsumer(object):
 
         self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
         self.default_group_key = "nodename"
-        # TODO(tnachen): influx connection based on config
+        influx_host = config.get("INFLUXDB", "HOST")
+        influx_port = config.get("INFLUXDB", "PORT")
+        influx_user = config.get("INFLUXDB", "USERNAME")
+        influx_password = config.get("INFLUXDB", "PASSWORD")
+        requests.post("http://%s:%s/query" % (influx_host, influx_port),
+                params="q=CREATE DATABASE %s" % config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
         self.influx_client = DataFrameClient(
-            "localhost",
-            8086,
-            "root",
-            "root",
-            "snapaverage")
+            influx_host,
+            influx_port,
+            influx_user,
+            influx_password,
+            config.get("INFLUXDB", "RAW_DB_NAME"))
         self.app_influx_client = DataFrameClient(
-            "localhost",
-            8086,
-            "root",
-            "root",
-            "snap")
+            influx_host,
+            influx_port,
+            influx_user,
+            influx_password,
+            config.get("INFLUXDB", "APP_DB_NAME"))
 
     def get_app_metrics(self, start_time, end_time):
         metric_name = self.app_metric_config["metric_name"]
@@ -143,7 +169,7 @@ class MetricsConsumer(object):
         return df[metric_name]
 
     def get_raw_metrics(self, start_time, end_time):
-        metrics_result = MetricsResults()
+        metrics_result = MetricsResults(is_derived=False)
 
         time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
 
@@ -190,7 +216,7 @@ class MetricsConsumer(object):
                 metric_source, is_container_metric, dfg, metric_config["resource"])
 
             app_metrics = self.get_app_metrics(start_time, end_time)
-            metrics_result.set_app_metrics(app_metrics)
+            metrics_result.set_app_metrics(app_metrics, self.app_metric_config["metric_name"])
             return metrics_result
 
     # Convert NaN to 0.
@@ -201,7 +227,7 @@ class MetricsConsumer(object):
         return value
 
     def get_derived_metrics(self, start_time, end_time):
-        derived_metrics_result = MetricsResults()
+        derived_metrics_result = MetricsResults(is_derived=True)
 
         node_metric_keys = "value,nodename"
         container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename"
@@ -324,13 +350,15 @@ class MetricsConsumer(object):
                 ),
                 axis=1,
             )
-            derived_metrics_result.set_app_metrics(app_metrics)
+            derived_metrics_result.set_app_metrics(app_metrics, self.app_metric_config["metric_name"])
 
         return derived_metrics_result
 
 
 if __name__ == '__main__':
-    dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config.json")
+    dm = MetricsConsumer(
+            self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
+            self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
     derived_result = dm.get_derived_metrics(1510967911000482000, 1510967911000482000+300000000000)
     print("Derived Container metrics:")
