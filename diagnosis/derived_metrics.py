@@ -2,6 +2,7 @@ from influxdb import DataFrameClient
 import json
 import pandas as pd
 import math
+import requests
 
 NANOSECONDS_PER_SECOND = 1000000000
 SAMPLE_INTERVAL_SECOND = 5
@@ -74,6 +75,13 @@ class MetricsResults(object):
         # { derived metric name -> { node name -> { pod name -> metric result } } }
         self.container_metrics = {}
 
+        self.influx_client = DataFrameClient(
+            "localhost",
+            8086,
+            "root",
+            "root",
+            "derivedmetrics")
+
     def set_app_metrics(self, app_metrics):
         self.app_metrics = app_metrics
 
@@ -82,6 +90,8 @@ class MetricsResults(object):
             self.node_metrics[metric_name] = {}
 
         self.node_metrics[metric_name][node_name] = MetricResult(df, metric_name, resource_type, node_name)
+        tags = {"node_name": node_name, "resource_type": resource_type}
+        self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_container_metric(self, metric_name, node_name, pod_name, df, resource_type):
         if metric_name not in self.container_metrics:
@@ -92,6 +102,8 @@ class MetricsResults(object):
             nodes[node_name] = {}
 
         nodes[node_name][pod_name] = MetricResult(df, metric_name, resource_type, node_name, pod_name)
+        tags = {"node_name": node_name, "pod_name": pod_name, "resource_type": resource_type}
+        self.influx_client.write_points(df.interpolate(), metric_name, tags)
         #self.container_metrics[metric_name] = nodes
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
@@ -117,6 +129,7 @@ class MetricsConsumer(object):
         self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
         self.default_group_key = "nodename"
         # TODO(tnachen): influx connection based on config
+        requests.post("http://localhost:8086/query", params="q=CREATE DATABASE derivedmetrics")
         self.influx_client = DataFrameClient(
             "localhost",
             8086,
@@ -293,8 +306,7 @@ class MetricsConsumer(object):
                 new_metric_name = metric_source + "_percent/" + metric_type
                 #normalizer_values = df[group_name].map(normalizer_node_map)
                 # TODO: check for zeros in the normalizer_values
-                normalizer_df = normalizer_metrics[normalizer]
-                normalizer_df = normalizer_df.iloc[:len(df)]
+                normalizer_df = normalizer_metrics[normalizer].iloc[:len(df)]
                 df["value"] = 100. * df["value"] / normalizer_df["value"].data
 
             df["value"] = df.apply(
