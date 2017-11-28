@@ -26,8 +26,6 @@ df_client_app = DataFrameClient(
 df_client_node = DataFrameClient(
     **client_kwargs,
     database=config.get("INFLUXDB", "RAW_DB_NAME"))
-BATCH_TIME = int(config.get("ANALYZER", "CORRELATION_BATCH_TIME"))
-WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW"))
 app_metric = "hyperpilot/goddd/api_booking_service_request_latency_microseconds"
 tags = {"method": "request_routes", "summary": "quantile_90"}
 tag_filter = " AND " .join(["%s='%s'" % (k, v)

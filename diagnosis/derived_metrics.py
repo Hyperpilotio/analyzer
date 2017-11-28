@@ -297,9 +297,8 @@ class MetricsConsumer(object):
                 print("Normalizer metrics do not have equal length as raw metrics")
                 continue
 
-            print("Deriving data from %s into %s" %
-                  (metric_source, new_metric_name))
-            # TODO: Later check for container metrics.
+            #print("Deriving data from %s into %s" %
+            #      (metric_source, new_metric_name))
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
                     print("Unable to find %s in metric %s" %
@@ -353,7 +352,7 @@ class MetricsConsumer(object):
 if __name__ == '__main__':
     dm = MetricsConsumer("./derived_slo_metric_config.json", "./derived_metrics_config.json")
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
-    derived_result = dm.get_derived_metrics(1510967731000482000-300000000000, 1510967731000482000)
+    derived_result = dm.get_derived_metrics(1510967911000482000, 1510967911000482000+300000000000)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")

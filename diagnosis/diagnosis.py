@@ -9,8 +9,6 @@ import pandas as pd
 from numpy import NaN
 
 config = get_config()
-BATCH_TIME = int(config.get("ANALYZER", "CORRELATION_BATCH_TIME"))
-WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW"))
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 tags = {"method": "request_routes", "summary": "quantile_90"}
 METRIC_TYPES = set(["RAW", "DERIVED"])
