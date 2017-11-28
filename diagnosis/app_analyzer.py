@@ -60,6 +60,7 @@ class AppAnalyzer(object):
             # In Influx, measurements in two different databases cannot have the same name.
             # Below, we avoid a name conflict with derivedmetrics database.
             point_json["measurement"] = metric.metric_name + "_result"
+            point_json["time"] = end_time
             fields = {}
             fields["average"] = float(metric.average)
             fields["correlation"] = float(metric.correlation)
@@ -72,7 +73,6 @@ class AppAnalyzer(object):
                 continue
             point_json["fields"] = fields
             tags = {}
-            tags["end_time"] = end_time
             tags["resource_type"] = metric.resource_type
             tags["node_name"] = metric.node_name
             tags["pod_name"] = metric.pod_name
