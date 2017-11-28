@@ -19,8 +19,11 @@ NANOSECONDS_PER_SECOND = 1000000000
 class AppAnalyzer(object):
     def __init__(self, config):
         self.config = config
+        print(self.config.get("ANALYZER", "DERIVED_SL_CONFIG"))
+        print(self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
         self.metrics_consumer = MetricsConsumer(
-            "./diagnosis/derived_slo_metric_config.json", "./diagnosis/derived_metrics_config.json")
+            self.config.get("ANALYZER", "DERIVED_SL_CONFIG"),
+            self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
         self.diagnosis = Diagnosis()
         self.problems_detector = ProblemsDetector(config)
         influx_host = config.get("INFLUXDB", "HOST")
