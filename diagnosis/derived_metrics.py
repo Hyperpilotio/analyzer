@@ -4,8 +4,11 @@ import pandas as pd
 import math
 import requests
 
+from config import get_config
+
 NANOSECONDS_PER_SECOND = 1000000000
 SAMPLE_INTERVAL_SECOND = 5
+config = get_config()
 
 class ThresholdState(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
@@ -76,11 +79,11 @@ class MetricsResults(object):
         self.container_metrics = {}
 
         self.influx_client = DataFrameClient(
-            "localhost",
-            8086,
-            "root",
-            "root",
-            "derivedmetrics")
+            config.get("INFLUXDB", "HOST"),
+            config.get("INFLUXDB", "PORT"),
+            config.get("INFLUXDB", "USERNAME"),
+            config.get("INFLUXDB", "PASSWORD"),
+            config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
 
     def set_app_metrics(self, app_metrics):
         self.app_metrics = app_metrics
@@ -88,7 +91,6 @@ class MetricsResults(object):
     def add_node_metric(self, metric_name, node_name, df, resource_type):
         if metric_name not in self.node_metrics:
             self.node_metrics[metric_name] = {}
-
         self.node_metrics[metric_name][node_name] = MetricResult(df, metric_name, resource_type, node_name)
         tags = {"node_name": node_name, "resource_type": resource_type}
         self.influx_client.write_points(df.interpolate(), metric_name, tags)
@@ -128,20 +130,24 @@ class MetricsConsumer(object):
 
         self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
         self.default_group_key = "nodename"
-        # TODO(tnachen): influx connection based on config
-        requests.post("http://localhost:8086/query", params="q=CREATE DATABASE derivedmetrics")
+        influx_host = config.get("INFLUXDB", "HOST")
+        influx_port = config.get("INFLUXDB", "PORT")
+        influx_user = config.get("INFLUXDB", "USERNAME")
+        influx_password = config.get("INFLUXDB", "PASSWORD")
+        requests.post("http://%s:%s/query" % (influx_host, influx_port),
+                params="q=CREATE DATABASE %s" % config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
         self.influx_client = DataFrameClient(
-            "localhost",
-            8086,
-            "root",
-            "root",
-            "snapaverage")
+            influx_host,
+            influx_port,
+            influx_user,
+            influx_password,
+            config.get("INFLUXDB", "RAW_DB_NAME"))
         self.app_influx_client = DataFrameClient(
-            "localhost",
-            8086,
-            "root",
-            "root",
-            "snap")
+            influx_host,
+            influx_port,
+            influx_user,
+            influx_password,
+            config.get("INFLUXDB", "APP_DB_NAME"))
 
     def get_app_metrics(self, start_time, end_time):
         metric_name = self.app_metric_config["metric_name"]
