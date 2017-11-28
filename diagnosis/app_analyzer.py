@@ -20,7 +20,7 @@ class AppAnalyzer(object):
     def __init__(self, config):
         self.config = config
         self.metrics_consumer = MetricsConsumer(
-            self.config.get("ANALYZER", "DERIVED_SL_CONFIG"),
+            self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
         self.diagnosis = Diagnosis()
         self.problems_detector = ProblemsDetector(config)
