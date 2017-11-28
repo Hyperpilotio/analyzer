@@ -257,10 +257,9 @@ class MetricsConsumer(object):
                 tags_filter = " AND " .join(["\"%s\"='%s'" % (k, v) for k, v in tags.items()])
 
             normalizer_metrics = None
-            # TODO: sort normalizer_values using a node/pod map from the raw_metrics
-            #normalizer_node_map = {}
             if "normalizer" in metric_config:
                 normalizer = str(metric_config["normalizer"])
+                new_metric_name = metric_source + "_percent/" + metric_type
                 if normalizer.startswith("/"):
                     normalizer = normalizer[1:]
 
@@ -300,6 +299,10 @@ class MetricsConsumer(object):
 
             #print("Deriving data from %s into %s" %
             #      (metric_source, new_metric_name))
+
+            # perform normalization and threshold checking for raw metrics in each group
+            # metric_group_name = nodename for node metrics, pod.name for container metrics
+            metric_df = raw_metrics[metric_source]
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
                     print("Unable to find %s in metric %s" %
@@ -313,22 +316,24 @@ class MetricsConsumer(object):
                     )
                     metrics_thresholds[metric_group_name] = state
 
-            df = raw_metrics[metric_source]
-            if normalizer_metrics and len(normalizer_metrics) > 0:
-                new_metric_name = metric_source + "_percent/" + metric_type
-                #normalizer_values = df[group_name].map(normalizer_node_map)
-                # TODO: check for zeros in the normalizer_values
-                normalizer_df = normalizer_metrics[normalizer].iloc[:len(df)]
-                df["value"] = 100. * df["value"] / normalizer_df["value"].data
+                if normalizer_metrics:
+                    # TODO: check for zeros in the normalizer_values
+                    metric_group_ind = (metric_df[group_name] == metric_group_name)
+                    normalizer_df = normalizer_metrics[normalizer]
+                    normalizer_group_ind = (normalizer_df[group_name] == metric_group_name)
 
-            df["value"] = df.apply(
+                    metric_df.loc[metric_group_ind,"value"] = (
+                        100. * metric_df[metric_group_ind]["value"] /
+                        normalizer_df[normalizer_group_ind]["value"].data)
+
+            metric_df["value"] = metric_df.apply(
                 lambda row: metrics_thresholds[row[group_name]].compute(row.name.value, self.convert_value(row)),
                 axis=1,
             )
 
-            dfg = df.groupby(group_name)
+            metric_dfg = metric_df.groupby(group_name)
             derived_metrics_result.add_metric(
-                new_metric_name, is_container_metric, dfg, metric_config["resource"])
+                new_metric_name, is_container_metric, metric_dfg, metric_config["resource"])
 
         print("Start processing app metrics")
         app_metrics = self.get_app_metrics(start_time, end_time)

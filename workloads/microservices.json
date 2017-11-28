@@ -2,7 +2,9 @@
     "microservices": [
         {
             "name": "mysql-service",
-            "service_id": "service-0004"
+            "service_id": "service-0004",
+	    "namespace": "myapp",
+	    "kind": "StatefulSet"
         }
     ]
 }
