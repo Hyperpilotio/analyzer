@@ -357,8 +357,8 @@ class MetricsConsumer(object):
 
 if __name__ == '__main__':
     dm = MetricsConsumer(
-            self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
-            self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
+            config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
+            config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
     derived_result = dm.get_derived_metrics(1510967911000482000, 1510967911000482000+300000000000)
     print("Derived Container metrics:")
