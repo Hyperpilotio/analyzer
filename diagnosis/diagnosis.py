@@ -20,7 +20,7 @@ class Diagnosis(object):
     def set_averages(self, metric_results):
         """ Get the average value over time window for each feature. """
         for result in metric_results:
-            result.average = result.df.mean(axis=0)
+            result.average = result.df.mean(axis=0)[0]
         return metric_results
 
     def filter_features(self, series, threshold=None):
@@ -28,12 +28,12 @@ class Diagnosis(object):
 
     def set_correlations(self, app_df, metric_results):
         for result in metric_results:
-            result.correlation = result.df.corrwith(app_df)
+            result.correlation = result.df.iloc[:,0].corr(app_df.iloc[:,0])
         return metric_results
 
     def set_confidence_score(self, metric_results):
         for result in metric_results:
-            result.confidence_score = (result.average * result.correlation)[0].item()
+            result.confidence_score = (result.average * result.correlation)
         return metric_results
 
     def process_metrics(self, metrics):
