@@ -60,7 +60,8 @@ def error_response(error_message, code):
 
 def ensure_document_found(document, **kwargs):
     if document is None:
-        response = jsonify(error="Document not found")
+        response = jsonify({'status': "bad_request",
+                            'error': "Target document not found"})
         response.status_code = 404
         return response
     else:

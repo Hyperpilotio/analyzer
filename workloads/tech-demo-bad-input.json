@@ -4,17 +4,20 @@
     {
       "name": "goddd",
       "service_id": "service-0001",
-      "status": "Running"
+      "namespace": "default",
+      "kind": "Deployment"
     },
     {
       "name": "mongo-serve",
       "service_id": "service-0002",
-      "status": "Pending"
+      "namespace": "default",
+      "kind": "Deployment"
     },
     {
       "name": "pathfinder",
       "service_id": "service-0003",
-      "status": "Running"
+      "namespace": "default",
+      "kind": "Deployment"
     }
   ],
   "slo": {
@@ -32,17 +35,17 @@
   "management_features": [
     {
       "name": "interference_management",
-      "mode": "Enabled",
+      "status": "Enabled",
       "remediation_policy": []
     },
     {
       "name": "bottleneck_management",
-      "mode": "Enabled",
+      "status": "Enabled",
       "remediation_policy": []
     },
     {
       "name": "efficiency_management",
-      "mode": "Disabled"
+      "status": "Disabled"
     }
   ]
 }
