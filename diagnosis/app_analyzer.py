@@ -19,8 +19,6 @@ NANOSECONDS_PER_SECOND = 1000000000
 class AppAnalyzer(object):
     def __init__(self, config):
         self.config = config
-        print(self.config.get("ANALYZER", "DERIVED_SL_CONFIG"))
-        print(self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
         self.metrics_consumer = MetricsConsumer(
             self.config.get("ANALYZER", "DERIVED_SL_CONFIG"),
             self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
@@ -36,7 +34,6 @@ class AppAnalyzer(object):
             config.get("INFLUXDB", "USER"),
             config.get("INFLUXDB", "PASSWORD"),
             influx_db)
-        self.influx_client.create_database(influx_db)
         self.influx_client.create_retention_policy('result_policy', '2w', 1, default=True)
 
     def loop_all_app_metrics(self, start_time, batch_window, batch_interval):
@@ -60,7 +57,9 @@ class AppAnalyzer(object):
         points_json = []
         for metric in metrics:
             point_json = {}
-            point_json["measurement"] = metric.metric_name
+            # In Influx, measurements in two different databases cannot have the same name.
+            # Below, we avoid a name conflict with derivedmetrics database.
+            point_json["measurement"] = metric.metric_name + "_result"
             fields = {}
             fields["average"] = float(metric.average)
             fields["correlation"] = float(metric.correlation)

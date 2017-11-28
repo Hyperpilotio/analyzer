@@ -86,6 +86,7 @@ class MetricsResults(object):
             config.get("INFLUXDB", "USERNAME"),
             config.get("INFLUXDB", "PASSWORD"),
             config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
+        self.influx_client.create_retention_policy('derived_metric_policy', '2w', 1, default=True)
 
     def set_app_metrics(self, app_metrics, metric_name):
         if self.is_derived:
