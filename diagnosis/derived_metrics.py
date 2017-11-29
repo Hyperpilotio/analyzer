@@ -47,11 +47,11 @@ class ThresholdState(object):
             self.values = self.values[last_good_idx:]
 
         if len(self.values) < self.total_count:
-            return 0
+            return 0.0
 
         total = float(sum(p[1] for p in self.values))
         if total == 0.0:
-            return 0
+            return 0.0
 
         severity_total = float(sum(p[2] for p in self.values if p[2] > 0))
 
