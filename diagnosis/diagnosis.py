@@ -23,8 +23,10 @@ class Diagnosis(object):
             result.average = result.df.mean(axis=0)[0]
         return metric_results
 
-    def filter_features(self, series, threshold=None):
-        return series[series > threshold]
+    def filter_features(self, metric_results, threshold=int(config.get(
+            "ANALYZER",
+            "METRIC_FILTER_THRESHOLD"))):
+        return [result for result in metric_results if result.average > threshold]
 
     def set_correlations(self, app_df, metric_results):
         for result in metric_results:
@@ -47,7 +49,8 @@ class Diagnosis(object):
                         for container_name in metrics.container_metrics[metric_name][node_name]]
 
         start_time = metrics.app_metric.index[0]
-        time_buckets = [start_time + pd.Timedelta(seconds=s) for s in range(0, int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND")), 5)]
+        time_buckets = [start_time + pd.Timedelta(seconds=s)
+                for s in range(0, int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND")), 5)]
         app_df = self.match_timestamps(time_buckets, metrics.app_metric)
         for metric_result in metric_results:
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
@@ -55,6 +58,12 @@ class Diagnosis(object):
         metric_results = self.set_averages(metric_results)
         metric_results = self.set_correlations(app_df, metric_results)
         metric_results = self.set_confidence_score(metric_results)
+        l = len(metric_results)
+        metric_results = self.filter_features(metric_results)
+        print("Filtered %d of %d features with filter threshold %s%%." %
+                (l - len(metric_results),
+                l,
+                int(config.get("ANALYZER", "METRIC_FILTER_THRESHOLD"))))
         return metric_results
 
     def match_timestamps(self, time_buckets, df):
