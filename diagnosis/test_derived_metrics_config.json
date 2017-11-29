@@ -1,0 +1,17 @@
+[
+  {
+    "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_rss",
+    "type": "over_utilization",
+    "resource": "memory",
+    "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
+    "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 70
+    }
+  }
+]
