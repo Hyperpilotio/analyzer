@@ -150,7 +150,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 100000000
+      "value": 10000000
     }
   },
   {
@@ -160,7 +160,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 100000000
+      "value": 20000000
     }
   },
   {

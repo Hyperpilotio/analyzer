@@ -254,6 +254,24 @@ class MetricsConsumer(object):
                 tags = metric_config["tags"]
                 tags_filter = " AND " .join(["\"%s\"='%s'" % (k, v) for k, v in tags.items()])
 
+            # fetch raw metric values from influxdb
+            raw_metrics = None
+            if is_container_metric:
+                raw_metrics_query = ("SELECT %s FROM \"%s\" %s" %
+                    (container_metric_keys, metric_source, time_filter))
+            else:
+                raw_metrics_query = ("SELECT %s FROM \"%s\" %s" %
+                    (node_metric_keys, metric_source, time_filter))
+            if tags_filter:
+                raw_metrics_query += (" AND %s" % (tags_filter))
+            #print("raw metrics query = %s" % (raw_metrics_query))
+            raw_metrics = self.influx_client.query(raw_metrics_query)
+            if len(raw_metrics) == 0:
+                print("Unable to find data for %s, skipping..." %
+                      (metric_source))
+                continue
+            metric_df = raw_metrics[metric_source]
+
             # fetch normalizer metric values if normalization is needed
             normalizer_metrics = None
             if "normalizer" in metric_config:
@@ -273,35 +291,16 @@ class MetricsConsumer(object):
                 #print("normalizer metrics query = %s" % (normalizer_metrics_query))
                 normalizer_metrics = self.influx_client.query(normalizer_metrics_query)
                 if len(normalizer_metrics) == 0:
-                    print("Unable to find data for %s, skipping..." %
+                    print("Unable to find data for normalizer %s, skipping..." %
                           (normalizer))
-
-            if is_container_metric:
-                raw_metrics_query = ("SELECT %s FROM \"%s\" %s" %
-                    (container_metric_keys, metric_source, time_filter))
-            else:
-                raw_metrics_query = ("SELECT %s FROM \"%s\" %s" %
-                    (node_metric_keys, metric_source, time_filter))
-            if tags_filter:
-                raw_metrics_query += (" AND %s" % (tags_filter))
-            #print("raw metrics query = %s" % (raw_metrics_query))
-            raw_metrics = self.influx_client.query(raw_metrics_query)
-            metrics_thresholds = {}
-            raw_metrics_len = len(raw_metrics)
-            if raw_metrics_len == 0:
-                print("Unable to find data for %s, skipping..." %
-                      (metric_source))
-                continue
-            elif normalizer_metrics and len(normalizer_metrics) != raw_metrics_len:
-                print("Normalizer metrics do not have equal length as raw metrics")
-                continue
+                    continue
+                normalizer_df = normalizer_metrics[normalizer]
 
             #print("Deriving data from %s into %s" %
             #      (metric_source, new_metric_name))
 
             # perform normalization if needed for raw metrics in each group
             # metric_group_name = nodename for node metrics, pod.name for container metrics
-            metric_df = raw_metrics[metric_source]
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
                     print("Unable to find %s in metric %s" %
@@ -311,12 +310,21 @@ class MetricsConsumer(object):
                 if normalizer_metrics:
                     # TODO: check for zeros in the normalizer_values
                     metric_group_ind = (metric_df[group_name] == metric_group_name)
-                    normalizer_df = normalizer_metrics[normalizer]
                     normalizer_group_ind = (normalizer_df[group_name] == metric_group_name)
+
+                    if len(normalizer_group_ind) != len(metric_group_ind):
+                        print("WARNING: Normalizer metric does not have equal length as raw metric")
+                        minlen = min(len(metric_group_ind), len(normalizer_group_ind))
+                        metric_group_ind = metric_group_ind[:minlen]
+                        normalizer_group_ind = normalizer_group_ind[:minlen]
 
                     metric_df.loc[metric_group_ind,"value"] = (
                         100. * metric_df[metric_group_ind]["value"] /
-                        normalizer_df[normalizer_group_ind]["value"].data)
+                        normalizer_df[normalizer_group_ind]["value"].data
+                    )
+
+                #print("raw metric values after normalization for group %s" % (metric_group_name))
+                #print(metric_df.loc[metric_df[group_name] == metric_group_name]["value"])
 
             # compute derived metric values using configured threshold info
             metric_threshold = ThresholdInfo(
@@ -332,6 +340,9 @@ class MetricsConsumer(object):
                     ),
                 axis=1,
             )
+
+            #print("derived metric after applying threshold")
+            #print(metric_df)
 
             metric_dfg = metric_df.groupby(group_name)
             derived_metrics_result.add_metric(
@@ -362,10 +373,9 @@ if __name__ == '__main__':
             config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
-    derived_result = dm.get_derived_metrics(1510967451000482000, 1510967451000482000+300000000000)
+    derived_result = dm.get_derived_metrics(1511980500000000000, 1511980500000000000+300000000000)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")
     print(derived_result.node_metrics)
     print("Derived SLO metric:")
-    print(derived_result.app_metric)

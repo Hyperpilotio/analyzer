@@ -37,6 +37,7 @@ class AppAnalyzer(object):
         self.influx_client.create_retention_policy('result_policy', '2w', 1, default=True)
 
     def loop_all_app_metrics(self, start_time, batch_window, batch_interval):
+        diagnosis_threshold = float(config.get("ANALYZER", "SLO_VIOLATION_THRESHOLD"))
         it = 1
         while True:
             end_time = start_time + batch_window
@@ -45,11 +46,18 @@ class AppAnalyzer(object):
             derived_metrics = self.metrics_consumer.get_derived_metrics(
                 start_time, end_time)
             if derived_metrics.app_metric is None:
-                print("No app metric found, exiting..")
+                print("No app metric found, exiting diagnosis...")
                 return
-            metrics_with_cs = self.diagnosis.process_metrics(derived_metrics)
-            self.write_results(metrics_with_cs, end_time)
-            self.problems_detector.detect(metrics_with_cs)
+
+            app_metric_mean = derived_metrics.app_metric.mean()
+            if app_metric_mean["value"] < diagnosis_threshold:
+                print("Derived app metric mean: %f below threshold; skipping diagnosis..." %
+                      (app_metric_mean["value"]))
+            else:
+                metrics_with_cs = self.diagnosis.process_metrics(derived_metrics)
+                self.write_results(metrics_with_cs, end_time)
+                self.problems_detector.detect(metrics_with_cs)
+
             start_time += batch_interval
             it += 1
 
@@ -84,4 +92,5 @@ class AppAnalyzer(object):
 
 if __name__ == "__main__":
     aa = AppAnalyzer(config)
-    aa.loop_all_app_metrics(1510967731000482000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+    aa.loop_all_app_metrics(1511980500000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+    #aa.loop_all_app_metrics(1510967761000482000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
