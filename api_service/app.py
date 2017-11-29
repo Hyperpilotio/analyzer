@@ -131,23 +131,25 @@ def delete_app(app_id):
     return util.error_response(f"Could not delete app {app_id}.", 404)
 
 
-@app.route("/apps/<string:app_id>/services", methods=["POST"])
+@app.route("/apps/<string:app_id>/microservices", methods=["POST"])
 def add_app_services(app_id):
     app_json = request.get_json()
-    services = util.get_app_services(app_id)
-    if services:
-        app_json["services"] += services
+    microservices = util.get_app_microservices(app_id)
+    if microservices is not None:
+        microservices.extend(ms for ms in app_json["microservices"]
+                             if ms not in microservices)
+        app_json["microservices"] = microservices
     return util.update_and_return_doc(app_id, app_json)
 
 
-@app.route("/apps/<string:app_id>/services", methods=["GET"])
-def get_app_services(app_id):
-    services = util.get_app_services(app_id)
-    if services:
-        response = jsonify(data=services)
+@app.route("/apps/<string:app_id>/microservices", methods=["GET"])
+def get_app_microservices(app_id):
+    microservices = util.get_app_microservices(app_id)
+    if microservices is not None:
+        response = jsonify(data=microservices)
         response.status_code = 200
         return response
-    return util.error_response("Could not find application services.", 404)
+    return util.error_response("Could not find application microservices.", 404)
 
 
 # app.route("/apps/<string:app_name>/diagnosis")
