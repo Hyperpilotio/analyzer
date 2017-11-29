@@ -60,24 +60,28 @@ class Diagnosis(object):
     def match_timestamps(self, time_buckets, df):
         """ Grab one measurement value for each five second window. """
         matched_data = []
-        timestamps = (ts for ts in df.index)
+        timestamps = df.index
+        i = 0
         for time_bucket in time_buckets:
             missing = True
             while True:
-                try:
-                    ts = next(timestamps)
-                except StopIteration:
+                if i >= len(timestamps) - 1:
                     break
+                ts = timestamps[i]
                 if ts < time_bucket + pd.Timedelta(seconds=5) and ts >= time_bucket:
                     missing = False
                     # the logic below applies when the database wrote multiple values for the same time.
                     if type(df.loc[ts]['value']) == pd.Series:
                         matched_data.append(df.loc[ts]['value'].iloc[0])
+
                     else:
                         matched_data.append(df.loc[ts]['value'])
+                    i += 1
                     break
-                if ts > time_bucket + pd.Timedelta(seconds=5):
+                elif ts > time_bucket + pd.Timedelta(seconds=5):
                     break
+                else:
+                    i += 1
             if missing:
                 matched_data.append(NaN)
         return pd.DataFrame(data=matched_data, index=time_buckets)
