@@ -98,10 +98,10 @@ def ensure_application_updated(app_id, update_doc):
     return util.response("Could not update app.", 404)
 
 
-def get_app_services(app_id):
+def get_app_microservices(app_id):
     application = configdb[app_collection].find_one({"app_id": app_id})
     if application:
-        return application.get("services")
+        return application.get("microservices", [])
 
 
 def shape_service_placement(deploy_json):
