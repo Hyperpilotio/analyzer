@@ -46,9 +46,9 @@ class Diagnosis(object):
                         for node_name in metrics.container_metrics[metric_name]
                         for container_name in metrics.container_metrics[metric_name][node_name]]
 
-        start_time = metrics.app_metrics.index[0]
+        start_time = metrics.app_metric.index[0]
         time_buckets = [start_time + pd.Timedelta(seconds=s) for s in range(0, 60, 5)]
-        app_df = self.match_timestamps(time_buckets, metrics.app_metrics)
+        app_df = self.match_timestamps(time_buckets, metrics.app_metric)
         for metric_result in metric_results:
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
 

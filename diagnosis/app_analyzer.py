@@ -44,8 +44,8 @@ class AppAnalyzer(object):
                   (it, start_time, end_time))
             derived_metrics = self.metrics_consumer.get_derived_metrics(
                 start_time, end_time)
-            if derived_metrics.app_metrics is None:
-                print("No app metrics found, exiting..")
+            if derived_metrics.app_metric is None:
+                print("No app metric found, exiting..")
                 return
             metrics_with_cs = self.diagnosis.process_metrics(derived_metrics)
             self.write_results(metrics_with_cs, end_time)

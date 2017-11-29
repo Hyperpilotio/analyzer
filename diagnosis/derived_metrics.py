@@ -10,7 +10,7 @@ NANOSECONDS_PER_SECOND = 1000000000
 SAMPLE_INTERVAL_SECOND = 5
 config = get_config()
 
-class ThresholdState(object):
+class ThresholdInfo(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
         '''
         e.g: window_seconds=30, threshold=10, sample_interval=5
@@ -72,7 +72,7 @@ class MetricsResults(object):
     def __init__(self, is_derived=False):
         # for now, app and input data are either both raw or both derived.
         self.is_derived = is_derived
-        self.app_metrics = None
+        self.app_metric = None
 
         # { metric name -> { node name -> metric result } }
         self.node_metrics = {}
@@ -88,10 +88,10 @@ class MetricsResults(object):
             config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
         self.influx_client.create_retention_policy('derived_metric_policy', '2w', 1, default=True)
 
-    def set_app_metrics(self, app_metrics, metric_name):
+    def set_app_metric(self, app_metric, metric_name):
         if self.is_derived:
-            self.influx_client.write_points(app_metrics, metric_name)
-        self.app_metrics = app_metrics
+            self.influx_client.write_points(app_metric, metric_name)
+        self.app_metric = app_metric
 
     def add_node_metric(self, metric_name, node_name, df, resource_type):
         if metric_name not in self.node_metrics:
@@ -113,7 +113,6 @@ class MetricsResults(object):
         if self.is_derived:
             tags = {"node_name": node_name, "pod_name": pod_name, "resource_type": resource_type}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
-        #self.container_metrics[metric_name] = nodes
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type):
         for df in dfg:
@@ -156,7 +155,7 @@ class MetricsConsumer(object):
             influx_password,
             config.get("INFLUXDB", "APP_DB_NAME"))
 
-    def get_app_metrics(self, start_time, end_time):
+    def get_app_metric(self, start_time, end_time):
         metric_name = self.app_metric_config["metric_name"]
         summary = self.app_metric_config["summary"]
         aggregation = self.app_metric_config["aggregation"]
@@ -215,8 +214,8 @@ class MetricsConsumer(object):
             metrics_result.add_metric(
                 metric_source, is_container_metric, dfg, metric_config["resource"])
 
-            app_metrics = self.get_app_metrics(start_time, end_time)
-            metrics_result.set_app_metrics(app_metrics, self.app_metric_config["metric_name"])
+            app_metric = self.get_app_metric(start_time, end_time)
+            metrics_result.set_app_metric(app_metric, self.app_metric_config["metric_name"])
             return metrics_result
 
     # Convert NaN to 0.
@@ -231,7 +230,7 @@ class MetricsConsumer(object):
 
         node_metric_keys = "value,nodename"
         container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename"
-        time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
+        time_filter = "WHERE time > %d AND time <= %d" % (start_time, end_time)
 
         print("Start processing infrastructure metrics")
         for metric_config in self.config:
@@ -246,7 +245,6 @@ class MetricsConsumer(object):
 
             metric_type = metric_config["type"]
             new_metric_name = metric_source + "/" + metric_type
-            threshold = metric_config["threshold"]
             if metric_source.startswith("/"):
                 metric_source = metric_source[1:]
 
@@ -256,6 +254,7 @@ class MetricsConsumer(object):
                 tags = metric_config["tags"]
                 tags_filter = " AND " .join(["\"%s\"='%s'" % (k, v) for k, v in tags.items()])
 
+            # fetch normalizer metric values if normalization is needed
             normalizer_metrics = None
             if "normalizer" in metric_config:
                 normalizer = str(metric_config["normalizer"])
@@ -300,7 +299,7 @@ class MetricsConsumer(object):
             #print("Deriving data from %s into %s" %
             #      (metric_source, new_metric_name))
 
-            # perform normalization and threshold checking for raw metrics in each group
+            # perform normalization if needed for raw metrics in each group
             # metric_group_name = nodename for node metrics, pod.name for container metrics
             metric_df = raw_metrics[metric_source]
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
@@ -308,13 +307,6 @@ class MetricsConsumer(object):
                     print("Unable to find %s in metric %s" %
                           (metric_group_name, metric_source))
                     continue
-                if metric_group_name not in metrics_thresholds:
-                    state = ThresholdState(
-                        metric_config["observation_window_sec"],
-                        threshold["value"],
-                        SAMPLE_INTERVAL_SECOND,
-                    )
-                    metrics_thresholds[metric_group_name] = state
 
                 if normalizer_metrics:
                     # TODO: check for zeros in the normalizer_values
@@ -326,8 +318,18 @@ class MetricsConsumer(object):
                         100. * metric_df[metric_group_ind]["value"] /
                         normalizer_df[normalizer_group_ind]["value"].data)
 
+            # compute derived metric values using configured threshold info
+            metric_threshold = ThresholdInfo(
+                metric_config["observation_window_sec"],
+                metric_config["threshold"]["value"],
+                SAMPLE_INTERVAL_SECOND,
+            )
+
             metric_df["value"] = metric_df.apply(
-                lambda row: metrics_thresholds[row[group_name]].compute(row.name.value, self.convert_value(row)),
+                lambda row: metric_threshold.compute(
+                    row.name.value,
+                    self.convert_value(row)
+                    ),
                 axis=1,
             )
 
@@ -335,22 +337,22 @@ class MetricsConsumer(object):
             derived_metrics_result.add_metric(
                 new_metric_name, is_container_metric, metric_dfg, metric_config["resource"])
 
-        print("Start processing app metrics")
-        app_metrics = self.get_app_metrics(start_time, end_time)
-        if app_metrics is not None:
-            app_state = ThresholdState(
+        print("Start processing app metric")
+        app_metric = self.get_app_metric(start_time, end_time)
+        if app_metric is not None:
+            slo_threshold = ThresholdInfo(
                 self.app_metric_config["observation_window_sec"],
                 self.app_metric_config["threshold"]["value"],
                 SAMPLE_INTERVAL_SECOND,
             )
-            app_metrics["value"] = app_metrics.apply(
-                lambda row: app_state.compute(
+            app_metric["value"] = app_metric.apply(
+                lambda row: slo_threshold.compute(
                     row.name.value,
                     self.convert_value(row)
                 ),
                 axis=1,
             )
-            derived_metrics_result.set_app_metrics(app_metrics, self.app_metric_config["metric_name"])
+            derived_metrics_result.set_app_metric(app_metric, self.app_metric_config["metric_name"])
 
         return derived_metrics_result
 
@@ -358,12 +360,12 @@ class MetricsConsumer(object):
 if __name__ == '__main__':
     dm = MetricsConsumer(
             config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
-            config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
+            config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
-    derived_result = dm.get_derived_metrics(1510967911000482000, 1510967911000482000+300000000000)
+    derived_result = dm.get_derived_metrics(1510967451000482000, 1510967451000482000+300000000000)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")
     print(derived_result.node_metrics)
     print("Derived SLO metric:")
-    print(derived_result.app_metrics)
+    print(derived_result.app_metric)
