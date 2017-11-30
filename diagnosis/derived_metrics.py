@@ -10,7 +10,7 @@ NANOSECONDS_PER_SECOND = 1000000000
 SAMPLE_INTERVAL_SECOND = 5
 config = get_config()
 
-class ThresholdInfo(object):
+class WindowState(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
         '''
         e.g: window_seconds=30, threshold=10, sample_interval=5
@@ -19,7 +19,7 @@ class ThresholdInfo(object):
         self.threshold = threshold
         self.sample_interval = sample_interval_seconds * NANOSECONDS_PER_SECOND
         self.values = []
-        self.total_count = (self.window / self.sample_interval) - 1
+        self.total_count = self.window / self.sample_interval
 
     def compute_severity(self, threshold, value):
         return value - threshold
@@ -271,6 +271,7 @@ class MetricsConsumer(object):
                       (metric_source))
                 continue
             metric_df = raw_metrics[metric_source]
+            metric_group_states = {}
 
             # fetch normalizer metric values if normalization is needed
             normalizer_metrics = None
@@ -303,13 +304,6 @@ class MetricsConsumer(object):
             print("Converting raw metric %s\n  into derived metric %s" %
                   (metric_source, new_metric_name))
 
-            # extract threshold info for this metric from config file
-            metric_threshold = ThresholdInfo(
-                metric_config["observation_window_sec"],
-                metric_config["threshold"]["value"],
-                SAMPLE_INTERVAL_SECOND,
-            )
-
             # process metric values for each group
             # metric_group_name = nodename for node metrics, pod.name for container metrics
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
@@ -317,6 +311,13 @@ class MetricsConsumer(object):
                     print("Unable to find %s in metric %s" %
                           (metric_group_name, metric_source))
                     continue
+                if metric_group_name not in metric_group_states:
+                    new_state = WindowState(
+                        metric_config["observation_window_sec"],
+                        metric_config["threshold"]["value"],
+                        SAMPLE_INTERVAL_SECOND,
+                    )
+                    metric_group_states[metric_group_name] = new_state
 
                 metric_group_ind = metric_df.loc[
                     metric_df[group_name] == metric_group_name].index
@@ -349,7 +350,7 @@ class MetricsConsumer(object):
                 #print("raw metric before applying threshold for group %s" % (metric_group_name))
                 #print(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
                 metric_df.loc[metric_group_ind,"value"] = metric_df.loc[metric_group_ind].apply(
-                    lambda row: metric_threshold.compute(
+                    lambda row: metric_group_states[row[group_name]].compute(
                         row.name.value,
                         self.convert_value(row)
                         ),
@@ -365,13 +366,13 @@ class MetricsConsumer(object):
         print("Start processing app metric")
         app_metric = self.get_app_metric(start_time, end_time)
         if app_metric is not None:
-            slo_threshold = ThresholdInfo(
+            slo_state = WindowState(
                 self.app_metric_config["observation_window_sec"],
                 self.app_metric_config["threshold"]["value"],
                 SAMPLE_INTERVAL_SECOND,
             )
             app_metric["value"] = app_metric.apply(
-                lambda row: slo_threshold.compute(
+                lambda row: slo_state.compute(
                     row.name.value,
                     self.convert_value(row)
                 ),
