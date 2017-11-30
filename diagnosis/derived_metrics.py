@@ -322,7 +322,7 @@ class MetricsConsumer(object):
 
                     metric_df.loc[metric_group_ind,"value"] = (
                         100. * metric_df.loc[metric_group_ind,"value"] /
-                        normalizer_df.loc[normalizer_group_ind,"value"]
+                        normalizer_df.loc[normalizer_group_ind,"value"].data
                     )
 
                 #print("raw metric values after normalization for group %s" % (metric_group_name))
