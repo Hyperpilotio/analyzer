@@ -60,8 +60,8 @@ class Diagnosis(object):
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
 
         metric_results = self.set_averages(metric_results)
-        metric_results = self.filter_features(metric_results)
         l = len(metric_results)
+        metric_results = self.filter_features(metric_results)
         print("Filtered %d of %d features with filter threshold %s%%." %
                 (l - len(metric_results),
                 l,
