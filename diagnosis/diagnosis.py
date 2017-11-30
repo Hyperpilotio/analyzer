@@ -20,7 +20,11 @@ class Diagnosis(object):
     def set_averages(self, metric_results):
         """ Get the average value over time window for each feature. """
         for result in metric_results:
-            result.average = result.df.mean(axis=0)[0]
+            observation_end = result.df.index[-1]
+            observation_start = observation_end - \
+                    pd.Timedelta(seconds=result.observation_window)
+            observation_window_df = result.df.loc[result.df.index >= observation_start]
+            result.average = observation_window_df.mean(axis=0)[0]
         return metric_results
 
     def filter_features(self, metric_results, threshold=int(config.get(
@@ -56,14 +60,15 @@ class Diagnosis(object):
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
 
         metric_results = self.set_averages(metric_results)
-        metric_results = self.set_correlations(app_df, metric_results)
-        metric_results = self.set_confidence_score(metric_results)
-        l = len(metric_results)
         metric_results = self.filter_features(metric_results)
+        l = len(metric_results)
         print("Filtered %d of %d features with filter threshold %s%%." %
                 (l - len(metric_results),
                 l,
                 int(config.get("ANALYZER", "METRIC_FILTER_THRESHOLD"))))
+        metric_results = self.set_correlations(app_df, metric_results)
+        metric_results = self.set_confidence_score(metric_results)
+
         return metric_results
 
     def match_timestamps(self, time_buckets, df):
