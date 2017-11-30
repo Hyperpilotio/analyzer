@@ -136,7 +136,8 @@
     "resource": "diskspace",
     "observation_window_sec": 60,
     "tags": {
-        "device": "/dev/sda1"
+        "device": "/dev/sda1",
+        "mount_point": "/etc/hosts"
     },
     "threshold": {
       "type": "UB",
@@ -430,7 +431,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 3000000
+      "value": 10000000
     }
   },
   {

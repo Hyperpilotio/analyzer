@@ -300,10 +300,17 @@ class MetricsConsumer(object):
                           (normalizer, metric_source))
                     continue
 
-            print("Converting raw metric %s into derived metric %s" %
+            print("Converting raw metric %s\n  into derived metric %s" %
                   (metric_source, new_metric_name))
 
-            # perform normalization if needed for raw metrics in each group
+            # extract threshold info for this metric from config file
+            metric_threshold = ThresholdInfo(
+                metric_config["observation_window_sec"],
+                metric_config["threshold"]["value"],
+                SAMPLE_INTERVAL_SECOND,
+            )
+
+            # process metric values for each group
             # metric_group_name = nodename for node metrics, pod.name for container metrics
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
@@ -314,6 +321,7 @@ class MetricsConsumer(object):
                 metric_group_ind = metric_df.loc[
                     metric_df[group_name] == metric_group_name].index
 
+                # perform normalization if needed for raw metrics in each group
                 if normalizer_metrics:
                     normalizer_group_ind = normalizer_df.loc[
                             normalizer_df[group_name] == metric_group_name].index
@@ -337,25 +345,18 @@ class MetricsConsumer(object):
                         normalizer_df.loc[normalizer_group_ind,"value"].data
                     )
 
-                #print("raw metric values after normalization for group %s" % (metric_group_name))
-                #print(metric_df.loc[metric_group_ind,"value"])
-
-            # compute derived metric values using configured threshold info
-            metric_threshold = ThresholdInfo(
-                metric_config["observation_window_sec"],
-                metric_config["threshold"]["value"],
-                SAMPLE_INTERVAL_SECOND,
-            )
-
-            metric_df["value"] = metric_df.apply(
-                lambda row: metric_threshold.compute(
-                    row.name.value,
-                    self.convert_value(row)
-                    ),
-                axis=1,
-            )
-
-            #print("derived metric after applying threshold:\n", metric_df)
+                # compute derived metric values using configured threshold info
+                #print("raw metric before applying threshold for group %s" % (metric_group_name))
+                #print(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
+                metric_df.loc[metric_group_ind,"value"] = metric_df.loc[metric_group_ind].apply(
+                    lambda row: metric_threshold.compute(
+                        row.name.value,
+                        self.convert_value(row)
+                        ),
+                    axis=1,
+                )
+                #print("derived metric after applying threshold for group %s" % (metric_group_name))
+                #print(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
 
             metric_dfg = metric_df.groupby(group_name)
             derived_metrics_result.add_metric(
@@ -386,7 +387,7 @@ if __name__ == '__main__':
             config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
-    derived_result = dm.get_derived_metrics(1511980560000000000, 1511980560000000000+300000000000)
+    derived_result = dm.get_derived_metrics(1511980560000000000, 1511980560000000000+60000000000)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")
