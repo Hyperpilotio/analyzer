@@ -309,11 +309,13 @@ class MetricsConsumer(object):
 
                 if normalizer_metrics:
                     # TODO: check for zeros in the normalizer_values
-                    metric_group_ind = metric_df.index
-                    normalizer_group_ind = normalizer_df.index
+                    metric_group_ind = metric_df.loc[
+                            metric_df[group_name] == metric_group_name].index
+                    normalizer_group_ind = normalizer_df.loc[
+                            normalizer_df[group_name] == metric_group_name].index
 
                     if len(normalizer_group_ind) != len(metric_group_ind):
-                        #print("WARNING: Normalizer metric does not have equal length as raw metric")
+                        print("WARNING: Normalizer metric does not have equal length as raw metric")
                         minlen = min(len(metric_group_ind), len(normalizer_group_ind))
                         metric_group_ind = metric_group_ind[:minlen]
                         normalizer_group_ind = normalizer_group_ind[:minlen]
