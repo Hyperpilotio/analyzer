@@ -36,11 +36,11 @@ class AppAnalyzer(object):
             influx_db)
         self.influx_client.create_retention_policy('result_policy', '2w', 1, default=True)
 
-    def loop_all_app_metrics(self, start_time, batch_window, batch_interval):
+    def loop_all_app_metrics(self, end_time, batch_window, sliding_interval):
         diagnosis_threshold = float(config.get("ANALYZER", "SLO_VIOLATION_THRESHOLD"))
         it = 1
         while True:
-            end_time = start_time + batch_window
+            start_time = end_time - batch_window
             print("\nIteration %d - Processing metrics from start: %d, to end: %d" %
                   (it, start_time, end_time))
             derived_metrics = self.metrics_consumer.get_derived_metrics(
@@ -58,7 +58,7 @@ class AppAnalyzer(object):
                 self.write_results(metrics_with_cs, end_time)
                 self.problems_detector.detect(metrics_with_cs)
 
-            start_time += batch_interval
+            end_time += sliding_interval
             it += 1
 
     def write_results(self, metrics, end_time):
@@ -92,5 +92,4 @@ class AppAnalyzer(object):
 
 if __name__ == "__main__":
     aa = AppAnalyzer(config)
-    aa.loop_all_app_metrics(1511980500000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
-    #aa.loop_all_app_metrics(1510967761000482000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+    aa.loop_all_app_metrics(1511980800000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)

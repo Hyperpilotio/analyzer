@@ -394,7 +394,7 @@ if __name__ == '__main__':
             config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
-    derived_result = dm.get_derived_metrics(1511980560000000000, 1511980560000000000+60000000000)
+    derived_result = dm.get_derived_metrics(1511980800000000000-300000000000, 1511980800000000000)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")
