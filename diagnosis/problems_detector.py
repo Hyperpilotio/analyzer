@@ -19,7 +19,7 @@ class ProblemsDetector(object):
             print("Node name: " + m.node_name)
             print("Pod name: " + str(m.pod_name))
             print("Resource type: " + str(m.resource_type))
-            print("Average (over last %d seconds): %d" % (m.observation_window, m.average))
+            print("Average (over last %d seconds): %f" % (m.observation_window, m.average))
             print("Correlation: " + str(m.correlation))
             print("Confidence score: " + str(m.confidence_score))
             i += 1
