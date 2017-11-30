@@ -1,9 +1,9 @@
 [
   {
-    "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_rss",
-    "type": "over_utilization",
-    "resource": "memory",
-    "normalizer": "intel/docker/stats/cgroups/memory_stats/statistics/hierarchical_memory_limit",
+    "metric_name": "intel/docker/stats/cgroups/cpu_stats/throttling_data/nr_throttled",
+    "type": "resource_bottleneck",
+    "resource": "cpu",
+    "normalizer": "intel/docker/stats/cgroups/cpu_stats/throttling_data/nr_periods",
     "observation_window_sec": 60,
     "tags": {
         "io.kubernetes.docker.type": "container",
@@ -11,7 +11,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 70
+      "value": 10
     }
   }
 ]

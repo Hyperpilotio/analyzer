@@ -199,7 +199,7 @@ class MetricsConsumer(object):
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
             if raw_metrics_len == 0:
-                print("Unable to find data for %s, skipping..." %
+                print("Unable to find data for %s, skipping this metric..." %
                       (metric_source))
                 continue
 
@@ -267,7 +267,7 @@ class MetricsConsumer(object):
             #print("raw metrics query = %s" % (raw_metrics_query))
             raw_metrics = self.influx_client.query(raw_metrics_query)
             if len(raw_metrics) == 0:
-                print("Unable to find data for %s, skipping..." %
+                print("Unable to find data for %s; skipping this metric..." %
                       (metric_source))
                 continue
             metric_df = raw_metrics[metric_source]
@@ -291,13 +291,17 @@ class MetricsConsumer(object):
                 #print("normalizer metrics query = %s" % (normalizer_metrics_query))
                 normalizer_metrics = self.influx_client.query(normalizer_metrics_query)
                 if len(normalizer_metrics) == 0:
-                    print("Unable to find data for normalizer %s, skipping..." %
-                          (normalizer))
+                    print("Unable to find data for normalizer %s; skipping metric %s..." %
+                          (normalizer, metric_source))
                     continue
                 normalizer_df = normalizer_metrics[normalizer]
+                if normalizer_df["value"].max() == 0:
+                    print("All zero values in normalizer %s, skipping metric %s..." %
+                          (normalizer, metric_source))
+                    continue
 
-            #print("Deriving data from %s into %s" %
-            #      (metric_source, new_metric_name))
+            print("Converting raw metric %s into derived metric %s" %
+                  (metric_source, new_metric_name))
 
             # perform normalization if needed for raw metrics in each group
             # metric_group_name = nodename for node metrics, pod.name for container metrics
@@ -307,15 +311,23 @@ class MetricsConsumer(object):
                           (metric_group_name, metric_source))
                     continue
 
+                metric_group_ind = metric_df.loc[
+                    metric_df[group_name] == metric_group_name].index
+
                 if normalizer_metrics:
-                    # TODO: check for zeros in the normalizer_values
-                    metric_group_ind = metric_df.loc[
-                            metric_df[group_name] == metric_group_name].index
                     normalizer_group_ind = normalizer_df.loc[
                             normalizer_df[group_name] == metric_group_name].index
 
+                    if normalizer_df.loc[normalizer_group_ind,"value"].max() == 0:
+                        print("Normalizer metric has all zeros for group %s; " %
+                              (metric_group_name) +
+                              "dropping this group from the raw metric...")
+                        metric_df = metric_df.drop(metric_group_ind)
+                        continue
+
                     if len(normalizer_group_ind) != len(metric_group_ind):
-                        print("WARNING: Normalizer metric does not have equal length as raw metric")
+                        print("WARNING: Normalizer does not have equal length as raw metric; " +
+                              "adjusting...")
                         minlen = min(len(metric_group_ind), len(normalizer_group_ind))
                         metric_group_ind = metric_group_ind[:minlen]
                         normalizer_group_ind = normalizer_group_ind[:minlen]
@@ -326,7 +338,7 @@ class MetricsConsumer(object):
                     )
 
                 #print("raw metric values after normalization for group %s" % (metric_group_name))
-                #print(metric_df.loc[metric_df[group_name] == metric_group_name]["value"])
+                #print(metric_df.loc[metric_group_ind,"value"])
 
             # compute derived metric values using configured threshold info
             metric_threshold = ThresholdInfo(
@@ -343,8 +355,7 @@ class MetricsConsumer(object):
                 axis=1,
             )
 
-            #print("derived metric after applying threshold")
-            #print(metric_df)
+            #print("derived metric after applying threshold:\n", metric_df)
 
             metric_dfg = metric_df.groupby(group_name)
             derived_metrics_result.add_metric(
@@ -375,9 +386,10 @@ if __name__ == '__main__':
             config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
-    derived_result = dm.get_derived_metrics(1511980500000000000, 1511980500000000000+300000000000)
+    derived_result = dm.get_derived_metrics(1511980560000000000, 1511980560000000000+300000000000)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")
     print(derived_result.node_metrics)
     print("Derived SLO metric:")
+    print(derived_result.app_metric)
