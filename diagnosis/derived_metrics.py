@@ -306,8 +306,8 @@ class MetricsConsumer(object):
                           (normalizer, metric_source))
                     continue
 
-            print("Converting raw metric %s\n  into derived metric %s" %
-                  (metric_source, new_metric_name))
+            #print("Converting raw metric %s\n  into derived metric %s" %
+            #      (metric_source, new_metric_name))
 
             # process metric values for each group
             # metric_group_name = nodename for node metrics, pod.name for container metrics
@@ -333,9 +333,9 @@ class MetricsConsumer(object):
                             normalizer_df[group_name] == metric_group_name].index
 
                     if normalizer_df.loc[normalizer_group_ind,"value"].max() == 0:
-                        print("Normalizer metric has all zeros for group %s; " %
-                              (metric_group_name) +
-                              "dropping this group from the raw metric...")
+                        #print("Normalizer metric has all zeros for group %s; " %
+                        #      (metric_group_name) +
+                        #      "dropping this group from the raw metric...")
                         metric_df = metric_df.drop(metric_group_ind)
                         continue
 
@@ -347,7 +347,7 @@ class MetricsConsumer(object):
                         normalizer_group_ind = normalizer_group_ind[:minlen]
 
                     metric_df.loc[metric_group_ind,"value"] = (
-                        100. * metric_df.loc[metric_group_ind,"value"] /
+                        metric_df.loc[metric_group_ind,"value"] /
                         normalizer_df.loc[normalizer_group_ind,"value"].data
                     )
 

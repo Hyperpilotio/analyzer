@@ -172,7 +172,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   },
   {
@@ -183,7 +183,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   },
   {
@@ -194,7 +194,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   },
   {
@@ -205,7 +205,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   },
   {
@@ -226,7 +226,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 0.5
     }
   },
   {
@@ -237,7 +237,7 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 70
+      "value": 0.7
     }
   },
   {
@@ -258,6 +258,34 @@
     "threshold": {
       "type": "UB",
       "value": 90
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/total",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 2000000000
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/cgroups/cpu_stats/throttling_data/throttled_time",
+    "type": "resource_bottleneck",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 400000000
     }
   },
   {
@@ -286,7 +314,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 10
+      "value": 0.1
     }
   },
   {
@@ -357,7 +385,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 70
+      "value": 0.7
     }
   },
   {
@@ -372,7 +400,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 70
+      "value": 0.7
     }
   },
   {
@@ -387,7 +415,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 60
+      "value": 0.6
     }
   },
   {
@@ -430,7 +458,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 10
+      "value": 0.1
     }
   },
   {
@@ -445,7 +473,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 5
+      "value": 0.05
     }
   },
   {
@@ -488,7 +516,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 90
+      "value": 0.9
     }
   },
   {
@@ -503,7 +531,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 3000
+      "value": 30
     }
   },
   {
@@ -518,7 +546,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 5000
+      "value": 50
     }
   },
   {
@@ -564,7 +592,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   },
   {
@@ -580,7 +608,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   },
   {
@@ -596,7 +624,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   },
   {
@@ -612,7 +640,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1.0
+      "value": 0.01
     }
   }
 ]

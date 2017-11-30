@@ -54,6 +54,8 @@ class AppAnalyzer(object):
                 print("Derived app metric mean: %f below threshold; skipping diagnosis..." %
                       (app_metric_mean["value"]))
             else:
+                print("Derived app metric mean: %f above threshold; starting diagnosis..." %
+                      (app_metric_mean["value"]))
                 metrics_with_cs = self.diagnosis.process_metrics(derived_metrics)
                 self.write_results(metrics_with_cs, end_time)
                 self.problems_detector.detect(metrics_with_cs)
