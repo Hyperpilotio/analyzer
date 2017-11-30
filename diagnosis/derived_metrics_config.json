@@ -391,6 +391,34 @@
     }
   },
   {
+    "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_pgfault",
+    "type": "resource_bottleneck",
+    "resource": "memory",
+    "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 15000
+    }
+  },
+  {
+    "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_pgmajfault",
+    "type": "resource_bottleneck",
+    "resource": "memory",
+    "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 1
+    }
+  },
+  {
     "metric_name": "intel/docker/stats/cgroups/memory_stats/statistics/total_dirty",
     "type": "resource_bottleneck",
     "resource": "diskio",
