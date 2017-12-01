@@ -70,6 +70,7 @@ class MetricResult(object):
         self.confidence_score = 0.0 # will be updated by diagnosis
         self.average = 0.0
         self.correlation = 0.0
+        self.corr_p_value = 0.0
 
 class MetricsResults(object):
     def __init__(self, is_derived=False):

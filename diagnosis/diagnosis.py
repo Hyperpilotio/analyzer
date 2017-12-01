@@ -7,6 +7,7 @@ from config import get_config
 from logger import get_logger
 import pandas as pd
 from numpy import NaN
+from scipy.stats.stats import pearsonr
 
 config = get_config()
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
@@ -48,7 +49,8 @@ class Diagnosis(object):
 
     def compute_correlations(self, app_df, metric_results):
         for result in metric_results:
-            result.correlation = result.df.iloc[:,0].corr(app_df.iloc[:,0])
+            result.correlation, result.corr_p_value = pearsonr(result.df.iloc[:,0].interpolate(),
+                                                               app_df.iloc[:,0].interpolate())
         return metric_results
 
     def compute_confidence_score(self, metric_results):
