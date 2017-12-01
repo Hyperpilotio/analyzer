@@ -106,7 +106,7 @@ class Diagnosis(object):
                         matched_data.append(df.loc[ts]['value'])
                     i += 1
                     break
-                elif ts > time_bucket + pd.Timedelta(seconds=5):
+                elif ts >= time_bucket + pd.Timedelta(seconds=5):
                     break
                 else:
                     i += 1
