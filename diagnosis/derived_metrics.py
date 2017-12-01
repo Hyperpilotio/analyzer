@@ -22,7 +22,7 @@ class WindowState(object):
         self.total_count = self.window / self.sample_interval
 
     def compute_severity(self, threshold, value):
-        return max(value - threshold, 0)
+        return max(value - threshold, 0.0)
 
     def compute(self, new_time, new_value):
         if len(self.values) > 0:
