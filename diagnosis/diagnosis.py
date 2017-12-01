@@ -17,7 +17,7 @@ class Diagnosis(object):
     def __init__(self):
         return
 
-    def set_averages(self, metric_results):
+    def compute_averages(self, metric_results):
         """ Get the average value over time window for each feature. """
         for result in metric_results:
             observation_end = result.df.index[-1]
@@ -34,22 +34,22 @@ class Diagnosis(object):
             return self.filter_on_correlation(metric_results)
 
     def filter_on_average(self, metric_results, threshold=int(config.get(
-                                        "ANALYZER",
-                                        "AVERAGE_FILTER_THRESHOLD"))):
+                                            "ANALYZER",
+                                            "AVERAGE_FILTER_THRESHOLD"))):
         return [result for result in metric_results if result.average > threshold]
 
-    def filter_on_correlation(self, metric_results, threshold= float(config.get(
+    def filter_on_correlation(self, metric_results, threshold=float(config.get(
                                         "ANALYZER",
                                         "CORRELATION_FILTER_THRESHOLD"))):
         return [result for result in metric_results
                                 if result.correlation > threshold]
 
-    def set_correlations(self, app_df, metric_results):
+    def compute_correlations(self, app_df, metric_results):
         for result in metric_results:
             result.correlation = result.df.iloc[:,0].corr(app_df.iloc[:,0])
         return metric_results
 
-    def set_confidence_score(self, metric_results):
+    def compute_confidence_score(self, metric_results):
         for result in metric_results:
             result.confidence_score = (result.average * result.correlation)
         return metric_results
@@ -71,17 +71,21 @@ class Diagnosis(object):
         for metric_result in metric_results:
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
 
-        metric_results = self.set_averages(metric_results)
+        metric_results = self.compute_averages(metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="average")
-        metric_results = self.set_correlations(app_df, metric_results)
-        metric_results = self.filter_features(metric_results, filter_type="correlation")
-        print("Filtered %d of %d features with average threshold %s%% and correlation threshold %s%%." %
+        print("Filtered %d of %d features with average threshold %s%%." %
                 (l - len(metric_results),
                 l,
-                config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD"),
+                config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD"))) 
+        metric_results = self.compute_correlations(app_df, metric_results)
+        l = len(metric_results)
+        metric_results = self.filter_features(metric_results, filter_type="correlation")
+        print("Filtered %d of %d features with correlation threshold %s%%." %
+                (l - len(metric_results),
+                l,
                 config.get("ANALYZER", "CORRELATION_FILTER_THRESHOLD")))
-        metric_results = self.set_confidence_score(metric_results)
+        metric_results = self.compute_confidence_score(metric_results)
 
         return metric_results
 
@@ -106,7 +110,7 @@ class Diagnosis(object):
                         matched_data.append(df.loc[ts]['value'])
                     i += 1
                     break
-                elif ts > time_bucket + pd.Timedelta(seconds=5):
+                elif ts >= time_bucket + pd.Timedelta(seconds=5):
                     break
                 else:
                     i += 1
