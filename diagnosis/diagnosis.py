@@ -33,7 +33,7 @@ class Diagnosis(object):
         else:
             return self.filter_on_correlation(metric_results)
 
-    def filter_on_average(self, metric_results, threshold=int(config.get(
+    def filter_on_average(self, metric_results, threshold=float(config.get(
                                             "ANALYZER",
                                             "AVERAGE_FILTER_THRESHOLD"))):
         return [result for result in metric_results if result.average > threshold]
@@ -81,7 +81,7 @@ class Diagnosis(object):
         metric_results = self.compute_correlations(app_df, metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="correlation")
-        print("Filtered %d of %d features with correlation threshold %s%%." %
+        print("Filtered %d of %d features with correlation threshold %s." %
                 (l - len(metric_results),
                 l,
                 config.get("ANALYZER", "CORRELATION_FILTER_THRESHOLD")))

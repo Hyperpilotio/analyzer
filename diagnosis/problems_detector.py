@@ -20,6 +20,6 @@ class ProblemsDetector(object):
             print("Pod name: " + str(m.pod_name))
             print("Resource type: " + str(m.resource_type))
             print("Average (over last %d seconds): %f" % (m.observation_window, m.average))
-            print("Correlation: " + str(m.correlation))
+            print("Correlation (over last %s seconds): %f" % (self.config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"), m.correlation))
             print("Confidence score: " + str(m.confidence_score))
             i += 1
