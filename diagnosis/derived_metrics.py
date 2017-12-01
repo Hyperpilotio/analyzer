@@ -6,9 +6,9 @@ import requests
 
 from config import get_config
 
-NANOSECONDS_PER_SECOND = 1000000000
-SAMPLE_INTERVAL_SECOND = 5
 config = get_config()
+SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
+NANOSECONDS_PER_SECOND = 1000000000
 
 class WindowState(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
@@ -165,7 +165,7 @@ class MetricsConsumer(object):
         summary = self.app_metric_config["summary"]
         aggregation = self.app_metric_config["aggregation"]
         query = "SELECT time, %s(value) as value FROM \"%s\" WHERE summary = '%s' AND time >= %d AND time <= %d GROUP BY time(%ds) fill(none)" \
-                % (aggregation, metric_name, summary, start_time, end_time, SAMPLE_INTERVAL_SECOND)
+                % (aggregation, metric_name, summary, start_time, end_time, SAMPLE_INTERVAL)
         df = self.app_influx_client.query(query)
         if metric_name not in df:
             return None
@@ -283,7 +283,7 @@ class MetricsConsumer(object):
             normalizer_metrics = None
             if "normalizer" in metric_config:
                 normalizer = str(metric_config["normalizer"])
-                new_metric_name = metric_source + "_percent/" + metric_type
+                new_metric_name = metric_source + "_normalized/" + metric_type
                 if normalizer.startswith("/"):
                     normalizer = normalizer[1:]
 
@@ -321,7 +321,7 @@ class MetricsConsumer(object):
                     new_state = WindowState(
                         metric_config["observation_window_sec"],
                         metric_config["threshold"]["value"],
-                        SAMPLE_INTERVAL_SECOND,
+                        SAMPLE_INTERVAL,
                     )
                     metric_group_states[metric_group_name] = new_state
 
@@ -376,7 +376,7 @@ class MetricsConsumer(object):
             slo_state = WindowState(
                 self.app_metric_config["observation_window_sec"],
                 self.app_metric_config["threshold"]["value"],
-                SAMPLE_INTERVAL_SECOND,
+                SAMPLE_INTERVAL,
             )
             app_metric["value"] = app_metric.apply(
                 lambda row: slo_state.compute(
