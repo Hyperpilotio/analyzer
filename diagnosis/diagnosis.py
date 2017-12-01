@@ -43,9 +43,9 @@ class Diagnosis(object):
     def filter_on_correlation(self, metric_results,
                               threshold=float(config.get(
                                               "ANALYZER",
-                                              "CORRELATION_FILTER_THRESHOLD"))):
+                                              "CORR_SIGNIF_THRESHOLD"))):
         return [result for result in metric_results
-                                if result.correlation > threshold]
+                                if result.corr_p_value < threshold]
 
     def compute_correlations(self, app_df, metric_results):
         for result in metric_results:
@@ -94,7 +94,7 @@ class Diagnosis(object):
         print("Filtered %d of %d features with correlation threshold %s." %
               (l - len(metric_results),
                l,
-               config.get("ANALYZER", "CORRELATION_FILTER_THRESHOLD")))
+               config.get("ANALYZER", "CORR_SIGNIF_THRESHOLD")))
         metric_results = self.compute_confidence_score(metric_results)
 
         return metric_results
