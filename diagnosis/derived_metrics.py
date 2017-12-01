@@ -22,7 +22,7 @@ class WindowState(object):
         self.total_count = self.window / self.sample_interval
 
     def compute_severity(self, threshold, value):
-        return value - threshold
+        return max(value - threshold, 0)
 
     def compute(self, new_time, new_value):
         if len(self.values) > 0:
@@ -53,8 +53,9 @@ class WindowState(object):
         if total == 0.0:
             return 0.0
 
-        severity_total = float(sum(p[2] for p in self.values if p[2] > 0))
+        severity_total = float(sum(p[2] for p in self.values))
 
+        # derived metric value is percentage of area-above-threshold to total-area
         return 100. * (severity_total / total)
 
 class MetricResult(object):
