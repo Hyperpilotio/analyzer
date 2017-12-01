@@ -27,10 +27,22 @@ class Diagnosis(object):
             result.average = observation_window_df.mean(axis=0)[0]
         return metric_results
 
-    def filter_features(self, metric_results, threshold=int(config.get(
-            "ANALYZER",
-            "METRIC_FILTER_THRESHOLD"))):
+    def filter_features(self, metric_results, filter_type="average"):
+        if filter_type == "average":
+            return self.filter_on_average(metric_results)
+        else:
+            return self.filter_on_correlation(metric_results)
+
+    def filter_on_average(self, metric_results, threshold=int(config.get(
+                                        "ANALYZER",
+                                        "AVERAGE_FILTER_THRESHOLD"))):
         return [result for result in metric_results if result.average > threshold]
+
+    def filter_on_correlation(self, metric_results, threshold= float(config.get(
+                                        "ANALYZER",
+                                        "CORRELATION_FILTER_THRESHOLD"))):
+        return [result for result in metric_results
+                                if result.correlation > threshold]
 
     def set_correlations(self, app_df, metric_results):
         for result in metric_results:
@@ -61,12 +73,14 @@ class Diagnosis(object):
 
         metric_results = self.set_averages(metric_results)
         l = len(metric_results)
-        metric_results = self.filter_features(metric_results)
-        print("Filtered %d of %d features with filter threshold %s%%." %
+        metric_results = self.filter_features(metric_results, filter_type="average")
+        metric_results = self.set_correlations(app_df, metric_results)
+        metric_results = self.filter_features(metric_results, filter_type="correlation")
+        print("Filtered %d of %d features with average threshold %s%% and correlation threshold %s%%." %
                 (l - len(metric_results),
                 l,
-                int(config.get("ANALYZER", "METRIC_FILTER_THRESHOLD"))))
-        metric_results = self.set_correlations(app_df, metric_results)
+                config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD"),
+                config.get("ANALYZER", "CORRELATION_FILTER_THRESHOLD")))
         metric_results = self.set_confidence_score(metric_results)
 
         return metric_results
