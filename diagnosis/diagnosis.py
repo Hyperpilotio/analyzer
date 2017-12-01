@@ -77,7 +77,7 @@ class Diagnosis(object):
         print("Filtered %d of %d features with average threshold %s%%." %
                 (l - len(metric_results),
                 l,
-                config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD"))) 
+                config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD")))
         metric_results = self.compute_correlations(app_df, metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="correlation")
