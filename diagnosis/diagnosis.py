@@ -34,14 +34,16 @@ class Diagnosis(object):
         else:
             return self.filter_on_correlation(metric_results)
 
-    def filter_on_average(self, metric_results, threshold=float(config.get(
-                                            "ANALYZER",
-                                            "AVERAGE_FILTER_THRESHOLD"))):
+    def filter_on_average(self, metric_results,
+                          threshold=float(config.get(
+                                          "ANALYZER",
+                                          "AVERAGE_FILTER_THRESHOLD"))):
         return [result for result in metric_results if result.average > threshold]
 
-    def filter_on_correlation(self, metric_results, threshold=float(config.get(
-                                        "ANALYZER",
-                                        "CORRELATION_FILTER_THRESHOLD"))):
+    def filter_on_correlation(self, metric_results,
+                              threshold=float(config.get(
+                                              "ANALYZER",
+                                              "CORRELATION_FILTER_THRESHOLD"))):
         return [result for result in metric_results
                                 if result.correlation > threshold]
 
@@ -61,14 +63,20 @@ class Diagnosis(object):
                       metric_name in metrics.node_metrics
                       for node_name in metrics.node_metrics[metric_name]] \
                         + \
-                    [metrics.container_metrics[metric_name][node_name][container_name]
+                    [metrics.container_metrics[metric_name][node_name][pod_name]
                         for metric_name in metrics.container_metrics
                         for node_name in metrics.container_metrics[metric_name]
-                        for container_name in metrics.container_metrics[metric_name][node_name]]
+                        for pod_name in metrics.container_metrics[metric_name][node_name]]
 
         start_time = metrics.app_metric.index[0]
         time_buckets = [start_time + pd.Timedelta(seconds=s)
-                for s in range(0, int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND")), 5)]
+                        for s in range(0,
+                                       int(config.get(
+                                           "ANALYZER",
+                                           "CORRELATION_WINDOW_SECOND")),
+                                       int(config.get(
+                                           "ANALYZER",
+                                           "SAMPLE_INTERVAL_SECOND")))]
         app_df = self.match_timestamps(time_buckets, metrics.app_metric)
         for metric_result in metric_results:
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
@@ -77,22 +85,24 @@ class Diagnosis(object):
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="average")
         print("Filtered %d of %d features with average threshold %s%%." %
-                (l - len(metric_results),
-                l,
-                config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD")))
+              (l - len(metric_results),
+               l,
+               config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD")))
         metric_results = self.compute_correlations(app_df, metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="correlation")
         print("Filtered %d of %d features with correlation threshold %s." %
-                (l - len(metric_results),
-                l,
-                config.get("ANALYZER", "CORRELATION_FILTER_THRESHOLD")))
+              (l - len(metric_results),
+               l,
+               config.get("ANALYZER", "CORRELATION_FILTER_THRESHOLD")))
         metric_results = self.compute_confidence_score(metric_results)
 
         return metric_results
 
     def match_timestamps(self, time_buckets, df):
-        """ Grab one measurement value for each five second window. """
+        """ Grab one measurement value for each sampling interval. """
+        sample_interval = int(config.get("ANALYZER",
+                                         "SAMPLE_INTERVAL_SECOND"))
         matched_data = []
         timestamps = df.index
         i = 0
@@ -102,7 +112,7 @@ class Diagnosis(object):
                 if i >= len(timestamps) - 1:
                     break
                 ts = timestamps[i]
-                if ts < time_bucket + pd.Timedelta(seconds=5) and ts >= time_bucket:
+                if ts < time_bucket + pd.Timedelta(seconds=sample_interval) and ts >= time_bucket:
                     missing = False
                     # the logic below applies when the database wrote multiple values for the same time.
                     if type(df.loc[ts]['value']) == pd.Series:
@@ -112,7 +122,7 @@ class Diagnosis(object):
                         matched_data.append(df.loc[ts]['value'])
                     i += 1
                     break
-                elif ts >= time_bucket + pd.Timedelta(seconds=5):
+                elif ts >= time_bucket + pd.Timedelta(seconds=sample_interval):
                     break
                 else:
                     i += 1

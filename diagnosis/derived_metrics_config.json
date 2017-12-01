@@ -41,7 +41,7 @@
   },
   {
     "metric_name": "intel/procfs/disk/octets_read",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -54,7 +54,7 @@
   },
   {
     "metric_name": "intel/procfs/disk/octets_write",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -67,7 +67,7 @@
   },
   {
     "metric_name": "intel/procfs/disk/ops_read",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -80,7 +80,7 @@
   },
   {
     "metric_name": "intel/procfs/disk/ops_write",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -93,7 +93,7 @@
   },
   {
     "metric_name": "intel/procfs/disk/time_read",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -106,7 +106,7 @@
   },
   {
     "metric_name": "intel/procfs/disk/time_write",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -119,7 +119,7 @@
   },
   {
     "metric_name": "intel/procfs/disk/pending_ops",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -146,7 +146,7 @@
   },
   {
     "metric_name": "intel/psutil/net/all/bytes_recv",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "network",
     "observation_window_sec": 60,
     "threshold": {
@@ -156,7 +156,7 @@
   },
   {
     "metric_name": "intel/psutil/net/all/bytes_sent",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "network",
     "observation_window_sec": 60,
     "threshold": {
@@ -242,7 +242,7 @@
   },
   {
     "metric_name": "intel/use/storage/sda/saturation",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "threshold": {
@@ -478,7 +478,7 @@
   },
   {
     "metric_name": "intel/docker/stats/cgroups/blkio_stats/io_service_bytes_recursive/value",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -492,7 +492,7 @@
   },
   {
     "metric_name": "intel/docker/stats/cgroups/blkio_stats/io_serviced_recursive/value",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "diskio",
     "observation_window_sec": 60,
     "tags": {
@@ -506,7 +506,7 @@
   },
   {
     "metric_name": "intel/docker/stats/filesystem/usage",
-    "type": "resource_bottleneck",
+    "type": "over_utilization",
     "resource": "diskspace",
     "normalizer": "intel/docker/stats/filesystem/capacity",
     "observation_window_sec": 60,
@@ -551,7 +551,7 @@
   },
   {
     "metric_name": "intel/docker/stats/network/rx_bytes",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "network",
     "observation_window_sec": 60,
     "tags": {
@@ -566,7 +566,7 @@
   },
   {
     "metric_name": "intel/docker/stats/network/tx_bytes",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "resource": "network",
     "observation_window_sec": 60,
     "tags": {
