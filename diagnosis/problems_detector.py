@@ -10,6 +10,8 @@ class ProblemsDetector(object):
         return value
 
     def detect(self, metric_results):
+        CORRELATION_WINDOW = self.config.get("ANALYZER", "CORRELATION_WINDOW_SECOND")
+
         # Find top k metrics from metric results
         sorted_metrics = sorted(metric_results, key=lambda x: self.convertNaN(x.confidence_score), reverse=True)[:10]
         i = 1
@@ -19,8 +21,8 @@ class ProblemsDetector(object):
             print("Node name: " + m.node_name)
             print("Pod name: " + str(m.pod_name))
             print("Resource type: " + str(m.resource_type))
-            print("Average (over last %d seconds): %f" % (m.observation_window, m.average))
+            print("Average severity (over last %d seconds): %f" % (m.observation_window, m.average))
             print("Correlation (over last %s seconds): %f, p-value: %.2g" %
-                    (self.config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"), m.correlation, m.corr_p_value))
+                  (CORRELATION_WINDOW, m.correlation, m.corr_p_value))
             print("Confidence score: " + str(m.confidence_score))
             i += 1

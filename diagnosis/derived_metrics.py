@@ -9,6 +9,8 @@ from config import get_config
 config = get_config()
 SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
 NANOSECONDS_PER_SECOND = 1000000000
+END_TIME = 1511980800000000000
+WINDOW = 300
 
 class WindowState(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
@@ -165,8 +167,10 @@ class MetricsConsumer(object):
         metric_name = self.app_metric_config["metric_name"]
         summary = self.app_metric_config["summary"]
         aggregation = self.app_metric_config["aggregation"]
-        query = "SELECT time, %s(value) as value FROM \"%s\" WHERE summary = '%s' AND time >= %d AND time <= %d GROUP BY time(%ds) fill(none)" \
-                % (aggregation, metric_name, summary, start_time, end_time, SAMPLE_INTERVAL)
+        query = ("SELECT time, %s(value) as value FROM \"%s\" \
+                  WHERE summary = '%s' AND time >= %d AND time <= %d \
+                  GROUP BY time(%ds) fill(none)" %
+                 (aggregation, metric_name, summary, start_time, end_time, SAMPLE_INTERVAL))
         df = self.app_influx_client.query(query)
         if metric_name not in df:
             return None
@@ -396,7 +400,7 @@ if __name__ == '__main__':
             config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
-    derived_result = dm.get_derived_metrics(1511980800000000000-300000000000, 1511980800000000000)
+    derived_result = dm.get_derived_metrics(END_TIME - WINDOW * NANOSECONDS_PER_SECOND, END_TIME)
     print("Derived Container metrics:")
     print(derived_result.container_metrics)
     print("Derived node metrics:")

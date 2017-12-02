@@ -10,9 +10,11 @@ from numpy import NaN
 from scipy.stats.stats import pearsonr
 
 config = get_config()
+WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
+DIAGNOSIS_INTERVAL = int(config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
+SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
+
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
-tags = {"method": "request_routes", "summary": "quantile_90"}
-METRIC_TYPES = set(["RAW", "DERIVED"])
 
 class Diagnosis(object):
     def __init__(self):
@@ -70,13 +72,8 @@ class Diagnosis(object):
 
         start_time = metrics.app_metric.index[0]
         time_buckets = [start_time + pd.Timedelta(seconds=s)
-                        for s in range(0,
-                                       int(config.get(
-                                           "ANALYZER",
-                                           "CORRELATION_WINDOW_SECOND")),
-                                       int(config.get(
-                                           "ANALYZER",
-                                           "SAMPLE_INTERVAL_SECOND")))]
+                        for s in range(0, WINDOW, SAMPLE_INTERVAL)]
+
         app_df = self.match_timestamps(time_buckets, metrics.app_metric)
         for metric_result in metric_results:
             metric_result.df = self.match_timestamps(time_buckets, metric_result.df)
@@ -84,14 +81,14 @@ class Diagnosis(object):
         metric_results = self.compute_averages(metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="average")
-        print("Filtered %d of %d features with average threshold %s%%." %
+        print("Filtered %d of %d features with average threshold %s%%" %
               (l - len(metric_results),
                l,
                config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD")))
         metric_results = self.compute_correlations(app_df, metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="correlation")
-        print("Filtered %d of %d features with correlation threshold %s." %
+        print("Filtered %d of %d features with correlation significance threshold %s" %
               (l - len(metric_results),
                l,
                config.get("ANALYZER", "CORR_SIGNIF_THRESHOLD")))
@@ -101,8 +98,6 @@ class Diagnosis(object):
 
     def match_timestamps(self, time_buckets, df):
         """ Grab one measurement value for each sampling interval. """
-        sample_interval = int(config.get("ANALYZER",
-                                         "SAMPLE_INTERVAL_SECOND"))
         matched_data = []
         timestamps = df.index
         i = 0
@@ -112,7 +107,7 @@ class Diagnosis(object):
                 if i >= len(timestamps) - 1:
                     break
                 ts = timestamps[i]
-                if ts < time_bucket + pd.Timedelta(seconds=sample_interval) and ts >= time_bucket:
+                if ts < time_bucket + pd.Timedelta(seconds=SAMPLE_INTERVAL) and ts >= time_bucket:
                     missing = False
                     # the logic below applies when the database wrote multiple values for the same time.
                     if type(df.loc[ts]['value']) == pd.Series:
@@ -122,7 +117,7 @@ class Diagnosis(object):
                         matched_data.append(df.loc[ts]['value'])
                     i += 1
                     break
-                elif ts >= time_bucket + pd.Timedelta(seconds=sample_interval):
+                elif ts >= time_bucket + pd.Timedelta(seconds=SAMPLE_INTERVAL):
                     break
                 else:
                     i += 1

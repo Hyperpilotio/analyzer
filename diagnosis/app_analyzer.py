@@ -13,6 +13,7 @@ from config import get_config
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
 INTERVAL = int(config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
+DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "SLO_VIOLATION_THRESHOLD"))
 NANOSECONDS_PER_SECOND = 1000000000
 
 
@@ -37,7 +38,6 @@ class AppAnalyzer(object):
         self.influx_client.create_retention_policy('result_policy', '2w', 1, default=True)
 
     def loop_all_app_metrics(self, end_time, batch_window, sliding_interval):
-        diagnosis_threshold = float(config.get("ANALYZER", "SLO_VIOLATION_THRESHOLD"))
         it = 1
         while True:
             start_time = end_time - batch_window
@@ -50,15 +50,15 @@ class AppAnalyzer(object):
                 return
 
             app_metric_mean = derived_metrics.app_metric.mean()
-            if app_metric_mean["value"] < diagnosis_threshold:
+            if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
                 print("Derived app metric mean: %f below threshold; skipping diagnosis..." %
                       (app_metric_mean["value"]))
             else:
                 print("Derived app metric mean: %f above threshold; starting diagnosis..." %
                       (app_metric_mean["value"]))
-                metrics_with_cs = self.diagnosis.process_metrics(derived_metrics)
-                self.write_results(metrics_with_cs, end_time)
-                self.problems_detector.detect(metrics_with_cs)
+                selected_metrics = self.diagnosis.process_metrics(derived_metrics)
+                self.write_results(selected_metrics, end_time)
+                self.problems_detector.detect(selected_metrics)
 
             end_time += sliding_interval
             it += 1
