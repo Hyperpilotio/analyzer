@@ -1,0 +1,19 @@
+{
+    "source": {
+        "APM_type": "prometheus",
+        "service_name": "goddd",
+        "port": 9090
+    },
+    "metric": {
+	"name": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
+        "type": "latency",
+        "tags": {
+            "summary": "quantile_90"
+        }
+    },
+    "threshold": {
+	"type": "UB",
+        "value": 0.3,
+        "unit": "seconds"
+    }
+}

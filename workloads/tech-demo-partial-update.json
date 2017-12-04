@@ -2,16 +2,20 @@
   "name": "tech-demo",
   "slo": {
     "source": {
-        "APM_type": "prometheus",
-        "service_name": "goddd",
-        "port": 9090
+      "APM_type": "prometheus",
+      "service_name": "goddd",
+      "port": 9090
     },
-    "metric": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
-    "type": "latency",
-    "tags": {
-        "summary": "quantile_95"
+    "metric": {
+      "name": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
+      "type": "latency",
+      "tags": {
+        "summary": "quantile_99"
+      }
     },
-    "value": 500,
-    "unit": "milliseconds"
+    "threshold": {
+      "type": "UB",
+      "value": 0.5,
+      "unit": "seconds"
   }
 }
