@@ -9,7 +9,8 @@ class ProblemsDetector(object):
             return 0.0
         return value
 
-    def detect(self, metric_results):
+    def detect(self, metric_results, deployment_id):
+        print("Feature rankings for deployment: " + deployment_id)
         CORRELATION_WINDOW = self.config.get("ANALYZER", "CORRELATION_WINDOW_SECOND")
 
         # Find top k metrics from metric results
