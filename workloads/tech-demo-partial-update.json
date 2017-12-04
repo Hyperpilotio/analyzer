@@ -8,7 +8,9 @@
     },
     "metric": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
     "type": "latency",
-    "summary": "quantile_90",
+    "tags": {
+        "summary": "quantile_95"
+    },
     "value": 500,
     "unit": "milliseconds"
   }
