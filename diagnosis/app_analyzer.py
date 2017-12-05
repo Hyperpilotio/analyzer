@@ -2,6 +2,7 @@ import time
 import requests
 from collections import namedtuple
 from math import isnan
+from pandas import to_datetime
 
 from influxdb import InfluxDBClient
 
@@ -13,7 +14,10 @@ from config import get_config
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
 INTERVAL = int(config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
-DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "SLO_VIOLATION_THRESHOLD"))
+if config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE") == "AREA":
+    DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "AREA_THRESHOLD"))
+else:
+    DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
 NANOSECONDS_PER_SECOND = 1000000000
 
 
@@ -49,13 +53,19 @@ class AppAnalyzer(object):
                 print("No app metric found, exiting diagnosis...")
                 return
 
-            app_metric_mean = derived_metrics.app_metric.mean()
-            if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
-                print("Derived app metric mean: %f below threshold; skipping diagnosis..." %
-                      (app_metric_mean["value"]))
+            app_df = derived_metrics.app_metric
+            if config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE") == "AREA":
+                app_metric_mean = app_df.mean()
             else:
-                print("Derived app metric mean: %f above threshold; starting diagnosis..." %
-                      (app_metric_mean["value"]))
+                window = int(config.get("ANALYZER", "FREQUENCY_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
+                window_start = to_datetime(end_time - window, unit="ns")
+                app_metric_mean = app_df.loc[app_df.index >= window_start].mean()
+            if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
+                print("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
+                      (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
+            else:
+                print("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
+                      (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
                 selected_metrics = self.diagnosis.process_metrics(derived_metrics)
                 self.write_results(selected_metrics, end_time)
                 self.problems_detector.detect(selected_metrics)
