@@ -18,6 +18,10 @@ logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class Diagnosis(object):
     def __init__(self):
+        if config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE") == "AREA":
+            self.average_threshold = float(config.get("ANALYZER", "AREA_THRESHOLD"))
+        else:
+            self.average_threshold = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
         return
 
     def compute_averages(self, metric_results):
@@ -36,11 +40,8 @@ class Diagnosis(object):
         else:
             return self.filter_on_correlation(metric_results)
 
-    def filter_on_average(self, metric_results,
-                          threshold=float(config.get(
-                                          "ANALYZER",
-                                          "AVERAGE_FILTER_THRESHOLD"))):
-        return [result for result in metric_results if result.average > threshold]
+    def filter_on_average(self, metric_results):
+        return [result for result in metric_results if result.average > self.average_threshold]
 
     def filter_on_correlation(self, metric_results,
                               threshold=float(config.get(
@@ -84,7 +85,7 @@ class Diagnosis(object):
         print("Filtered %d of %d features with average threshold %s%%" %
               (l - len(metric_results),
                l,
-               config.get("ANALYZER", "AVERAGE_FILTER_THRESHOLD")))
+               self.average_threshold))
         metric_results = self.compute_correlations(app_df, metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="correlation")

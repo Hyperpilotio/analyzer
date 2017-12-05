@@ -26,7 +26,8 @@ class WindowState(object):
     def compute_severity(self, threshold, value):
         return max(value - threshold, 0.0)
 
-    def compute(self, new_time, new_value):
+    def compute(self, new_time, new_value,
+                compute_type=config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE")):
         if len(self.values) > 0:
             while new_time - self.values[len(self.values) - 1][0] >= 2 * self.sample_interval:
                 last_value = self.values[len(self.values) - 1]
@@ -58,7 +59,11 @@ class WindowState(object):
         severity_total = float(sum(p[2] for p in self.values))
 
         # derived metric value is percentage of area-above-threshold to total-area
-        return 100. * (severity_total / total)
+        if compute_type == "AREA":
+            return 100. * (severity_total / total)
+        else:
+            num_severe = len([p for p in self.values if p[2] > 0.0])
+            return 100. * (num_severe/len(self.values))
 
 class MetricResult(object):
     def __init__(self, df,
