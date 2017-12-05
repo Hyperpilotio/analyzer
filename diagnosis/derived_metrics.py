@@ -84,6 +84,7 @@ class MetricsResults(object):
         # for now, app and input data are either both raw or both derived.
         self.is_derived = is_derived
         self.app_metric = None
+        self.deployment_id = ''
 
         # { metric name -> { node name -> metric result } }
         self.node_metrics = {}
@@ -110,7 +111,7 @@ class MetricsResults(object):
         self.node_metrics[metric_name][node_name] = MetricResult(df,
                 metric_name, resource_type, node_name, observation_window)
         if self.is_derived:
-            tags = {"node_name": node_name, "resource_type": resource_type}
+            tags = {"node_name": node_name, "resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_container_metric(self, metric_name, node_name, pod_name, df, resource_type, observation_window):
@@ -124,7 +125,8 @@ class MetricsResults(object):
         nodes[node_name][pod_name] = MetricResult(df,
                 metric_name, resource_type, node_name, observation_window, pod_name)
         if self.is_derived:
-            tags = {"node_name": node_name, "pod_name": pod_name, "resource_type": resource_type}
+            tags = {"node_name": node_name, "pod_name": pod_name,
+                    "resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type, observation_window):
@@ -167,6 +169,7 @@ class MetricsConsumer(object):
             influx_user,
             influx_password,
             config.get("INFLUXDB", "APP_DB_NAME"))
+        self.deployment_id = ''
 
     def get_app_metric(self, start_time, end_time):
         metric_name = self.app_metric_config["metric_name"]
@@ -244,8 +247,8 @@ class MetricsConsumer(object):
     def get_derived_metrics(self, start_time, end_time):
         derived_metrics_result = MetricsResults(is_derived=True)
 
-        node_metric_keys = "value,nodename"
-        container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename"
+        node_metric_keys = "value,nodename,deploymentId"
+        container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename,deploymentId"
         time_filter = "WHERE time > %d AND time <= %d" % (start_time, end_time)
 
         print("Start processing infrastructure metrics")
@@ -288,7 +291,7 @@ class MetricsConsumer(object):
                 continue
             metric_df = raw_metrics[metric_source]
             metric_group_states = {}
-
+            self.deployment_id = metric_df.loc[:,"deploymentId"][0]
             # fetch normalizer metric values if normalization is needed
             normalizer_metrics = None
             if "normalizer" in metric_config:

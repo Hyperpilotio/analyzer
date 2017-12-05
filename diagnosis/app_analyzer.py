@@ -64,13 +64,13 @@ class AppAnalyzer(object):
                 print("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
                 selected_metrics = self.diagnosis.process_metrics(derived_metrics)
-                self.write_results(selected_metrics, end_time)
-                self.problems_detector.detect(selected_metrics)
+                self.write_results(selected_metrics, end_time, self.metrics_consumer.deployment_id)
+                self.problems_detector.detect(selected_metrics, self.metrics_consumer.deployment_id)
 
             end_time += sliding_interval
             it += 1
 
-    def write_results(self, metrics, end_time):
+    def write_results(self, metrics, end_time, deployment_id):
         points_json = []
         for metric in metrics:
             point_json = {}
@@ -93,6 +93,8 @@ class AppAnalyzer(object):
             tags["resource_type"] = metric.resource_type
             tags["node_name"] = metric.node_name
             tags["pod_name"] = metric.pod_name
+            tags["deployment_id"] = deployment_id
+            tags
             point_json["tags"] = tags
             points_json.append(point_json)
 
