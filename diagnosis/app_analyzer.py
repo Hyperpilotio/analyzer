@@ -54,12 +54,9 @@ class AppAnalyzer(object):
                 return
 
             app_df = derived_metrics.app_metric
-            if config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE") == "AREA":
-                app_metric_mean = app_df.mean()
-            else:
-                window = int(config.get("ANALYZER", "FREQUENCY_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
-                window_start = to_datetime(end_time - window, unit="ns")
-                app_metric_mean = app_df.loc[app_df.index >= window_start].mean()
+            window = int(config.get("ANALYZER", "AVERAGE_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
+            window_start = to_datetime(end_time - window, unit="ns")
+            app_metric_mean = app_df.loc[app_df.index >= window_start].mean()
             if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
                 print("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
