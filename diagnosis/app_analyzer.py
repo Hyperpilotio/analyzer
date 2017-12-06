@@ -14,7 +14,8 @@ from config import get_config
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
 INTERVAL = int(config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
-if config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE") == "AREA":
+severity_compute_type = config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE")
+if severity_compute_type == "AREA":
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "AREA_THRESHOLD"))
 else:
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
@@ -65,10 +66,14 @@ class AppAnalyzer(object):
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
                 selected_metrics = self.diagnosis.process_metrics(derived_metrics)
                 self.write_results(selected_metrics, end_time, self.metrics_consumer.deployment_id)
-                self.problems_detector.detect(selected_metrics, self.metrics_consumer.deployment_id)
+                self.problems_detector.detect(selected_metrics,
+                                              self.metrics_consumer.deployment_id,
+                                              severity_compute_type,
+                                              DIAGNOSIS_THRESHOLD, end_time)
 
             end_time += sliding_interval
             it += 1
+            break
 
     def write_results(self, metrics, end_time, deployment_id):
         points_json = []
