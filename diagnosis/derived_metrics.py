@@ -70,7 +70,7 @@ class WindowState(object):
 class MetricResult(object):
     def __init__(self, df, metric_name, resource_type, node_name,
                  observation_window, threshold, threshold_type,
-                 pod_name=None):
+                 threshold_unit, pod_name=None):
         self.df = df
         self.metric_name = metric_name
         self.node_name = node_name
@@ -83,6 +83,7 @@ class MetricResult(object):
         self.corr_p_value = 0.0
         self.threshold = threshold
         self.threshold_type = threshold_type
+        self.threshold_unit = theshold_unit
 
 class MetricsResults(object):
     def __init__(self, is_derived=False):
@@ -111,20 +112,21 @@ class MetricsResults(object):
         self.app_metric = app_metric
 
     def add_node_metric(self, metric_name, node_name, df, resource_type,
-                        observation_window, threshold, threshold_type):
+                        observation_window, threshold, threshold_type
+                        theshold_unit):
         if metric_name not in self.node_metrics:
             self.node_metrics[metric_name] = {}
         self.node_metrics[metric_name][node_name] = MetricResult(df,
                                 metric_name, resource_type, node_name,
                                 observation_window, threshold,
-                                threshold_type)
+                                threshold_type, theshold_unit)
         if self.is_derived:
             tags = {"node_name": node_name, "resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_container_metric(self, metric_name, node_name, pod_name, df,
                              resource_type, observation_window, threshold,
-                             threshold_type):
+                             threshold_type, theshold_unit):
         if metric_name not in self.container_metrics:
             self.container_metrics[metric_name] = {}
 
@@ -134,14 +136,14 @@ class MetricsResults(object):
 
         nodes[node_name][pod_name] = MetricResult(df,
                 metric_name, resource_type, node_name, observation_window,
-                threshold, threshold_type, pod_name)
+                threshold, threshold_type, threshold_unit, pod_name)
         if self.is_derived:
             tags = {"node_name": node_name, "pod_name": pod_name,
                     "resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type,
-                  observation_window, threshold, threshold_type):
+                  observation_window, threshold, threshold_type, theshold_unit):
         for df in dfg:
             if is_container_metric:
                 node_col = df[1]["nodename"]
@@ -149,10 +151,12 @@ class MetricsResults(object):
                     nodename = node_col[0]
                     self.add_container_metric(
                         metric_name, nodename, df[0], df[1], resource_type,
-                        observation_window, threshold, threshold_type)
+                        observation_window, threshold, threshold_type,
+                        theshold_unit)
             else:
                 self.add_node_metric(metric_name, df[0], df[1], resource_type,
-                                     observation_window, threshold, threshold_type)
+                                     observation_window, threshold, threshold_type,
+                                     theshold_unit)
 
 
 class MetricsConsumer(object):
@@ -255,8 +259,8 @@ class MetricsConsumer(object):
             metrics_result.add_metric(
                 metric_source, is_container_metric, dfg,
                 metric_config["resource"], metric_config["analysis"]["observation_window_sec"],
-                metric_config["threshold"]["value"], metric_config["threshold"]["type"])
-
+                metric_config["threshold"]["value"], metric_config["threshold"]["type"],
+                metric_config["theshold"]["unit"])
             app_metric = self.get_app_metric(start_time, end_time)
             metrics_result.set_app_metric(app_metric, self.app_metric_config["metric"]["name"])
             return metrics_result
@@ -400,7 +404,8 @@ class MetricsConsumer(object):
             derived_metrics_result.add_metric(
                 new_metric_name, is_container_metric, metric_dfg,
                 metric_config["resource"], metric_config["observation_window_sec"],
-                metric_config["threshold"]["value"], metric_config["threshold"]["type"])
+                metric_config["threshold"]["value"], metric_config["threshold"]["type"],
+                metric_config["theshold"]["unit"])
 
         print("Start processing app metric")
         app_metric = self.get_app_metric(start_time, end_time)

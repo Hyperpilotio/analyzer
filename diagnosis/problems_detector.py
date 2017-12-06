@@ -50,8 +50,10 @@ class ProblemsDetector(object):
             doc["metric"] = {"name": m.metric_name,
                              "type": m.resource_type}
             doc["threshold"] = {"type": m.threshold_type,
-                                "value": m.threshold}
-            doc["config"] = {"detection_window_sec": m.observation_window,
+                                "value": m.threshold,
+                                "unit": m.threshold_unit}
+            doc["config"] = {"detection_window_sec": self.config.get(
+                                "ANALYZER", "AVERAGE_WINDOW_SECOND"),
                              "severity_type": severity_type,
                              "min_percentage": threshold}
             doc["analysis_result"] = {"severity": m.average,
