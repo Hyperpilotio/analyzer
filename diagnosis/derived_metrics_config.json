@@ -6,7 +6,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 80
+      "value": 80,
+      "unit": "percent"
     }
   },
   {
@@ -16,7 +17,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 10
+      "value": 10,
+      "unit": "percent"
     }
   },
   {
@@ -26,7 +28,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 5
+      "value": 5,
+      "unit": "percent"
     }
   },
   {
@@ -36,7 +39,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 5
+      "value": 5,
+      "unit": "percent"
     }
   },
   {
@@ -49,7 +53,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 12000000
+      "value": 12000000,
+      "unit": "Bps"
     }
   },
   {
@@ -62,7 +67,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 12000000
+      "value": 12000000,
+      "unit": "Bps"
     }
   },
   {
@@ -75,7 +81,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 75
+      "value": 75,
+      "unit": "IOps"
     }
   },
   {
@@ -88,7 +95,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 150
+      "value": 150,
+      "unit": "IOps"
     }
   },
   {
@@ -101,7 +109,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 50,
+      "unit": "ms"
     }
   },
   {
@@ -114,7 +123,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 50,
+      "unit": "ms"
     }
   },
   {
@@ -127,7 +137,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 50,
+      "unit": "OPs"
     }
   },
   {
@@ -141,7 +152,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 90
+      "value": 90,
+      "unit": "percent"
     }
   },
   {
@@ -151,7 +163,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 10000000
+      "value": 10000000,
+      "unit": "Bps"
     }
   },
   {
@@ -161,7 +174,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 20000000
+      "value": 20000000,
+      "unit": "Bps"
     }
   },
   {
@@ -172,7 +186,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   },
   {
@@ -183,7 +198,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   },
   {
@@ -194,7 +210,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   },
   {
@@ -205,7 +222,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   },
   {
@@ -215,7 +233,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 80
+      "value": 80,
+      "unit": "percent"
     }
   },
   {
@@ -226,7 +245,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 0.5
+      "value": 0.5,
+      "unit": ""
     }
   },
   {
@@ -237,7 +257,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 0.7
+      "value": 0.7,
+      "unit": ""
     }
   },
   {
@@ -247,7 +268,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 32
+      "value": 32,
+      "unit": "OPs"
     }
   },
   {
@@ -257,7 +279,8 @@
     "observation_window_sec": 60,
     "threshold": {
       "type": "UB",
-      "value": 90
+      "value": 90,
+      "unit": "percent"
     }
   },
   {
@@ -271,7 +294,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 2000000000
+      "value": 2000000000,
+      "unit": "ns"
     }
   },
   {
@@ -285,7 +309,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 400000000
+      "value": 400000000,
+      "unit": "ns"
     }
   },
   {
@@ -299,7 +324,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 160
+      "value": 160,
+      "unit": "percent"
     }
   },
   {
@@ -314,7 +340,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.1
+      "value": 0.1,
+      "unit": ""
     }
   },
   {
@@ -328,7 +355,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1
+      "value": 1,
+      "unit": "times"
     }
   },
   {
@@ -342,7 +370,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1
+      "value": 1,
+      "unit": "times"
     }
   },
   {
@@ -356,7 +385,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1
+      "value": 1,
+      "unit": "times"
     }
   },
   {
@@ -370,7 +400,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1
+      "value": 1,
+      "unit": "times"
     }
   },
   {
@@ -385,7 +416,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.7
+      "value": 0.7,
+      "unit": ""
     }
   },
   {
@@ -400,7 +432,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.7
+      "value": 0.7,
+      "unit": ""
     }
   },
   {
@@ -415,7 +448,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.6
+      "value": 0.6,
+      "unit": ""
     }
   },
   {
@@ -429,7 +463,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 15000
+      "value": 15000,
+      "unit": "faults"
     }
   },
   {
@@ -443,7 +478,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 1
+      "value": 1,
+      "unit": "major_faults"
     }
   },
   {
@@ -458,7 +494,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.1
+      "value": 0.1,
+      "unit": ""
     }
   },
   {
@@ -473,7 +510,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.05
+      "value": 0.05,
+      "unit": ""
     }
   },
   {
@@ -487,7 +525,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 10000000
+      "value": 10000000,
+      "unit": "Bps"
     }
   },
   {
@@ -501,7 +540,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 50,
+      "unit": "IOps"
     }
   },
   {
@@ -516,7 +556,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.9
+      "value": 0.9,
+      "unit": ""
     }
   },
   {
@@ -531,7 +572,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 30
+      "value": 30,
+      "unit": "ms"
     }
   },
   {
@@ -546,7 +588,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 50
+      "value": 50,
+      "unit": "ms"
     }
   },
   {
@@ -561,7 +604,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 20000000
+      "value": 20000000,
+      "unit": "Bps"
     }
   },
   {
@@ -576,7 +620,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 20000000
+      "value": 20000000,
+      "unit": "Bps"
     }
   },
   {
@@ -592,7 +637,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   },
   {
@@ -608,7 +654,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   },
   {
@@ -624,7 +671,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   },
   {
@@ -640,7 +688,8 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.01
+      "value": 0.01,
+      "unit": ""
     }
   }
 ]
