@@ -53,7 +53,7 @@ class ProblemsDetector(object):
                                 "value": m.threshold,
                                 "unit": m.threshold_unit}
             doc["config"] = {"detection_window_sec": self.config.get(
-                                "ANALYZER", "AVERAGE_WINDOW_SECOND"),
+                                  "ANALYZER", "AVERAGE_WINDOW_SECOND"),
                              "severity_type": severity_type,
                              "min_percentage": threshold}
             doc["analysis_result"] = {"severity": m.average,
