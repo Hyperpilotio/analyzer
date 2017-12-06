@@ -299,7 +299,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 80
+      "value": 160
     }
   },
   {

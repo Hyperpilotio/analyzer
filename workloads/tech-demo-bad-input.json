@@ -27,11 +27,14 @@
       "port": 9090
     },
     "metric": {
-      "name": "hyperpilot/goddd/api_booking_service_request_latency_milliseconds",
+      "name": "hyperpilot/goddd/api_booking_service_request_latency_microseconds",
       "type": "latency",
-      "tags": {
-        "summary": "quantile_90"
-      }
+      "tags": [
+        {
+          "key": "summary",
+          "value": "quantile_90"
+        }
+      ]
     },
     "threshold": {
       "type": "UB",

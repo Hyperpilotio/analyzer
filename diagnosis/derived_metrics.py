@@ -26,8 +26,10 @@ class WindowState(object):
     def compute_severity(self, threshold, value):
         return max(value - threshold, 0.0)
 
-    def compute(self, new_time, new_value,
+    def compute_derived_value(self, new_time, new_value,
                 compute_type=config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE")):
+        if math.isnan(new_value):
+            new_value = 0.
         if len(self.values) > 0:
             while new_time - self.values[len(self.values) - 1][0] >= 2 * self.sample_interval:
                 last_value = self.values[len(self.values) - 1]
@@ -172,14 +174,23 @@ class MetricsConsumer(object):
         self.deployment_id = ''
 
     def get_app_metric(self, start_time, end_time):
-        metric_name = self.app_metric_config["metric_name"]
-        summary = self.app_metric_config["summary"]
-        aggregation = self.app_metric_config["aggregation"]
-        query = ("SELECT time, %s(value) as value FROM \"%s\" \
-                  WHERE summary = '%s' AND time >= %d AND time <= %d \
-                  GROUP BY time(%ds) fill(none)" %
-                 (aggregation, metric_name, summary, start_time, end_time, SAMPLE_INTERVAL))
-        df = self.app_influx_client.query(query)
+        metric_name = self.app_metric_config["metric"]["name"]
+        aggregation = self.app_metric_config["analysis"]["aggregation"]
+
+        time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
+        app_metric_query = (
+            "SELECT time, %s(value) as value FROM \"%s\" %s" %
+             (aggregation, metric_name, time_filter))
+
+        if "tags" in self.app_metric_config["metric"]:
+            tags = self.app_metric_config["metric"]["tags"]
+            tags_filter = " AND " .join(["\"%s\"='%s'" % (tag["key"], tag["value"]) for tag in tags])
+            app_metric_query += (" AND %s" % (tags_filter))
+
+        app_metric_query += (" GROUP BY time(%ds) fill(none)" %
+                             (SAMPLE_INTERVAL))
+        #print("app_metric_query = %s" %(app_metric_query))
+        df = self.app_influx_client.query(app_metric_query)
         if metric_name not in df:
             return None
 
@@ -231,18 +242,12 @@ class MetricsConsumer(object):
             dfg = df.groupby(group_name)
             metrics_result.add_metric(
                 metric_source, is_container_metric, dfg,
-                metric_config["resource"], metric_config["observation_window_sec"])
+                metric_config["resource"], metric_config["analysis"]["observation_window_sec"])
 
             app_metric = self.get_app_metric(start_time, end_time)
-            metrics_result.set_app_metric(app_metric, self.app_metric_config["metric_name"])
+            metrics_result.set_app_metric(app_metric, self.app_metric_config["metric"]["name"])
             return metrics_result
 
-    # Convert NaN to 0.
-    def convert_value(self, row):
-        value = row["value"]
-        if math.isnan(value):
-            value = 0.
-        return value
 
     def get_derived_metrics(self, start_time, end_time):
         derived_metrics_result = MetricsResults(is_derived=True)
@@ -369,9 +374,9 @@ class MetricsConsumer(object):
                 #print("raw metric before applying threshold for group %s" % (metric_group_name))
                 #print(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
                 metric_df.loc[metric_group_ind,"value"] = metric_df.loc[metric_group_ind].apply(
-                    lambda row: metric_group_states[row[group_name]].compute(
+                    lambda row: metric_group_states[row[group_name]].compute_derived_value(
                         row.name.value,
-                        self.convert_value(row)
+                        row.value
                         ),
                     axis=1,
                 )
@@ -387,18 +392,19 @@ class MetricsConsumer(object):
         app_metric = self.get_app_metric(start_time, end_time)
         if app_metric is not None:
             slo_state = WindowState(
-                self.app_metric_config["observation_window_sec"],
+                self.app_metric_config["analysis"]["observation_window_sec"],
                 self.app_metric_config["threshold"]["value"],
                 SAMPLE_INTERVAL,
             )
             app_metric["value"] = app_metric.apply(
-                lambda row: slo_state.compute(
+                lambda row: slo_state.compute_derived_value(
                     row.name.value,
-                    self.convert_value(row)
+                    row.value
                 ),
                 axis=1,
             )
-            derived_metrics_result.set_app_metric(app_metric, self.app_metric_config["metric_name"])
+            new_metric_name = self.app_metric_config["metric"]["name"] + "/" + self.app_metric_config["metric"]["type"]
+            derived_metrics_result.set_app_metric(app_metric, new_metric_name)
 
         return derived_metrics_result
 

@@ -3,12 +3,9 @@
     "metric": {
         "name": "hyperpilot/goddd/api_booking_service_request_latency_microseconds",
         "type": "latency",
-        "tags": [
-            {
-                "key": "summary",
-                "value": "quantile_90"
-            }
-        ]
+        "tags": {
+	    "summary": "quantile_90"
+        }
     },
     "threshold": {
         "type": "UB",
@@ -17,6 +14,8 @@
     },
     "analysis": {
 	"aggregation": "max",
-        "observation_window_sec": 60
+        "observation_window_sec": 60,
+	"severity_summary": "area",
+	"min_percentage": 9.0
     }
 }

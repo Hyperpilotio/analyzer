@@ -26,7 +26,7 @@ class AppAnalyzer(object):
         self.config = config
         self.metrics_consumer = MetricsConsumer(
             self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
-            self.config.get("ANALYZER", "DERIVED_METRIC_CONFIG"))
+            self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"))
         self.diagnosis = Diagnosis()
         self.problems_detector = ProblemsDetector(config)
         influx_host = config.get("INFLUXDB", "HOST")
