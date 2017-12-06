@@ -30,7 +30,8 @@ logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BOP = BayesianOptimizerPool()
 APP_STATE = {"REGISTERED": "Registered",
-             "UNREGISTERED": "Unregistered"}
+             "UNREGISTERED": "Unregistered",
+             "ACTIVE": "Active"}
 
 
 @app.route("/")
@@ -82,8 +83,8 @@ def _get_all_apps():
         if task["deployment"]["metadata"].get("namespace") != "hyperpilot"
     ]
     for application in configdb[app_collection].find(
-        {"serviceNames": {"$in": service_names}},
-        {"name": 1, "serviceNames": 1}
+            {"serviceNames": {"$in": service_names}},
+            {"name": 1, "serviceNames": 1}
     ):
         app_id = application.pop("_id")
         apps[str(app_id)] = application
@@ -326,11 +327,13 @@ def recommended_service_placement():
     result = util.shape_service_placement(deploy_json)
     return jsonify(result)
 
+
 @app.route("/k8s_services/<string:service_id>", methods=["GET"])
 def get_k8s_service(service_id):
     service = configdb[k8s_service_collection].find_one({"service_id": service_id})
     service.pop("_id")
     return util.ensure_document_found(service)
+
 
 @app.route("/k8s_services", methods=["POST"])
 def create_k8s_service():
@@ -346,3 +349,27 @@ def create_k8s_service():
         return response
     except InvalidOperation as e:
         return util.error_response(f"Could not create service: " + str(e), 500)
+
+
+@app.route("/apps/<string:app_id>/state", methods=["GET"])
+def get_app_state(app_id):
+    app = configdb[app_collection].find_one({"app_id": app_id})
+    if app is None:
+        return util.ensure_document_found(None)
+    response = jsonify({"state": app["state"]})
+    return response
+
+
+@app.route("/apps/<string:app_id>/state", methods=["PUT"])
+def update_app_state(app_id):
+    app = configdb[app_collection].find_one({"app_id": app_id})
+    if app is None:
+        return util.ensure_document_found(None)
+
+    state_json = request.get_json()
+    state = state_json["state"]
+    if state != APP_STATE["REGISTERED"] and state != APP_STATE["UNREGISTERED"] and state != APP_STATE["ACTIVE"]:
+        return util.error_response(f"{state} is not valid state", 400)
+    app["state"] = state
+
+    return util.update_and_return_doc(app_id, app)
