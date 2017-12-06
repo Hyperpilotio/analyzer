@@ -40,6 +40,7 @@
       "type": "UB",
       "value": 0.3,
       "unit": "seconds"
+    }
   },
   "management_features": [
     {
