@@ -103,10 +103,10 @@ def get_app_info(app_name):
     return util.ensure_document_found(application)
 
 
-@app.route("/apps/<string:app_name>/slo", methods=["GET"])
-def get_app_slo(app_name):
-    application = configdb[app_collection].find_one({"name": app_name})
-    return util.ensure_document_found(application, ['slo'])
+# @app.route("/apps/<string:app_name>/slo", methods=["GET"])
+# def get_app_slo(app_name):
+#     application = configdb[app_collection].find_one({"name": app_name})
+#     return util.ensure_document_found(application, ['slo'])
 
 
 @app.route("/apps/<string:app_id>", methods=["PUT"])
@@ -373,3 +373,70 @@ def update_app_state(app_id):
     app["state"] = state
 
     return util.update_and_return_doc(app_id, app)
+
+
+@app.route("/apps/<string:app_id>/slo", methods=["GET"])
+def get_app_slo(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+
+    try:
+        response = jsonify(SLO=application['slo'])
+    except KeyError:
+        return util.error_response(f"SLO is not found", 400)
+    else:
+        response.status_code = 200
+        return response
+
+
+@app.route("/apps/<string:app_id>/slo", methods=["PUT"])
+def update_app_slo(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+
+    try:
+        application['slo']
+    except KeyError:
+        return util.error_response(f"SLO is not added in application: {app_id}", 400)
+
+    try:
+        new_slo_json = request.get_json()["SLO"]
+    except KeyError:
+        return util.error_response(f"SLO is not found in new data", 400)
+
+    application['slo'] = new_slo_json
+    return util.update_and_return_doc(app_id, application)
+
+
+@app.route("/apps/<string:app_id>/slo", methods=["POST"])
+def add_app_slo(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+
+    if "slo" in application:
+        return util.error_response(f"SLO already set", 400)
+
+    state_json = request.get_json()
+    try:
+        slo = state_json["SLO"]
+    except KeyError:
+        return util.error_response(f"SLO is not found in new data", 400)
+
+    return util.update_and_return_doc(app_id, {"slo": slo})
+
+
+@app.route("/apps/<string:app_id>/slo", methods=["DELETE"])
+def delete_app_slo(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+
+    try:
+        application['slo']
+    except KeyError:
+        return util.error_response(f"SLO is not added in application: {app_id}", 400)
+
+    return util.update_and_return_doc(app_id, {"slo": ""}, unset=True)
