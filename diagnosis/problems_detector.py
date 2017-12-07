@@ -18,8 +18,8 @@ class ProblemsDetector(object):
             return 0.0
         return value
 
-    def detect(self, metric_results, deployment_id, severity_type,
-               threshold, timestamp):
+    def detect(self, metric_results, deployment_id, app_name, incident_id,
+               severity_type, threshold, timestamp):
         print("Feature rankings for deployment: " + deployment_id)
         CORRELATION_WINDOW = self.config.get(
             "ANALYZER", "CORRELATION_WINDOW_SECOND")
@@ -57,9 +57,9 @@ class ProblemsDetector(object):
                                 "value": m.threshold,
                                 "unit": m.threshold_unit}
             doc["config"] = {"detection_window_sec": self.config.get(
-                                  "ANALYZER", "AVERAGE_WINDOW_SECOND"),
-                             "severity_type": severity_type,
-                             "min_percentage": threshold}
+                "ANALYZER", "AVERAGE_WINDOW_SECOND"),
+                "severity_type": severity_type,
+                "min_percentage": threshold}
             doc["analysis_result"] = {"severity": m.average,
                                       "correlation": m.correlation,
                                       "score": m.confidence_score}
@@ -67,3 +67,13 @@ class ProblemsDetector(object):
             problems.append(doc)
             i += 1
         resultdb["problems"].insert(problems)
+        diagnosis_doc = {"app_name": app_name,
+                         "incident_id": incident_id,
+                         "top_related_problems": [
+                             {"id": p["problem_id"],
+                              "remediation_options": []}
+                             for p in problems],
+                         "timestamp": timestamp,
+                         "timeout_window_sec": self.config.get("ANALYZER",
+                                                               "DIAGNOSIS_TIMEOUT_WINDOW")}
+        resultdb["diagnoses"].insert_one(diagnosis_doc)

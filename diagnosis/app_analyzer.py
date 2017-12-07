@@ -68,9 +68,11 @@ class AppAnalyzer(object):
                 print("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
-                incident_doc = {"incident_id": "incident" + "-" + str(uuid1()),
+                incident_id = "incident" + "-" + str(uuid1())
+                app_name = config.get("ANALYZER", "APP_NAME")
+                incident_doc = {"incident_id": incident_id,
                                 "type": self.metrics_consumer.incident_type,
-                                "labels": {"app_name": config.get("ANALYZER", "APP_NAME")},
+                                "labels": {"app_name": app_name},
                                 "metric": self.metrics_consumer.incident_metric,
                                 "threshold": self.metrics_consumer.incident_threshold,
                                 "severity": app_metric_mean["value"],
@@ -80,6 +82,7 @@ class AppAnalyzer(object):
                 self.write_results(selected_metrics, end_time, self.metrics_consumer.deployment_id)
                 self.problems_detector.detect(selected_metrics,
                                               self.metrics_consumer.deployment_id,
+                                              app_name, incident_id,
                                               severity_compute_type,
                                               DIAGNOSIS_THRESHOLD, end_time)
 
