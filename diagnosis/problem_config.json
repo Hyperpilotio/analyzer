@@ -1,0 +1,10 @@
+{
+    "type": "",
+    "version": "0.1",
+    "detection": {
+        "detection_window_sec": 60,
+        "severity_type": "AREA",
+        "severity_threshold": 9.0,
+        "correlation_signif_threshold": 0.02
+    }
+}

@@ -1,21 +1,10 @@
 {
     "type": "SLO_violation",
-    "metric": {
-        "name": "hyperpilot/goddd/api_booking_service_request_latency_microseconds",
-        "type": "latency",
-        "tags": {
-	    "summary": "quantile_90"
-        }
-    },
-    "threshold": {
-        "type": "UB",
-        "value": 0.1,
-	"unit": "seconds"
-    },
-    "analysis": {
-	"aggregation": "max",
-        "observation_window_sec": 60,
-	"severity_summary": "area",
-	"min_percentage": 9.0
+    "app_name": "tech-demo",
+    "version": "0.1",
+    "detection": {
+        "detection_window_sec": 30,
+        "severity_type": "AREA",
+        "severity_threshold": 9.0
     }
 }

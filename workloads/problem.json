@@ -1,4 +1,5 @@
 {
+    "problem_id": "problem-00000000-0001",
     "type": "over_utilization",
     "labels": {
         "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb9"
@@ -11,11 +12,6 @@
         "type": "LB",
         "value": 10,
         "unit": "percent" 
-    },
-    "config": {
-        "detection_window_sec": 60,
-        "severity_type": "AREA",
-        "min_percentage": 9
     },
     "analysis_result": {
         "severity": 65.5,
