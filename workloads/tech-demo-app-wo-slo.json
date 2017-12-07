@@ -1,0 +1,41 @@
+{
+  "name": "tech-demo",
+  "microservices": [
+    {
+      "name": "goddd",
+      "service_id": "service-0001",
+      "namespace": "default",
+      "kind": "Deployment"
+    },
+    {
+      "name": "mongo",
+      "service_id": "service-0002",
+      "namespace": "default",
+      "kind": "Deployment"
+    },
+    {
+      "name": "pathfinder",
+      "service_id": "service-0003",
+      "namespace": "default",
+      "kind": "Deployment"
+    }
+  ],
+  "type": "long-running",
+  "management_features": [
+    {
+      "name": "interference_management",
+      "status": "Enabled",
+      "remediation_policy": []
+    },
+    {
+      "name": "bottleneck_management",
+      "status": "Enabled",
+      "remediation_policy": []
+    },
+    {
+      "name": "efficiency_management",
+      "status": "Disabled"
+    }
+  ],
+  "state": "Registered"
+}
