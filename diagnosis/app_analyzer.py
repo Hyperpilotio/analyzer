@@ -73,7 +73,6 @@ class AppAnalyzer(object):
 
             end_time += sliding_interval
             it += 1
-            break
 
     def write_results(self, metrics, end_time, deployment_id):
         points_json = []

@@ -1,6 +1,9 @@
 import math
+from uuid import uuid1
+
 from api_service.db import Database
 from config import get_config
+
 
 config = get_config()
 resultdb = Database(config.get("ANALYZER", "RESULTDB_NAME"))
@@ -43,6 +46,7 @@ class ProblemsDetector(object):
             metric_name = m.metric_name[:len(
                 m.metric_name) - len(metric_type) - 1]
             doc["rank"] = i
+            doc["problem_id"] = "problem" + "-" + str(uuid1())
             doc["type"] = metric_type
             doc["labels"] = {"node_name": m.node_name}
             if m.pod_name:
