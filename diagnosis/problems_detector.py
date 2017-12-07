@@ -19,7 +19,7 @@ class ProblemsDetector(object):
         return value
 
     def detect(self, metric_results, deployment_id, app_name, incident_id,
-               severity_type, threshold, timestamp):
+               timestamp):
         print("Feature rankings for deployment: " + deployment_id)
         CORRELATION_WINDOW = self.config.get(
             "ANALYZER", "CORRELATION_WINDOW_SECOND")
@@ -58,10 +58,6 @@ class ProblemsDetector(object):
             doc["threshold"] = {"type": m.threshold_type,
                                 "value": m.threshold,
                                 "unit": m.threshold_unit}
-            doc["config"] = {"detection_window_sec": self.config.get(
-                "ANALYZER", "AVERAGE_WINDOW_SECOND"),
-                "severity_type": severity_type,
-                "min_percentage": threshold}
             doc["analysis_result"] = {"severity": m.average,
                                       "correlation": m.correlation,
                                       "score": m.confidence_score}

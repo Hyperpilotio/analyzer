@@ -83,8 +83,7 @@ class AppAnalyzer(object):
                 self.problems_detector.detect(selected_metrics,
                                               self.metrics_consumer.deployment_id,
                                               app_name, incident_id,
-                                              severity_compute_type,
-                                              DIAGNOSIS_THRESHOLD, end_time)
+                                              end_time)
 
             end_time += sliding_interval
             it += 1
