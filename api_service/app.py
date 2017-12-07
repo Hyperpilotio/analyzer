@@ -83,8 +83,8 @@ def _get_all_apps():
         if task["deployment"]["metadata"].get("namespace") != "hyperpilot"
     ]
     for application in configdb[app_collection].find(
-            {"serviceNames": {"$in": service_names}},
-            {"name": 1, "serviceNames": 1}
+        {"serviceNames": {"$in": service_names}},
+        {"name": 1, "serviceNames": 1}
     ):
         app_id = application.pop("_id")
         apps[str(app_id)] = application
