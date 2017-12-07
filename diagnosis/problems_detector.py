@@ -26,7 +26,7 @@ class ProblemsDetector(object):
 
         # Find top k metrics from metric results
         sorted_metrics = sorted(metric_results, key=lambda x: self.convertNaN(
-            x.confidence_score), reverse=True)[:3]
+            x.confidence_score), reverse=True)[:10]
         i = 1
         problems = []
         for m in sorted_metrics:
@@ -41,7 +41,9 @@ class ProblemsDetector(object):
             print("Correlation (over last %s seconds): %f, p-value: %.2g" %
                   (CORRELATION_WINDOW, m.correlation, m.corr_p_value))
             print("Confidence score: " + str(m.confidence_score))
-
+            i += 1
+            if i > 4:
+                continue
             metric_type = m.metric_name.split("/")[-1]
             metric_name = m.metric_name[:len(
                 m.metric_name) - len(metric_type) - 1]
@@ -65,7 +67,6 @@ class ProblemsDetector(object):
                                       "score": m.confidence_score}
             doc["timestamp"] = timestamp
             problems.append(doc)
-            i += 1
         resultdb["problems"].insert(problems)
         diagnosis_doc = {"app_name": app_name,
                          "incident_id": incident_id,
