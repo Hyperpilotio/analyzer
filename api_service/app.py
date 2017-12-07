@@ -103,10 +103,14 @@ def get_app_info(app_name):
     return util.ensure_document_found(application)
 
 
-# @app.route("/apps/<string:app_name>/slo", methods=["GET"])
-# def get_app_slo(app_name):
-#     application = configdb[app_collection].find_one({"name": app_name})
-#     return util.ensure_document_found(application, ['slo'])
+@app.route("/apps/info/<string:app_name>/slo", methods=["GET"])
+def get_app_slo_by_name(app_name):
+    application = configdb[app_collection].find_one({"name": app_name})
+    if application is None:
+        return util.ensure_document_found(None)
+    if "slo" not in application:
+        return util.error_response(f"SLO is not found", 400)
+    return util.ensure_document_found(application['slo'])
 
 
 @app.route("/apps/<string:app_id>", methods=["PUT"])
@@ -356,8 +360,7 @@ def get_app_state(app_id):
     app = configdb[app_collection].find_one({"app_id": app_id})
     if app is None:
         return util.ensure_document_found(None)
-    response = jsonify({"state": app["state"]})
-    return response
+    return util.ensure_document_found({"state": app["state"]})
 
 
 @app.route("/apps/<string:app_id>/state", methods=["PUT"])
@@ -382,10 +385,7 @@ def get_app_slo(app_id):
         return util.ensure_document_found(None)
     if "slo" not in application:
         return util.error_response(f"SLO is not found", 400)
-
-    response = jsonify(application['slo'])
-    response.status_code = 200
-    return response
+    return util.ensure_document_found(application['slo'])
 
 
 @app.route("/apps/<string:app_id>/slo", methods=["PUT"])
