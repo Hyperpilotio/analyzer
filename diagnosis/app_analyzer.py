@@ -3,6 +3,7 @@ import requests
 from collections import namedtuple
 from math import isnan
 from pandas import to_datetime
+from uuid import uuid1
 
 from influxdb import InfluxDBClient
 
@@ -10,6 +11,7 @@ from diagnosis.derived_metrics import MetricsConsumer
 from diagnosis.diagnosis import Diagnosis
 from diagnosis.problems_detector import ProblemsDetector
 from config import get_config
+from api_service.db import Database
 
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
@@ -20,6 +22,7 @@ if severity_compute_type == "AREA":
 else:
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
 NANOSECONDS_PER_SECOND = 1000000000
+resultdb = Database(config.get("ANALYZER", "RESULTDB_NAME"))
 
 
 class AppAnalyzer(object):
@@ -64,6 +67,15 @@ class AppAnalyzer(object):
             else:
                 print("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
+
+                incident_doc = {"incident_id": "incident" + "-" + str(uuid1()),
+                                "type": self.metrics_consumer.incident_type,
+                                "labels": {"app_name": config.get("ANALYZER", "APP_NAME")},
+                                "metric": self.metrics_consumer.incident_metric,
+                                "threshold": self.metrics_consumer.incident_threshold,
+                                "severity": app_metric_mean["value"],
+                                "timestamp": end_time}
+                resultdb["incidents"].insert_one(incident_doc)
                 selected_metrics = self.diagnosis.process_metrics(derived_metrics)
                 self.write_results(selected_metrics, end_time, self.metrics_consumer.deployment_id)
                 self.problems_detector.detect(selected_metrics,
