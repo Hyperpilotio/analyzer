@@ -41,7 +41,8 @@ class ProblemsDetector(object):
             print("Correlation (over last %s seconds): %f, p-value: %.2g" %
                   (CORRELATION_WINDOW, m.correlation, m.corr_p_value))
             print("Confidence score: " + str(m.confidence_score))
-            if i > 3:
+            i += 1
+            if i > 4:
                 continue
             metric_type = m.metric_name.split("/")[-1]
             metric_name = m.metric_name[:len(
@@ -66,5 +67,4 @@ class ProblemsDetector(object):
                                       "score": m.confidence_score}
             doc["timestamp"] = timestamp
             problems.append(doc)
-            i += 1
         resultdb["problems"].insert(problems)
