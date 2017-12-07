@@ -75,12 +75,20 @@ def ensure_document_found(document, **kwargs):
         return response
 
 
-def update_and_return_doc(app_id, update_doc):
-    updated_doc = configdb[app_collection].find_one_and_update(
-        {"app_id": app_id},
-        {"$set": update_doc},
-        return_document=ReturnDocument.AFTER
-    )
+def update_and_return_doc(app_id, update_doc, unset=False):
+    if unset:
+        updated_doc = configdb[app_collection].find_one_and_update(
+            {"app_id": app_id},
+            {"$unset": update_doc},
+            return_document=ReturnDocument.AFTER
+        )
+    else:
+        updated_doc = configdb[app_collection].find_one_and_update(
+            {"app_id": app_id},
+            {"$set": update_doc},
+            return_document=ReturnDocument.AFTER
+        )
+    updated_doc.pop("_id")
     if updated_doc:
         result = jsonify(data=updated_doc)
         result.status_code = 200
@@ -305,7 +313,7 @@ def get_resource_requests(app_name):
 
     for task in app['taskDefinitions']:
         if task['nodeMapping']['task'] == service:
-            container_spec =\
+            container_spec = \
                 task['taskDefinition']['deployment']['spec']['template']['spec']['containers'][0]
             try:
                 resource_requests = container_spec['resources']['requests']
@@ -391,6 +399,7 @@ def get_calibration_dataframe(calibration_document):
 
 def percentile(n):
     def f(series): return series.quantile(n / 100)
+
     f.__name__ = f"percentile_{n}"
     return f
 
@@ -448,6 +457,7 @@ def compute_tolerated_interference(benchmarks, slo_value, metric_type, tolerated
     Return:
         ti(float): tolerated interference between [0, 100].
     """
+
     def _linearIntp(tup1, tup2, y3):
         x1, y1 = tup1
         x2, y2 = tup2
@@ -479,13 +489,13 @@ def compute_tolerated_interference(benchmarks, slo_value, metric_type, tolerated
     ), 'intensities are not monotonic. intensities: {}'.format(intensities)
     assert all(intensity >= 0 and intensity <=
                100 for intensity in intensities), 'invalid intensities. intensites: {}'.format(intensities)
-    assert len(slo_values) == len(intensities),\
+    assert len(slo_values) == len(intensities), \
         'length of slo_values and intensities does not match. slo_values: {}, intensities: {}'.format(
             slo_values, intensities)
 
     for i in range(len(slo_values) - 1):  # edge case tested
         x = _linearIntp((intensities[i], slo_values[i]), (intensities[
-                        i + 1], slo_values[i + 1]), tolerated_slo_value)
+                                                              i + 1], slo_values[i + 1]), tolerated_slo_value)
         if x:
             candidates.append(x)
 

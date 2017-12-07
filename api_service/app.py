@@ -30,7 +30,8 @@ logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
 BOP = BayesianOptimizerPool()
 APP_STATE = {"REGISTERED": "Registered",
-             "UNREGISTERED": "Unregistered"}
+             "UNREGISTERED": "Unregistered",
+             "ACTIVE": "Active"}
 
 
 @app.route("/")
@@ -102,10 +103,14 @@ def get_app_info(app_name):
     return util.ensure_document_found(application)
 
 
-@app.route("/apps/<string:app_name>/slo", methods=["GET"])
-def get_app_slo(app_name):
+@app.route("/apps/info/<string:app_name>/slo", methods=["GET"])
+def get_app_slo_by_name(app_name):
     application = configdb[app_collection].find_one({"name": app_name})
-    return util.ensure_document_found(application, ['slo'])
+    if application is None:
+        return util.ensure_document_found(None)
+    if "slo" not in application:
+        return util.error_response(f"SLO is not found", 400)
+    return util.ensure_document_found(application['slo'])
 
 
 @app.route("/apps/<string:app_id>", methods=["PUT"])
@@ -326,11 +331,13 @@ def recommended_service_placement():
     result = util.shape_service_placement(deploy_json)
     return jsonify(result)
 
+
 @app.route("/k8s_services/<string:service_id>", methods=["GET"])
 def get_k8s_service(service_id):
     service = configdb[k8s_service_collection].find_one({"service_id": service_id})
     service.pop("_id")
     return util.ensure_document_found(service)
+
 
 @app.route("/k8s_services", methods=["POST"])
 def create_k8s_service():
@@ -346,3 +353,71 @@ def create_k8s_service():
         return response
     except InvalidOperation as e:
         return util.error_response(f"Could not create service: " + str(e), 500)
+
+
+@app.route("/apps/<string:app_id>/state", methods=["GET"])
+def get_app_state(app_id):
+    app = configdb[app_collection].find_one({"app_id": app_id})
+    if app is None:
+        return util.ensure_document_found(None)
+    return util.ensure_document_found({"state": app["state"]})
+
+
+@app.route("/apps/<string:app_id>/state", methods=["PUT"])
+def update_app_state(app_id):
+    app = configdb[app_collection].find_one({"app_id": app_id})
+    if app is None:
+        return util.ensure_document_found(None)
+
+    state_json = request.get_json()
+    state = state_json["state"]
+    if state != APP_STATE["REGISTERED"] and state != APP_STATE["UNREGISTERED"] and state != APP_STATE["ACTIVE"]:
+        return util.error_response(f"{state} is not valid state", 400)
+    app["state"] = state
+
+    return util.update_and_return_doc(app_id, app)
+
+
+@app.route("/apps/<string:app_id>/slo", methods=["GET"])
+def get_app_slo(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+    if "slo" not in application:
+        return util.error_response(f"SLO is not found", 400)
+    return util.ensure_document_found(application['slo'])
+
+
+@app.route("/apps/<string:app_id>/slo", methods=["PUT"])
+def update_app_slo(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+    if "slo" not in application:
+        return util.error_response(f"SLO is not added in application: {app_id}", 400)
+
+    application['slo'] = request.get_json()
+    return util.update_and_return_doc(app_id, application)
+
+
+@app.route("/apps/<string:app_id>/slo", methods=["POST"])
+def add_app_slo(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+    if "slo" in application:
+        return util.error_response(f"SLO already set", 400)
+
+    slo = request.get_json()
+    return util.update_and_return_doc(app_id, {"slo": slo})
+
+# For test
+# @app.route("/apps/<string:app_id>/slo", methods=["DELETE"])
+# def delete_app_slo(app_id):
+#     application = configdb[app_collection].find_one({"app_id": app_id})
+#     if application is None:
+#         return util.ensure_document_found(None)
+#     if 'slo' not in application:
+#         return util.error_response(f"SLO is not added in application: {app_id}", 400)
+#
+#     return util.update_and_return_doc(app_id, {"slo": ""}, unset=True)

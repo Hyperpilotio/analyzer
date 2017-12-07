@@ -1,0 +1,22 @@
+{
+  "source": {
+    "APM_type": "PPPPP",
+    "service_name": "GGGG",
+    "port": 9999
+  },
+  "metric": {
+    "name": "hyperpilot/goddd/api_booking_service_request_latency_microseconds",
+    "type": "latency",
+    "tags": [
+      {
+        "key": "summary",
+        "value": "quantile_90"
+      }
+    ]
+  },
+  "threshold": {
+    "type": "AAA",
+    "value": 0.9,
+    "unit": "min"
+  }
+}
