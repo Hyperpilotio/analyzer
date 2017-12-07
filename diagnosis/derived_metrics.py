@@ -192,6 +192,9 @@ class MetricsConsumer(object):
     def get_app_metric(self, start_time, end_time):
         metric_name = self.app_metric_config["metric"]["name"]
         aggregation = self.app_metric_config["analysis"]["aggregation"]
+        self.incident_type = self.app_metric_config["type"]
+        self.incident_metric = self.app_metric_config["metric"]
+        self.incident_threshold = self.app_metric_config["threshold"]
 
         time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
         app_metric_query = (
