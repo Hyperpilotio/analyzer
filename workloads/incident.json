@@ -1,5 +1,5 @@
 {
-    "incident_id": "incident-00000000-0001",
+    "incident_id": "incident-0001",
     "type": "SLO_violation",
     "labels": {
         "app_name": "tech-demo"
@@ -19,6 +19,6 @@
         "value": 0.1,
 	"unit": "seconds"
     },
-    "severity": 65,
-    "timestamp": "1511980800000000000"
+    "severity": 29.772708,
+    "timestamp": "1511980860000000000"
 }

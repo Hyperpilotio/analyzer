@@ -1,0 +1,22 @@
+{
+    "problem_id": "problem-0001",
+    "type": "resource_bottleneck",
+    "labels": {
+        "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
+    },
+    "metric": {
+        "name": "intel/psutil/net/all/bytes_recv",
+        "type": "network"
+    },
+    "threshold": {
+        "type": "UB",
+        "value": 10000000,
+        "unit": "Bps"
+    },
+    "analysis_result": {
+        "severity": 55.358269,
+        "correlation": 0.864193,
+        "score": 47.840233
+    },
+    "timestamp": "1511980860000000000"
+}

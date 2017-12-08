@@ -1,10 +1,10 @@
 {
   "app_name": "tech-demo",
-  "incident_id": "incident-0000-0001",
+  "incident_id": "incident-0001",
   "top_related_problems": [
     {
       "rank": 1,
-      "id": "problem-0000-0001",
+      "id": "problem-0001",
       "remediation_options": [
         {
           "action": "move_container",
@@ -25,7 +25,7 @@
     },
     {
       "rank": 2,
-      "id": "problem-0000-0002",
+      "id": "problem-0002",
       "remediation_options": [
         {
           "action": "move_container",
@@ -46,7 +46,7 @@
     },
     {
       "rank": 3,
-      "id": "problem-0000-0003",
+      "id": "problem-0003",
       "remediation_options": [
         {
           "action": "resize_container",
@@ -54,7 +54,7 @@
             "pod_name": "spark-worker2-1465037909-f763z",
             "resources": {
               "limits": {
-                "cpu": "1800m"
+                "cpu": "1600m"
               }
             }
           }
