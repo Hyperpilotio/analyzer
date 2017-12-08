@@ -72,3 +72,4 @@ class Database(object):
 
 configdb = Database(config.get("ANALYZER", "CONFIGDB_NAME"))
 metricdb = Database(config.get("ANALYZER", "METRICDB_NAME"))
+resultdb = Database(config.get("ANALYZER", "RESULTDB_NAME"))

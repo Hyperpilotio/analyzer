@@ -12,7 +12,7 @@ import api_service.util as util
 from config import get_config
 from logger import get_logger
 
-from .db import configdb, metricdb
+from .db import configdb, metricdb, resultdb
 
 app = Flask(__name__)
 
@@ -25,6 +25,9 @@ calibration_collection = my_config.get("ANALYZER", "CALIBRATION_COLLECTION")
 profiling_collection = my_config.get("ANALYZER", "PROFILING_COLLECTION")
 sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
 k8s_service_collection = my_config.get("ANALYZER", "K8S_SERVICE_COLLECTION")
+problems_collection = my_config.get("ANALYZER", "PROBLEMS_COLLECTION")
+diagnosis_collection = my_config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
+incidents_collection = my_config.get("ANALYZER", "INCIDENT_COLLECTION")
 
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
@@ -411,6 +414,7 @@ def add_app_slo(app_id):
     slo = request.get_json()
     return util.update_and_return_doc(app_id, {"slo": slo})
 
+
 # For test
 # @app.route("/apps/<string:app_id>/slo", methods=["DELETE"])
 # def delete_app_slo(app_id):
@@ -421,3 +425,46 @@ def add_app_slo(app_id):
 #         return util.error_response(f"SLO is not added in application: {app_id}", 400)
 #
 #     return util.update_and_return_doc(app_id, {"slo": ""}, unset=True)
+
+
+@app.route("/incidents", methods=["GET"])
+def get_app_incidents():
+    request_json = request.get_json()
+    if "app_name" not in request_json:
+        return util.error_response(f"app_name is not found", 400)
+    app_name = request_json["app_name"]
+    incidents = resultdb[incidents_collection]. \
+        find({"labels": {"app_name": app_name}}). \
+        sort("timestamp", DESCENDING).limit(1)
+
+    for doc in incidents:
+        doc.pop("_id")
+        return util.ensure_document_found(doc)
+    return util.ensure_document_found(None)
+
+
+@app.route("/problems/<string:problem_id>", methods=["GET"])
+def get_problems(problem_id):
+    problem = resultdb[problems_collection].find_one({"problem_id": problem_id})
+    if problem is None:
+        return util.ensure_document_found(None)
+    problem.pop("_id")
+    return util.ensure_document_found(problem)
+
+
+@app.route("/diagnosis", methods=["GET"])
+def get_app_diagnosis():
+    request_json = request.get_json()
+    if "app_name" not in request_json:
+        return util.error_response(f"app_name is not found", 400)
+    if "incident_id" not in request_json:
+        return util.error_response(f"incident_id is not found", 400)
+    diagnosis = resultdb[diagnosis_collection].find_one(
+        {"$and": [
+            {"app_name": request_json["app_name"]},
+            {"incident_id": request_json["incident_id"]}]}
+    )
+    if diagnosis is None:
+        return util.ensure_document_found(None)
+    diagnosis.pop("_id")
+    return util.ensure_document_found(diagnosis)
