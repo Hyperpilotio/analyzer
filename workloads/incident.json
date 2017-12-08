@@ -22,3 +22,27 @@
     "severity": 29.772708,
     "timestamp": "1511980860000000000"
 }
+{
+    "incident_id": "incident-0002",
+    "type": "SLO_violation",
+    "labels": {
+        "app_name": "tech-demo"
+    },
+    "metric": {
+        "name": "hyperpilot/goddd/api_booking_service_request_latency_microseconds",
+        "type": "latency",
+        "tags": [
+            {
+                "key": "summary",
+                "value": "quantile_90"
+            }
+        ]
+    },
+    "threshold": {
+        "type": "UB",
+        "value": 0.1,
+	"unit": "seconds"
+    },
+    "severity": 29.772708,
+    "timestamp": "1611980860000000000"
+}
