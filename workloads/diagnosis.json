@@ -1,0 +1,67 @@
+{
+  "app_name": "tech-demo",
+  "incident_id": "incident-0000-0001",
+  "top_related_problems": [
+    {
+      "rank": 1,
+      "id": "problem-0000-0001",
+      "remediation_options": [
+        {
+          "action": "move_container",
+          "metadata": {
+            "pod_name": "pathfinder-4129806905-wz086",
+            "source_node": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq",
+            "destination_node": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb90"
+          }
+        },
+        {
+          "action": "resize_node",
+          "metadata": {
+          "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq",
+          "instance_type": "n1-highcpu-8"
+          }
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "id": "problem-0000-0002",
+      "remediation_options": [
+        {
+          "action": "move_container",
+          "metadata": {
+            "pod_name": "pathfinder-4129806905-wz086",
+            "source_node": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq",
+            "destination_node": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb90"
+          }
+        },
+        {
+          "action": "resize_node",
+          "metadata": {
+          "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq",
+          "instance_type": "n1-highcpu-8"
+          }
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "id": "problem-0000-0003",
+      "remediation_options": [
+        {
+          "action": "resize_container",
+          "metadata": {
+            "pod_name": "spark-worker2-1465037909-f763z",
+            "resources": {
+              "limits": {
+                "cpu": "1800m"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "timestamp": "1511980860000000000",
+  "timeout_window_sec": 300
+}
