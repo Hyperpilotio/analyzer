@@ -6,6 +6,11 @@ if  ! type jq > /dev/null; then
   return
 fi
 
+if  ! type mongoimport > /dev/null; then
+  echo "mongoimport is required for test, Install first"
+  return
+fi
+
 # get all apps
 echo "get all apps: "
 curl -XGET localhost:5000/api/apps
@@ -86,6 +91,48 @@ echo "get slo  AFTER SLO updated: "
 curl -s  -H "Content-Type: application/json" -X GET  http://127.0.0.1:5000/api/apps/${APP_ID}/slo
 echo "get slo by name AFTER SLO update: "
 curl -s  -H "Content-Type: application/json" -X GET  http://127.0.0.1:5000/api/apps/info/${APP_NAME}/slo
+
+
+echo
+echo "======================"
+echo "test incidents GET API"
+echo "======================"
+echo
+echo "app_name is not in query json: should be error"
+curl -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  localhost:5000/api/incidents
+echo "incidents is not added: should be error"
+curl -X GET -d '{"app_name":"tech-demo"}' -H  "Content-Type: application/json"  localhost:5000/api/incidents
+echo "add 2 incidents, timestamps are 1511980860000000000 and 1611980860000000000: should return timestamp 1611980860000000000"
+mongoimport --db resultdb --collection incidents --drop --file ./workloads/incident.json
+curl -X GET -d '{"app_name":"tech-demo"}' -H  "Content-Type: application/json"  localhost:5000/api/incidents
+
+
+echo
+echo "======================"
+echo "test problems GET API"
+echo "======================"
+echo
+echo "problem is not added: should be error"
+curl -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  localhost:5000/api/problems/problem-0001
+mongoimport --db resultdb --collection problems --drop --file ./workloads/problem-0001.json
+echo "get after problem-0001 is added"
+curl -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  localhost:5000/api/problems/problem-0001
+
+
+echo
+echo "======================"
+echo "test diagnosis GET API"
+echo "======================"
+echo
+echo "app_name is not in query json: should be error"
+curl -s -X GET -d '{"state":"unregistered"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis
+echo "incident_id is not in query json: should be error"
+curl -s -X GET -d '{"app_name":"unregistered"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis
+echo "get before diagnosis is add: should be error"
+curl -s -X GET -d '{"app_name":"unregistered", "incident_id":"xxx"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis
+mongoimport --db resultdb --collection diagnosis --drop --file ./workloads/diagnosis.json
+echo "after add 2 document, get criteria app_name=tech-demo, incident_id=incident-0002"
+curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis
 
 
 # require type and name (this example has no type)
