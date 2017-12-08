@@ -135,6 +135,38 @@ echo "after add 2 document, get criteria app_name=tech-demo, incident_id=inciden
 curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis
 
 
+echo
+echo "================================"
+echo "test features management GET API"
+echo "================================"
+echo
+echo "get all management_features"
+curl -X GET    localhost:5000/api/apps/${APP_ID}/management_features
+echo "get invalid feature: should be error"
+curl -X GET  localhost:5000/api/apps/${APP_ID}/management_features/efficiency
+echo "get interference_management"
+curl -X GET  localhost:5000/api/apps/${APP_ID}/management_features/interference_management
+echo "get bottleneck_management"
+curl -X GET  localhost:5000/api/apps/${APP_ID}/management_features/bottleneck_management
+echo "get efficiency_management"
+curl -X GET  localhost:5000/api/apps/${APP_ID}/management_features/efficiency_management
+
+echo
+echo "================================"
+echo "test features management update API"
+echo "================================"
+echo
+echo "new data has no name field: should be error"
+curl -X PUT -d '{"status":"good"}' -H  "Content-Type: application/json"  localhost:5000/api/apps/${APP_ID}/management_features/efficiency_management
+echo "new & old feature are not the same type : should be error"
+curl -X PUT -d '{"name":"bottleneck_management", "status":"good"}' -H  "Content-Type: application/json"  localhost:5000/api/apps/${APP_ID}/management_features/efficiency_management
+echo "update efficiency_management"
+curl -X PUT -d '{"name":"efficiency_management", "status":"good"}' -H  "Content-Type: application/json"  localhost:5000/api/apps/${APP_ID}/management_features/efficiency_management
+echo "update bottleneck_management"
+curl -X PUT -d '{"name":"bottleneck_management", "status":"good"}' -H  "Content-Type: application/json"  localhost:5000/api/apps/${APP_ID}/management_features/bottleneck_management
+echo "update interference_management"
+curl -X PUT -d '{"name":"interference_management", "status":"good"}' -H  "Content-Type: application/json"  localhost:5000/api/apps/${APP_ID}/management_features/interference_management
+
 # require type and name (this example has no type)
 #curl -s  -H  "Content-Type: application/json" -X POST --data-binary "@workloads/tech-demo-bad-input.json" localhost:5000/api/apps
 
