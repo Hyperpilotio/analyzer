@@ -1,0 +1,30 @@
+{
+  "name": "bottleneck_management",
+  "status": "Enabled",
+  "remediation_policy": [
+    {
+      "action_name": "resize_container",
+      "mode": "Semi-Auto",
+      "constraints": {
+        "MaxPercentUp": 50,
+        "MaxPercentDown": 20
+      }
+    },
+    {
+      "action_name": "resize_node",
+      "mode": "Manual",
+      "constraints": {
+        "MaxLevelUp": 2,
+        "MaxLevelDown": 1
+      }
+    },
+    {
+      "action_name": "scale_service",
+      "mode": "Full-Auto",
+      "constraints": {
+        "MaxScaleOut": 3,
+        "MaxScaleIn": 1
+      }
+    }
+  ]
+}
