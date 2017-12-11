@@ -1,5 +1,6 @@
 import json
 import traceback
+import time
 from uuid import uuid1
 
 from flask import Flask, jsonify, request
@@ -437,22 +438,49 @@ def get_app_incidents():
         return util.error_response(f"app_name is not found", 400)
     app_name = request_json["app_name"]
     incidents = resultdb[incidents_collection]. \
-        find({"labels": {"app_name": app_name}}). \
+        find({"labels": {"app_name": app_name}}, {"_id": 0}). \
         sort("timestamp", DESCENDING).limit(1)
 
     for doc in incidents:
-        doc.pop("_id")
         return util.ensure_document_found(doc)
     return util.ensure_document_found(None)
 
 
 @app.route("/problems/<string:problem_id>", methods=["GET"])
 def get_problems(problem_id):
-    problem = resultdb[problems_collection].find_one({"problem_id": problem_id})
+    problem = resultdb[problems_collection].find_one({"problem_id": problem_id}, {"_id": 0})
     if problem is None:
         return util.ensure_document_found(None)
-    problem.pop("_id")
     return util.ensure_document_found(problem)
+
+
+# Get all the problems for a given time window
+# URL: /v1/problems
+# Method: GET
+# URL params:  -
+# Data params:  start_time, end_time (default is now-5m to now)
+# Success Response: code 200, data: problems.json
+# Error response: TBD (time window invalid; other error)
+@app.route("/problems", methods=["GET"])
+def get_problems_interval():
+    req = request.get_json()
+    if "start_time" not in req or "end_time" not in req:
+        end_ts = round(time.time()) * 1000000000
+        start_ts = end_ts - 5 * 60 * 1000000000
+    else:
+        start_ts = req["start_time"]
+        end_ts = req["end_time"]
+
+    if end_ts < start_ts:
+        return util.error_response(f"end_time less than start_time", 400)
+
+    problems = resultdb[problems_collection].find(
+        {"$and": [
+            {"timestamp": {"$gte": start_ts}},
+            {"timestamp": {"$lt": end_ts}}]},
+        {"_id": 0}
+    )
+    return util.ensure_document_found(problems)
 
 
 @app.route("/diagnosis", methods=["GET"])
@@ -465,11 +493,11 @@ def get_app_diagnosis():
     diagnosis = resultdb[diagnosis_collection].find_one(
         {"$and": [
             {"app_name": request_json["app_name"]},
-            {"incident_id": request_json["incident_id"]}]}
+            {"incident_id": request_json["incident_id"]}]},
+        {"_id": 0}
     )
     if diagnosis is None:
         return util.ensure_document_found(None)
-    diagnosis.pop("_id")
     return util.ensure_document_found(diagnosis)
 
 
