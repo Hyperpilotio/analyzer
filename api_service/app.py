@@ -372,7 +372,7 @@ def get_pod_names(app_id):
                                                                       microservice["service_id"]})
         if microservice_doc is None:
             return util.ensure_document_found(None)
-        pod_names.append(microservice_doc["metadata"]["name"])
+        pod_names += microservice_doc["pods"]
     return jsonify(pod_names)
 
 
