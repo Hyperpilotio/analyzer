@@ -51,16 +51,13 @@ class AppAnalyzer(object):
             start_time = end_time - batch_window
             print("\nIteration %d - Processing metrics from start: %d, to end: %d" %
                   (it, start_time, end_time))
-            derived_metrics = self.metrics_consumer.get_derived_metrics(
-                start_time, end_time)
-            if derived_metrics.app_metric is None:
+            app_metric = self.metrics_consumer.get_app_metric(start_time, end_time, is_derived=True)
+            if app_metric is None:
                 print("No app metric found, exiting diagnosis...")
                 return
-
-            app_df = derived_metrics.app_metric
             window = int(config.get("ANALYZER", "AVERAGE_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
             window_start = to_datetime(end_time - window, unit="ns")
-            app_metric_mean = app_df.loc[app_df.index >= window_start].mean()
+            app_metric_mean = app_metric.loc[app_metric.index >= window_start].mean()
             if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
                 print("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
@@ -68,6 +65,8 @@ class AppAnalyzer(object):
                 print("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
+                derived_metrics = self.metrics_consumer.get_derived_metrics(start_time, end_time,
+                                                                            app_metric)
                 incident_id = "incident" + "-" + str(uuid1())
                 app_name = config.get("ANALYZER", "APP_NAME")
                 incident_doc = {"incident_id": incident_id,

@@ -189,7 +189,8 @@ class MetricsConsumer(object):
             config.get("INFLUXDB", "APP_DB_NAME"))
         self.deployment_id = ''
 
-    def get_app_metric(self, start_time, end_time):
+    def get_app_metric(self, start_time, end_time, is_derived=True):
+        print("Start processing app metric")
         metric_name = self.app_metric_config["metric"]["name"]
         aggregation = self.app_metric_config["analysis"]["aggregation"]
         self.incident_type = self.app_metric_config["type"]
@@ -213,11 +214,29 @@ class MetricsConsumer(object):
         if metric_name not in df:
             return None
 
+        if is_derived == False:
+            return df[metric_name]
+
+        if df[metric_name] is not None:
+            slo_state = WindowState(
+                self.app_metric_config["analysis"]["observation_window_sec"],
+                self.app_metric_config["threshold"]["value"],
+                SAMPLE_INTERVAL,
+            )
+            df[metric_name]["value"] = df[metric_name].apply(
+                lambda row: slo_state.compute_derived_value(
+                    row.name.value,
+                    row.value
+                ),
+                axis=1,
+            )
         return df[metric_name]
 
-    def get_raw_metrics(self, start_time, end_time):
+    def get_raw_metrics(self, start_time, end_time, app_metric=None):
         metrics_result = MetricsResults(is_derived=False)
-
+        if app_metric is not None:
+            metrics_result.set_app_metric(app_metric,
+                                          self.app_metric_config["metric"]["name"])
         time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
 
         for metric_config in self.config:
@@ -264,14 +283,15 @@ class MetricsConsumer(object):
                 metric_config["resource"], metric_config["analysis"]["observation_window_sec"],
                 metric_config["threshold"]["value"], metric_config["threshold"]["type"],
                 metric_config["threshold"]["unit"])
-            app_metric = self.get_app_metric(start_time, end_time)
-            metrics_result.set_app_metric(app_metric, self.app_metric_config["metric"]["name"])
             return metrics_result
 
 
-    def get_derived_metrics(self, start_time, end_time):
+    def get_derived_metrics(self, start_time, end_time, app_metric=None):
         derived_metrics_result = MetricsResults(is_derived=True)
-
+        if app_metric is not None:
+            derived_metrics_result.set_app_metric(app_metric,
+                self.app_metric_config["metric"]["name"] + "/" +
+                self.app_metric_config["type"])
         node_metric_keys = "value,nodename,deploymentId"
         container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename,deploymentId"
         time_filter = "WHERE time > %d AND time <= %d" % (start_time, end_time)
@@ -409,25 +429,6 @@ class MetricsConsumer(object):
                 metric_config["resource"], metric_config["observation_window_sec"],
                 metric_config["threshold"]["value"], metric_config["threshold"]["type"],
                 metric_config["threshold"]["unit"])
-
-        print("Start processing app metric")
-        app_metric = self.get_app_metric(start_time, end_time)
-        if app_metric is not None:
-            slo_state = WindowState(
-                self.app_metric_config["analysis"]["observation_window_sec"],
-                self.app_metric_config["threshold"]["value"],
-                SAMPLE_INTERVAL,
-            )
-            app_metric["value"] = app_metric.apply(
-                lambda row: slo_state.compute_derived_value(
-                    row.name.value,
-                    row.value
-                ),
-                axis=1,
-            )
-            new_metric_name = self.app_metric_config["metric"]["name"] + "/" + self.app_metric_config["metric"]["type"]
-            derived_metrics_result.set_app_metric(app_metric, new_metric_name)
-
         return derived_metrics_result
 
 
