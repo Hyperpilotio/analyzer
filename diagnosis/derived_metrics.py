@@ -291,7 +291,7 @@ class MetricsConsumer(object):
         if app_metric is not None:
             derived_metrics_result.set_app_metric(app_metric,
                 self.app_metric_config["metric"]["name"] + "/" +
-                self.app_metric_config["metric"]["type"])
+                self.app_metric_config["type"])
         node_metric_keys = "value,nodename,deploymentId"
         container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename,deploymentId"
         time_filter = "WHERE time > %d AND time <= %d" % (start_time, end_time)
