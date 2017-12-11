@@ -25,7 +25,7 @@ echo "mongo service created: $SERVICE_ID2"
 echo "pathfinder service created: $SERVICE_ID3"
 
 # replace tech-demo-app service ids
-sed "s/service-0001/$SERVICE_ID1/g" workloads/tech-demo-app-wo-slo-2-features.json > /tmp/tech-demo-app.json
+sed "s/service-0001/$SERVICE_ID1/g" workloads/tech-demo-app-wo-slo-wo-features.json > /tmp/tech-demo-app.json
 sed -i -- "s/service-0002/$SERVICE_ID2/g" /tmp/tech-demo-app.json
 sed -i -- "s/service-0003/$SERVICE_ID3/g" /tmp/tech-demo-app.json
 
@@ -112,10 +112,19 @@ echo "======================"
 echo
 echo "problem is not added: should be error"
 curl -s -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  localhost:5000/api/problems/problem-0001 | jq -c .
-mongoimport --db resultdb --collection problems --drop --file ./workloads/problem-0001.json
-echo "get after problem-0001 is added"
+echo "add 3 problems: timestamp are 1510000000000000000 & 1520000000000000000 & 1530000000000000000"
+echo "equal to 2017/11/6/12:26:40 GMT-08:00 & 2018/3/2/06:13:20 GMT-08:00 & 2018/6/26/01:00:00 GMT-07:00"
+mongoimport --db resultdb --collection problems --drop --file ./workloads/3-problems.json
+echo "get problem-0001 after 3 problems are added"
 curl -s -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  localhost:5000/api/problems/problem-0001 | jq -c .
 
+FIVEMINAGO=$(date -v-5M "+%Y-%m-%d  %H:%M:%S")
+CURRENT=$(date  "+%Y-%m-%d  %H:%M:%S")
+echo "get problems using default interval current (${CURRENT}) and pass 5 min (${FIVEMINAGO})"
+curl -s -X GET  localhost:5000/api/problems | jq -c .
+curl -s -X GET -d '{"start_time":1510000000000000000}' -H  "Content-Type: application/json" localhost:5000/api/problems | jq -c .
+echo "get problems using interval 1510000000000000000 and 1520000000000000000"
+curl -s -X GET -d '{"start_time":1510000000000000000, "end_time":1520000000000000000}' -H  "Content-Type: application/json" localhost:5000/api/problems | jq -c .
 
 echo
 echo "======================"
@@ -123,14 +132,36 @@ echo "test diagnosis GET API"
 echo "======================"
 echo
 echo "app_name is not in query json: should be error"
-curl -s -X GET -d '{"state":"unregistered"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis | jq -c .
-echo "incident_id is not in query json: should be error"
-curl -s -X GET -d '{"app_name":"unregistered"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis | jq -c .
-echo "get before diagnosis is add: should be error"
-curl -s -X GET -d '{"app_name":"unregistered", "incident_id":"xxx"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis | jq -c .
-mongoimport --db resultdb --collection diagnosis --drop --file ./workloads/diagnosis.json
-echo "after add 2 document, get criteria app_name=tech-demo, incident_id=incident-0002"
-curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnosis | jq -c .
+curl -s -X GET -d '{"state":"unregistered"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+echo "BEFORE add documents:  "
+echo "get by name find most recent one,  return error if no result"
+curl -s -X GET -d '{"app_name":"tech-demo"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+echo "get by name & incident_id, return error if no result"
+curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+echo "get by name & interval, return empty array if no result"
+curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1510000000000000000, "end_time":1520000000000000000}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+
+mongoimport --db resultdb --collection diagnoses --drop --file ./workloads/diagnosis.json
+echo "after add 2 document"
+echo "get by name: find most recent one"
+curl -s -X GET -d '{"app_name":"tech-demo"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+echo "get criteria app_name=tech-demo, incident_id=incident-0002"
+curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+echo "get by name & interval"
+curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1510000000000000000, "end_time":1520000000000000000}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+
+
+
+
+echo
+echo "================================"
+echo "test features management Add API"
+echo "================================"
+echo
+echo "add new feature"
+curl -s -X POST -d @workloads/2-features.json  -H "Content-Type: application/json" localhost:5000/api/apps/${APP_ID}/management_features | jq -c .
+echo "add feature again: should be error"
+curl -s -X POST -d @workloads/2-features.json  -H "Content-Type: application/json" localhost:5000/api/apps/${APP_ID}/management_features | jq -c .
 
 
 echo

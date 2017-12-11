@@ -62,7 +62,7 @@
       ]
     }
   ],
-  "timestamp": "1511980860000000000",
+  "timestamp": 1510000000000000000,
   "timeout_window_sec": 300
 }
 {
@@ -129,6 +129,6 @@
       ]
     }
   ],
-  "timestamp": "1611980860000000000",
+  "timestamp": 1520000000000000000,
   "timeout_window_sec": 300
 }

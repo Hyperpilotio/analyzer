@@ -20,7 +20,7 @@
 	"unit": "seconds"
     },
     "severity": 29.772708,
-    "timestamp": "1511980860000000000"
+    "timestamp": 1511980860000000000
 }
 {
     "incident_id": "incident-0002",
@@ -44,5 +44,5 @@
 	"unit": "seconds"
     },
     "severity": 29.772708,
-    "timestamp": "1611980860000000000"
+    "timestamp": 1611980860000000000
 }
