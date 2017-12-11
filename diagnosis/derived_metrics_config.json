@@ -299,21 +299,6 @@
     }
   },
   {
-    "metric_name": "intel/docker/stats/cgroups/cpu_stats/throttling_data/throttled_time",
-    "type": "resource_bottleneck",
-    "resource": "cpu",
-    "observation_window_sec": 60,
-    "tags": {
-        "io.kubernetes.docker.type": "container",
-        "io.kubernetes.pod.namespace": "default"
-    },
-    "threshold": {
-      "type": "UB",
-      "value": 400000000,
-      "unit": "ns"
-    }
-  },
-  {
     "metric_name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/user_mode",
     "type": "over_utilization",
     "resource": "cpu",
@@ -329,6 +314,21 @@
     }
   },
   {
+    "metric_name": "intel/docker/stats/cgroups/cpu_stats/throttling_data/throttled_time",
+    "type": "resource_bottleneck",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "tags": {
+        "io.kubernetes.docker.type": "container",
+        "io.kubernetes.pod.namespace": "default"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 200000000,
+      "unit": "ns"
+    }
+  },
+  {
     "metric_name": "intel/docker/stats/cgroups/cpu_stats/throttling_data/nr_throttled",
     "type": "resource_bottleneck",
     "resource": "cpu",
@@ -340,7 +340,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 0.1,
+      "value": 0.2,
       "unit": ""
     }
   },
@@ -463,7 +463,7 @@
     },
     "threshold": {
       "type": "UB",
-      "value": 15000,
+      "value": 20000,
       "unit": "faults"
     }
   },

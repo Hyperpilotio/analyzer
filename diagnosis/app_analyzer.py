@@ -121,4 +121,4 @@ class AppAnalyzer(object):
 
 if __name__ == "__main__":
     aa = AppAnalyzer(config)
-    aa.loop_all_app_metrics(1511980800000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+    aa.loop_all_app_metrics(1511980830000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
