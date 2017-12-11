@@ -179,3 +179,6 @@ curl -s -X PUT -d @workloads/interference_management_feature.json -H  "Content-T
 
 # add microservices to an app
 #curl -H "Content-Type: application/json" -X POST localhost:5000/api/apps/$APP_ID/services --data-binary "@workloads/microservices.json"
+
+echo "get all names of pods associated with an app."
+curl -H "Content-Type: application/json" -X GET localhost:5000/api/apps/$APP_ID/pods

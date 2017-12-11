@@ -361,6 +361,21 @@ def create_k8s_service():
         return util.error_response(f"Could not create service: " + str(e), 500)
 
 
+@app.route("/apps/<string:app_id>/pods", methods=["GET"])
+def get_pod_names(app_id):
+    app = configdb[app_collection].find_one({"app_id": app_id})
+    if app is None:
+        return util.ensure_document_found(None)
+    pod_names = []
+    for microservice in app["microservices"]:
+        microservice_doc = configdb[k8s_service_collection].find_one({"service_id":
+                                                                      microservice["service_id"]})
+        if microservice_doc is None:
+            return util.ensure_document_found(None)
+        pod_names.append(microservice_doc["metadata"]["name"])
+    return jsonify(pod_names)
+
+
 @app.route("/apps/<string:app_id>/state", methods=["GET"])
 def get_app_state(app_id):
     app = configdb[app_collection].find_one({"app_id": app_id})
