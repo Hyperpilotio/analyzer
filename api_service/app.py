@@ -35,6 +35,9 @@ BOP = BayesianOptimizerPool()
 APP_STATE = {"REGISTERED": "Registered",
              "UNREGISTERED": "Unregistered",
              "ACTIVE": "Active"}
+FEATURE_NAME = {"INTERFERENCE": "interference_management",
+                "BOTTLENECK": "bottleneck_management",
+                "EFFICIENCY": "efficiency_management"}
 
 
 @app.route("/")
@@ -468,3 +471,65 @@ def get_app_diagnosis():
         return util.ensure_document_found(None)
     diagnosis.pop("_id")
     return util.ensure_document_found(diagnosis)
+
+
+@app.route("/apps/<string:app_id>/management_features", methods=["GET"])
+def get_app_all_features(app_id):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+    if "management_features" not in application:
+        return util.error_response(f"management_features are not found", 400)
+    return util.ensure_document_found(application['management_features'])
+
+
+@app.route("/apps/<string:app_id>/management_features/<string:feature_name>", methods=["GET"])
+def get_app_one_feature(app_id, feature_name):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+    if feature_name != FEATURE_NAME["INTERFERENCE"] and feature_name != FEATURE_NAME["BOTTLENECK"] and feature_name != \
+            FEATURE_NAME["EFFICIENCY"]:
+        return util.error_response(f"{feature_name} is not valid feature name", 400)
+    if "management_features" not in application:
+        return util.error_response(f"management_features is not exist", 400)
+
+    for idx, feature in enumerate(application['management_features']):
+        if feature["name"] == feature_name:
+            break
+        else:
+            idx = -1
+    if idx == -1:
+        return util.error_response(f'{feature_name} is not found', 400)
+    else:
+        return util.ensure_document_found(feature)
+
+
+@app.route("/apps/<string:app_id>/management_features/<string:feature_name>", methods=["PUT"])
+def update_app_features(app_id, feature_name):
+    application = configdb[app_collection].find_one({"app_id": app_id})
+    if application is None:
+        return util.ensure_document_found(None)
+    if feature_name != FEATURE_NAME["INTERFERENCE"] and feature_name != FEATURE_NAME["BOTTLENECK"] and feature_name != \
+            FEATURE_NAME["EFFICIENCY"]:
+        return util.error_response(f"{feature_name} is not valid feature name", 400)
+    if "management_features" not in application:
+        return util.error_response(f"management features do not exist in application {app_id}", 400)
+
+    new_feature = request.get_json()
+    if "name" not in new_feature:
+        return util.error_response(f"name field is not exist in update feature", 400)
+    new_feature_name = new_feature["name"]
+    if new_feature_name != feature_name:
+        return util.error_response(f"Input json does not have the correct feature name", 400)
+
+    for idx, feature in enumerate(application['management_features']):
+        if feature["name"] == feature_name:
+            break
+        else:
+            idx = -1
+    if idx == -1:
+        application['management_features'].append(new_feature)
+    else:
+        application['management_features'][idx] = new_feature
+    return util.update_and_return_doc(app_id, application)
