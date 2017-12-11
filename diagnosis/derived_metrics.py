@@ -121,7 +121,7 @@ class MetricsResults(object):
                                 observation_window, threshold,
                                 threshold_type, threshold_unit)
         if self.is_derived:
-            tags = {"node_name": node_name, "resource_type": resource_type, "deployment_id": self.deployment_id}
+            tags = {"resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_container_metric(self, metric_name, node_name, pod_name, df,
@@ -138,8 +138,7 @@ class MetricsResults(object):
                 metric_name, resource_type, node_name, observation_window,
                 threshold, threshold_type, threshold_unit, pod_name)
         if self.is_derived:
-            tags = {"node_name": node_name, "pod_name": pod_name,
-                    "resource_type": resource_type, "deployment_id": self.deployment_id}
+            tags = {"resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
     def add_metric(self, metric_name, is_container_metric, dfg, resource_type,
