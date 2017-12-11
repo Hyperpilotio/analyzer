@@ -1,0 +1,29 @@
+{
+  "name": "interference_management",
+  "status": "Enabled",
+  "remediation_policy": [
+    { 
+      "action_name": "move_container",
+      "mode": "Full-Auto",
+      "constraints": {
+        "StatelessOnly": true
+      }
+    },
+    { 
+      "action_name": "resize_container",
+      "mode": "Semi-Auto",
+      "constraints": {
+        "MaxPercentUp": 50,
+        "MaxPercentDown": 20
+      }
+    },
+    { 
+      "action_name": "resize_node",
+      "mode": "Manual",
+      "constraints": {
+        "MaxLevelUp": 2,
+        "MaxLevelDown": 1
+      }
+    } 
+  ]
+}
