@@ -190,6 +190,7 @@ class MetricsConsumer(object):
         self.deployment_id = ''
 
     def get_app_metric(self, start_time, end_time, is_derived=True):
+        print("Start processing app metric")
         metric_name = self.app_metric_config["metric"]["name"]
         aggregation = self.app_metric_config["analysis"]["aggregation"]
         self.incident_type = self.app_metric_config["type"]
@@ -231,9 +232,11 @@ class MetricsConsumer(object):
             )
         return df[metric_name]
 
-    def get_raw_metrics(self, start_time, end_time, app_metrics=None):
+    def get_raw_metrics(self, start_time, end_time, app_metric=None):
         metrics_result = MetricsResults(is_derived=False)
-        metrics_result.set_app_metric(app_metrics, self.app_metric_config["metric"]["name"])
+        if app_metric is not None:
+            metrics_result.set_app_metric(app_metric,
+                                          self.app_metric_config["metric"]["name"])
         time_filter = "WHERE time >= %d AND time <= %d" % (start_time, end_time)
 
         for metric_config in self.config:
@@ -283,11 +286,12 @@ class MetricsConsumer(object):
             return metrics_result
 
 
-    def get_derived_metrics(self, start_time, end_time, app_metrics=None):
+    def get_derived_metrics(self, start_time, end_time, app_metric=None):
         derived_metrics_result = MetricsResults(is_derived=True)
-        derived_metrics_result.set_app_metric(app_metrics,
-            self.app_metric_config["metric"]["name"] + "/" + self.app_metric_config["metric"]["type"])
-
+        if app_metric is not None:
+            derived_metrics_result.set_app_metric(app_metric,
+                self.app_metric_config["metric"]["name"] + "/" +
+                self.app_metric_config["metric"]["type"])
         node_metric_keys = "value,nodename,deploymentId"
         container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename,deploymentId"
         time_filter = "WHERE time > %d AND time <= %d" % (start_time, end_time)
@@ -425,8 +429,6 @@ class MetricsConsumer(object):
                 metric_config["resource"], metric_config["observation_window_sec"],
                 metric_config["threshold"]["value"], metric_config["threshold"]["type"],
                 metric_config["threshold"]["unit"])
-
-        print("Start processing app metric")
         return derived_metrics_result
 
 
