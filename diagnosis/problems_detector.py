@@ -48,15 +48,13 @@ class ProblemsDetector(object):
                   (CORRELATION_WINDOW, m.correlation, m.corr_p_value))
             print("Confidence score: " + str(m.confidence_score))
 
-            if i > 3:
-                i += 1
-                continue
-
             problem_id = "problem" + "-" + str(uuid1())
-            diagnosis_doc["top_related_problems"].append(
-                {"id": problem_id,
-                 "rank": str(i),
-                 "remediation_options": []})
+
+            if i < 4:
+                diagnosis_doc["top_related_problems"].append(
+                    {"id": problem_id,
+                     "rank": str(i),
+                     "remediation_options": []})
 
             metric_type = m.metric_name.split("/")[-1]
             metric_name = m.metric_name[:len(
