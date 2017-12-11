@@ -14,9 +14,9 @@
         "unit": "Bps"
     },
     "analysis_result": {
-        "severity": 55.358269,
-        "correlation": 0.864193,
-        "score": 47.840233
+        "severity": 34.207920,
+        "correlation": 0.896319,
+        "score": 30.661223
     },
-    "timestamp": "1511980860000000000"
+    "timestamp": 1511980830000000000
 }
