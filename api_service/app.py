@@ -26,7 +26,7 @@ calibration_collection = my_config.get("ANALYZER", "CALIBRATION_COLLECTION")
 profiling_collection = my_config.get("ANALYZER", "PROFILING_COLLECTION")
 sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
 k8s_service_collection = my_config.get("ANALYZER", "K8S_SERVICE_COLLECTION")
-problems_collection = my_config.get("ANALYZER", "PROBLEMS_COLLECTION")
+problems_collection = my_config.get("ANALYZER", "PROBLEM_COLLECTION")
 diagnoses_collection = my_config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 incidents_collection = my_config.get("ANALYZER", "INCIDENT_COLLECTION")
 

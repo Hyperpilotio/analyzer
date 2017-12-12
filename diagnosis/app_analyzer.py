@@ -1,3 +1,4 @@
+import math
 import time
 import requests
 from collections import namedtuple
@@ -8,21 +9,23 @@ from uuid import uuid1
 from influxdb import InfluxDBClient
 
 from diagnosis.derived_metrics import MetricsConsumer
-from diagnosis.diagnosis import Diagnosis
-from diagnosis.problems_detector import ProblemsDetector
+from diagnosis.features_selector import FeaturesSelector
+from diagnosis.diagnosis_generator import DiagnosisGenerator
 from config import get_config
 from api_service.db import Database
 
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
 INTERVAL = int(config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
+AVERAGE_WINDOW = int(config.get("ANALYZER", "AVERAGE_WINDOW_SECOND"))
 severity_compute_type = config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE")
 if severity_compute_type == "AREA":
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "AREA_THRESHOLD"))
 else:
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
 NANOSECONDS_PER_SECOND = 1000000000
-resultdb = Database(config.get("ANALYZER", "RESULTDB_NAME"))
+RESULTDB = Database(config.get("ANALYZER", "RESULTDB_NAME"))
+incidents_collection = config.get("ANALYZER", "INCIDENT_COLLECTION")
 
 
 class AppAnalyzer(object):
@@ -31,8 +34,8 @@ class AppAnalyzer(object):
         self.metrics_consumer = MetricsConsumer(
             self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"))
-        self.diagnosis = Diagnosis()
-        self.problems_detector = ProblemsDetector(config)
+        self.features_selector = FeaturesSelector(config)
+        self.diagnosis_generator = DiagnosisGenerator(config)
         influx_host = config.get("INFLUXDB", "HOST")
         influx_port = config.get("INFLUXDB", "PORT")
         influx_db = config.get("INFLUXDB", "RESULT_DB_NAME")
@@ -76,18 +79,35 @@ class AppAnalyzer(object):
                                 "threshold": self.metrics_consumer.incident_threshold,
                                 "severity": app_metric_mean["value"],
                                 "timestamp": end_time}
-                resultdb["incidents"].insert_one(incident_doc)
-                selected_metrics = self.diagnosis.process_metrics(derived_metrics)
-                self.write_results(selected_metrics, end_time, self.metrics_consumer.deployment_id)
-                self.problems_detector.detect(selected_metrics,
-                                              self.metrics_consumer.deployment_id,
-                                              app_name, incident_id,
-                                              end_time)
+                RESULTDB[incidents_collection].insert_one(incident_doc)
+
+                filtered_metrics = self.features_selector.process_metrics(derived_metrics)
+                self.write_results(filtered_metrics, end_time, app_name, self.metrics_consumer.deployment_id)
+
+                # Sort top k derived metrics based on conficent score
+                sorted_metrics = sorted(filtered_metrics, key=lambda x: self.convertNaN(
+                                        x.confidence_score), reverse=True)[:10]
+                print("Top related metrics for incident %s for application %s:" %
+                       (incident_id, app_name))
+                self.print_sorted_metrics(sorted_metrics)
+
+                # Identify top problems and generate diagnosis result
+                print("\nStart generating diagnosis for incident %s for application %s:" %
+                       (incident_id, app_name))
+                self.diagnosis_generator.process_features(
+                    sorted_metrics, app_name, incident_id, end_time)
 
             end_time += sliding_interval
             it += 1
 
-    def write_results(self, metrics, end_time, deployment_id):
+
+    def convertNaN(self, value):
+        if math.isnan(value):
+            return 0.0
+        return value
+
+
+    def write_results(self, metrics, end_time, app_name, deployment_id):
         points_json = []
         for metric in metrics:
             point_json = {}
@@ -107,15 +127,34 @@ class AppAnalyzer(object):
                 continue
             point_json["fields"] = fields
             tags = {}
+            tags["app_name"] = app_name
+            tags["deployment_id"] = deployment_id
             tags["resource_type"] = metric.resource_type
             tags["node_name"] = metric.node_name
             tags["pod_name"] = metric.pod_name
-            tags["deployment_id"] = deployment_id
             tags
             point_json["tags"] = tags
             points_json.append(point_json)
 
         self.influx_client.write_points(points_json)
+
+
+    def print_sorted_metrics(self, sorted_metrics):
+
+        i = 1
+        for m in sorted_metrics:
+            print("Rank: " + str(i))
+            print("Metric name: " + m.metric_name)
+            print("Node name: " + m.node_name)
+            print("Pod name: " + str(m.pod_name))
+            print("Resource type: " + str(m.resource_type))
+            print("Average severity (over last %d seconds): %f" %
+                  (AVERAGE_WINDOW, m.average))
+            print("Correlation (over last %s seconds): %f, p-value: %.2g" %
+                  (WINDOW, m.correlation, m.corr_p_value))
+            print("Confidence score: " + str(m.confidence_score))
+
+            i += 1
 
 
 if __name__ == "__main__":

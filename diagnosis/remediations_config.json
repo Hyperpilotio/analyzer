@@ -1,0 +1,78 @@
+[
+  {
+    "problem_type": "node_resource_bottleneck",
+    "resource": [],
+    "remediation_options": [
+      {
+        "action": "upgrade_node",
+        "metadata": {
+          "node_name": ""
+        },
+        "spec": {
+          "level_inc": 1
+        }
+      }
+    ]
+  },
+  {
+    "problem_type": "container_interference",
+    "resource": [],
+    "remediation_options": [
+      {
+        "action": "move_pod",
+        "metadata": {
+          "pod_name": ""
+        },
+        "spec": {
+          "source_node": "",
+          "destination_node": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
+        }
+      },
+      {
+        "action": "throttle_container",
+        "metadata": {
+          "pod_name": ""
+        },
+        "spec": {
+          "resource_limit_ratio": 0.8
+        }
+      }
+    ]
+  },
+  {
+    "problem_type": "container_over_utilization",
+    "resource": [
+      "cpu",
+      "memory"
+    ],
+    "remediation_options": [
+      {
+        "action": "upsize_container",
+        "metadata": {
+          "pod_name": ""
+        },
+        "spec": {
+          "resource_request_ratio": 1.2
+        }
+      }
+    ]
+  },
+  {
+    "problem_type": "container_over_utilization",
+    "resource": [
+      "network",
+      "diskio"
+    ],
+    "remediation_options": [
+      {
+        "action": "upgrade_node",
+        "metadata": {
+          "node_name": ""
+        },
+        "spec": {
+          "level_inc": 1
+        }
+      }
+    ]
+  }
+]
