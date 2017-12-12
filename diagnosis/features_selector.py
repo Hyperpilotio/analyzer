@@ -1,7 +1,6 @@
 import time
 from collections import namedtuple
 
-
 from diagnosis.derived_metrics import MetricsResults
 from config import get_config
 from logger import get_logger
@@ -16,8 +15,9 @@ SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
 
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
-class Diagnosis(object):
-    def __init__(self):
+class FeaturesSelector(object):
+    def __init__(self, config):
+        self.config = config
         if config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE") == "AREA":
             self.average_threshold = float(config.get("ANALYZER", "AREA_THRESHOLD"))
         else:
