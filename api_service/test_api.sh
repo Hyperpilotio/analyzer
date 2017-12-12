@@ -141,7 +141,7 @@ curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "
 echo "get by name & interval, return empty array if no result"
 curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1511980830000000000, "end_time":1511980850000000000}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/v1/diagnoses | jq -c .
 
-mongoimport --db resultdb --collection diagnoses --drop --file ./workloads/diagnosis.json
+mongoimport --db resultdb --collection diagnoses --drop --file ./workloads/diagnoses.json
 echo "after add 2 document"
 echo "get by name: find most recent one"
 curl -s -X GET -d '{"app_name":"tech-demo"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/v1/diagnoses | jq -c .
@@ -209,5 +209,10 @@ curl -s -X PUT -d @workloads/interference_management_feature.json -H  "Content-T
 # add microservices to an app
 #curl -H "Content-Type: application/json" -X POST localhost:5000/api/v1/apps/$APP_ID/services --data-binary "@workloads/microservices.json"
 
+echo
+echo "================================"
+echo "test get pod API"
+echo "================================"
+echo
 echo "get all names of pods associated with an app."
-curl -H "Content-Type: application/json" -X GET localhost:5000/api/v1/apps/$APP_ID/pods
+curl -s -H "Content-Type: application/json" -X GET localhost:5000/api/v1/apps/$APP_ID/pods | jq -c .
