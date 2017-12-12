@@ -71,6 +71,7 @@ class DiagnosisGenerator(object):
             problem_doc = self.find_same_problem(problems, problem_description)
             if problem_doc: # problem already exists 
                 problem_doc["metrics"].append(metric_doc)
+                problem_doc["overall_score"] = max(problem_doc["overall_score"], m.confidence_score)
             elif len(problems) == 3:
                 continue
             else: # add a new problem
@@ -78,6 +79,7 @@ class DiagnosisGenerator(object):
                 problem_doc = {"problem_id": problem_id,
                                "description": problem_description,
                                "metrics": [],
+                               "overall_score": m.confidence_score,
                                "timestamp": timestamp}
                 problem_doc["metrics"].append(metric_doc)
                 problems.append(problem_doc)
