@@ -120,6 +120,4 @@ class Diagnosis(object):
                 matched_data.append(NaN)
             else:
                 matched_data.append(mean(bucket_data))
-        if len(matched_data) != len(time_buckets):
-            print("we have a problem.")
         return pd.DataFrame(data=matched_data, index=time_buckets)
