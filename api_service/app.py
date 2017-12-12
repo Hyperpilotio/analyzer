@@ -465,12 +465,12 @@ def get_problems_interval():
         end_ts = req["end_time"]
 
     if end_ts < start_ts:
-        return util.error_response(f"end_time less than start_time", 400)
+        return util.error_response(f"end_time is before start_time", 400)
 
     problems = resultdb[problems_collection].find(
         {"$and": [
             {"timestamp": {"$gte": start_ts}},
-            {"timestamp": {"$lt": end_ts}}]},
+            {"timestamp": {"$lte": end_ts}}]},
         {"_id": 0}
     )
     return util.ensure_document_found(problems)
@@ -503,11 +503,11 @@ def get_app_diagnoses():
         start_ts = request_json["start_time"]
         end_ts = request_json["end_time"]
         if end_ts < start_ts:
-            return util.error_response(f"end_time less than start_time", 400)
+            return util.error_response(f"end_time is before the start_time", 400)
         diagnosis = resultdb[diagnoses_collection]. \
             find({"$and": [{"app_name": request_json["app_name"]},
                            {"timestamp": {"$gte": start_ts}},
-                           {"timestamp": {"$lt": end_ts}}]},
+                           {"timestamp": {"$lte": end_ts}}]},
                  {"_id": 0}
                  )
     return util.ensure_document_found(diagnosis)

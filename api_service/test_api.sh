@@ -139,7 +139,7 @@ curl -s -X GET -d '{"app_name":"tech-demo"}' -H "Content-Type: application/json"
 echo "get by name & incident_id, return error if no result"
 curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
 echo "get by name & interval, return empty array if no result"
-curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1510000000000000000, "end_time":1520000000000000000}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1511980830000000000, "end_time":1511980850000000000}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
 
 mongoimport --db resultdb --collection diagnoses --drop --file ./workloads/diagnosis.json
 echo "after add 2 document"
@@ -148,7 +148,7 @@ curl -s -X GET -d '{"app_name":"tech-demo"}' -H "Content-Type: application/json"
 echo "get criteria app_name=tech-demo, incident_id=incident-0002"
 curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
 echo "get by name & interval"
-curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1510000000000000000, "end_time":1520000000000000000}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
+curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1511980830000000000, "end_time":1511980850000000000}' -H "Content-Type: application/json"  http://127.0.0.1:5000/api/diagnoses | jq -c .
 
 
 
