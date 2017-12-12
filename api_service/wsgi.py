@@ -4,5 +4,5 @@ from api_service.app import app as api_service_app
 
 
 app = DispatcherMiddleware(Flask(__name__), {
-    "/api": api_service_app,
+    "/api/v1": api_service_app,
 })
