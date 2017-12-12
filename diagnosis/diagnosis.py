@@ -6,7 +6,7 @@ from diagnosis.derived_metrics import MetricsResults
 from config import get_config
 from logger import get_logger
 import pandas as pd
-from numpy import NaN
+from numpy import NaN, mean
 from scipy.stats.stats import pearsonr
 
 config = get_config()
@@ -98,30 +98,25 @@ class Diagnosis(object):
         return metric_results
 
     def match_timestamps(self, time_buckets, df):
-        """ Grab one measurement value for each sampling interval. """
+        """ Get the average for a measurement value for each sampling interval. """
         matched_data = []
         timestamps = df.index
         i = 0
         for time_bucket in time_buckets:
-            missing = True
+            bucket_data = []
             while True:
                 if i >= len(timestamps) - 1:
                     break
                 ts = timestamps[i]
                 if ts < time_bucket + pd.Timedelta(seconds=SAMPLE_INTERVAL) and ts >= time_bucket:
-                    missing = False
-                    # the logic below applies when the database wrote multiple values for the same time.
-                    if type(df.loc[ts]['value']) == pd.Series:
-                        matched_data.append(df.loc[ts]['value'].iloc[0])
-
-                    else:
-                        matched_data.append(df.loc[ts]['value'])
+                    bucket_data.append(df.loc[ts]['value'])
                     i += 1
-                    break
                 elif ts >= time_bucket + pd.Timedelta(seconds=SAMPLE_INTERVAL):
                     break
-                else:
-                    i += 1
-            if missing:
+            if not bucket_data:
                 matched_data.append(NaN)
+            else:
+                matched_data.append(mean(bucket_data))
+        if len(matched_data) != len(time_buckets):
+            print("we have a problem.")
         return pd.DataFrame(data=matched_data, index=time_buckets)
