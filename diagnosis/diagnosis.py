@@ -113,6 +113,9 @@ class Diagnosis(object):
                     i += 1
                 elif ts >= time_bucket + pd.Timedelta(seconds=SAMPLE_INTERVAL):
                     break
+                else:
+                    # the timestamp is before the bucket.
+                    i += 1
             if not bucket_data:
                 matched_data.append(NaN)
             else:
