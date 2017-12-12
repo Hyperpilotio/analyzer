@@ -113,7 +113,7 @@
     },
     {
       "rank": 3,
-      "id": "problem-0003",
+      "id": "problem-0004",
       "remediation_options": [
         {
           "action": "resize_container",

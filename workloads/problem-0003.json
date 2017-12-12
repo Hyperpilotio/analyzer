@@ -1,23 +1,23 @@
 {
     "problem_id": "problem-0003",
-    "type": "over_utilization",
+    "type": "resource_bottleneck",
     "labels": {
-        "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq",
-        "pod_name": "spark-worker2-1465037909-f763z"
+        "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb90",
+        "pod_name": "spark-worker3-3703344290-7sb9v"
     },
     "metric": {
-        "name": "intel/docker/stats/cgroups/cpu_stats/cpu_usage/user_mode",
-        "type": "cpu"
+        "name": "intel/docker/stats/cgroups/blkio_stats/io_service_bytes_recursive/value",
+        "type": "diskio"
     },
     "threshold": {
         "type": "UB",
-        "value": 160,
-        "unit": "percent"
+        "value": 10000000,
+        "unit": "Bps"
     },
     "analysis_result": {
-        "severity": 22.686258,
-        "correlation": 0.916467,
-        "score": 20.791207
+        "severity": 23.351034,
+        "correlation": 0.875508,
+        "score": 20.444023
     },
     "timestamp": 1511980860000000000
 }
