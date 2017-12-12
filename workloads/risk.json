@@ -1,0 +1,24 @@
+{
+	"id": "risk-0001",
+	"rank": 1,
+	"description": {
+		"type": "node_over_utilization",
+		"node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb9",
+		"resource": "memory"
+	},
+	"metrics": [{
+		"name": "intel/procfs/meminfo/mem_free_perc",
+		"threshold": {
+			"type": "LB",
+			"value": 10,
+			"unit": "percent"
+		},
+		"analysis_result": {
+			"severity": 65.5,
+			"correlation": 0.78,
+			"score": 58.5
+		}
+	}],
+	"overall_score": 58.5,
+	"timestamp": 1511980830000000000
+}
