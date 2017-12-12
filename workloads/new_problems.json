@@ -1,7 +1,7 @@
 [
   {
     "problem_id": "problem-0001",
-    "descroption": {
+    "description": {
       "type": "node_resource_bottleneck",
       "resource": "network",
       "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
@@ -40,7 +40,7 @@
   {
     "problem_id": "problem-0002",
     "description": {
-      "type": "container_over_utilization",
+      "type": "container_interference",
       "resource": "diskio",
       "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq",
       "pod_name": "spark-worker2-1465037909-f763z"
