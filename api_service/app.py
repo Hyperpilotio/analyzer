@@ -368,10 +368,12 @@ def get_pod_names(app_id):
         return util.ensure_document_found(None)
     pod_names = []
     for microservice in app["microservices"]:
+        service_id = microservice["service_id"]
         microservice_doc = configdb[k8s_service_collection].find_one({"service_id":
-                                                                      microservice["service_id"]})
+                                                                      service_id})
         if microservice_doc is None:
-            return util.ensure_document_found(None)
+            return util.error_response("Microservice with id %s not found" %
+                                       service_id, 400)
         pod_names += microservice_doc["pods"]
     return jsonify(pod_names)
 
