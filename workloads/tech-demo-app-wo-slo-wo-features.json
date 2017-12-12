@@ -21,17 +21,5 @@
     }
   ],
   "type": "long-running",
-  "management_features": [
-    {
-      "name": "interference_management",
-      "status": "Enabled",
-      "remediation_policy": []
-    },
-    {
-      "name": "bottleneck_management",
-      "status": "Enabled",
-      "remediation_policy": []
-    }
-  ],
   "state": "Registered"
 }
