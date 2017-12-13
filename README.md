@@ -1,4 +1,4 @@
-# analyzer
+# Analyzer
 Analyzer performs interference prediction and validation and visualizes the data.
 
 #### Usage:
@@ -16,7 +16,7 @@ Analyzer performs interference prediction and validation and visualizes the data
 		make docker-test
 		
 #### Configuration:
-configuration file is located in 'config.ini'
+Configuration file is located in 'config.ini'
 
 	
 #### Prerequisite:
@@ -36,20 +36,38 @@ then connect to: [http://localhost:5000/api](http://localhost:5000/api)
 Please install Python 3.6.1 or later if you see the message from running `make init` saying that the Python version is outdated.
 
 
+# Diagnosis
+Diagnosis is our end-to-end node and container problem detection product.
 
-### Running correlation coefficient calculation from influxdb data
+#### Configuration:
+Configuration file is located in 'config.ini'
 
-`pipenv shell`
+#### Requirements:
+1. Analyzer API and pipenv
 
-[run mongod and influxd]
+- Follow instruction for setting up pipenv. (https://github.com/Hyperpilotio/analyzer/blob/master/api_service/README.md)
 
-`cd mongo-service/`
+- After running
+	`pipenv shell`
 
-#### initialize mongo:
-`mongo -u admin -p hyperpilot create-dbuser.js` (Drop users specified in create-dbuser.js from databases if they already exist in mongo instance.)
+	run the API from the analyzer directory with
+	`make dev` 
 
-`cd ../`
-#### main driver:
-`python3 -u -m diagnosis.metric_consumer`
+2. Influx
 
-Results will be written to the resultdb correlations collection in mongo. 
+- Install influx and run the server using the command `influxd`.
+
+- Install and configure aws. After installation, run
+	`aws configure` and use the shared amazon s3 credentials here: (https://github.com/Hyperpilotio/hyperpilot-demo/wiki)
+
+- From the hyperpilot-demo repo, run 
+	`/hyperpilot_influx_restore.sh -n {name_of_backup_file}` to restore a snapshot uploaded to s3 to your local influx.
+
+3. Mongo
+- Install and run server with `mongod`.
+
+- From the mongo_service directory, run `mongo create_user.js`. 
+
+#### Running the analysis:
+- From the analyzer directory (with the API, influxd, mongod and activated pipenv) run `python -u -m diagnosis.app_analyzer`
+- Derived metrics and diagnosis results will be written to new influx databases. Problems and other diagnosis-related collections will be written to mongo. 
