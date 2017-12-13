@@ -2,7 +2,7 @@
 
 API_SERVER=localhost
 API_PORT=5000
-API_ROOT=/api/v1/
+API_ROOT=/api/v1
 API_BASE_ENDPOINT="${API_SERVER}:${API_PORT}${API_ROOT}"
 
 echo ${API_BASE_ENDPOINT}
@@ -128,8 +128,8 @@ curl -s -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  ${
 FIVEMINAGO=$(date -v-5M "+%Y-%m-%d  %H:%M:%S")
 CURRENT=$(date  "+%Y-%m-%d  %H:%M:%S")
 echo "get problems using default interval current (${CURRENT}) and pass 5 min (${FIVEMINAGO})"
-curl -s -X GET  ${API_BASE_ENDPOINT}/problems/problems | jq -c .
-curl -s -X GET -d '{"start_time":1510000000000000000}' -H  "Content-Type: application/json" ${API_BASE_ENDPOINT}/problems/problems | jq -c .
+curl -s -X GET  ${API_BASE_ENDPOINT}/problems | jq -c .
+curl -s -X GET -d '{"start_time":1510000000000000000}' -H  "Content-Type: application/json" ${API_BASE_ENDPOINT}/problems | jq -c .
 echo "get problems using interval 1511980850000000000 and 1511980860000000000"
 curl -s -X GET -d '{"start_time":1511980850000000000, "end_time":1511980860000000000}' -H  "Content-Type: application/json" ${API_BASE_ENDPOINT}/problems | jq -c .
 
@@ -223,3 +223,32 @@ echo "================================"
 echo
 echo "get all names of pods associated with an app."
 curl -s -H "Content-Type: application/json" -X GET ${API_BASE_ENDPOINT}/apps/$APP_ID/pods | jq -c .
+
+
+echo
+echo "================================"
+echo "test risk API"
+echo "================================"
+echo
+echo "get risks before add use default interval"
+curl -s -X GET  ${API_BASE_ENDPOINT}/risks | jq -c
+echo "add risk-1 with timestamp 1511980830000000000"
+curl -s -X POST -d @workloads/risk.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
+echo "add risk-2 with timestamp 1511980330000000000"
+curl -s -X POST -d @workloads/risk-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
+echo "get risks with interval 1511980330000000000 & 1511980530000000000"
+curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/risks | jq -c
+
+echo
+echo "================================"
+echo "test opportunity API"
+echo "================================"
+echo
+echo "get opportunity before add use default interval"
+curl -s -X GET  ${API_BASE_ENDPOINT}/opportunities | jq -c
+echo "add opportunity-1 with timestamp 1511980830000000000"
+curl -s -X POST -d @workloads/opportunity.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
+echo "add opportunity-2 with timestamp 1511980330000000000"
+curl -s -X POST -d @workloads/opportunity-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
+echo "get opportunities with interval 1511980330000000000 & 1511980530000000000"
+curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/opportunities | jq -c

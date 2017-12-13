@@ -1,0 +1,25 @@
+{
+  "id": "opportunity-0001",
+  "description": {
+    "type": "node_under_utilization",
+    "node_name": "nodename-xxxxxxxx-xxxx",
+    "resource": "cpu"
+  },
+  "metrics": [
+    {
+        "name": "intel/procfs/cpu/utilization_percentage",
+        "threshold": {
+            "type": "LB",
+            "value": 30,
+            "unit": "percent"
+        },
+        "analysis_result": {
+            "severity": 46.78,
+            "correlation": 0.82,
+            "score": 38.36
+        }
+    }
+  ],
+  "overall_score": 38.36,
+  "timestamp": 1511980330000000000
+}
