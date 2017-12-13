@@ -1,22 +1,38 @@
 {
-    "problem_id": "problem-0001",
-    "type": "resource_bottleneck",
-    "labels": {
-        "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
-    },
-    "metric": {
-        "name": "intel/psutil/net/all/bytes_recv",
-        "type": "network"
-    },
-    "threshold": {
+  "problem_id": "problem-0001",
+  "description": {
+    "type": "node_resource_bottleneck",
+    "resource": "network",
+    "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
+  },
+  "metrics": [
+    {
+      "name": "intel/psutil/net/all/bytes_recv",
+      "threshold": {
         "type": "UB",
         "value": 10000000,
         "unit": "Bps"
-    },
-    "analysis_result": {
-        "severity": 34.207920,
+      },
+      "analysis_result": {
+        "severity": 34.20792,
         "correlation": 0.896319,
         "score": 30.661223
+      }
     },
-    "timestamp": 1511980860000000000
+    {
+      "name": "intel/psutil/net/all/bytes_sent",
+      "threshold": {
+        "type": "UB",
+        "value": 20000000,
+        "unit": "Bps"
+      },
+      "analysis_result": {
+        "severity": 30.327792,
+        "correlation": 0.890311,
+        "score": 27.001164
+      }
+    }
+  ],
+  "overall_score": 30.661223,
+  "timestamp": 1511980830000000000
 }

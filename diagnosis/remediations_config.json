@@ -9,7 +9,7 @@
           "node_name": ""
         },
         "spec": {
-          "level_inc": 1
+          "level_up": 1
         }
       }
     ]
@@ -25,7 +25,7 @@
         },
         "spec": {
           "source_node": "",
-          "destination_node": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
+          "destination_node": ""
         }
       },
       {
@@ -34,7 +34,7 @@
           "pod_name": ""
         },
         "spec": {
-          "resource_limit_ratio": 0.8
+          "resource_limits_ratio": 0.8
         }
       }
     ]
@@ -52,7 +52,7 @@
           "pod_name": ""
         },
         "spec": {
-          "resource_request_ratio": 1.2
+          "resource_requests_ratio": 1.2
         }
       }
     ]
@@ -70,7 +70,7 @@
           "node_name": ""
         },
         "spec": {
-          "level_inc": 1
+          "level_up": 1
         }
       }
     ]

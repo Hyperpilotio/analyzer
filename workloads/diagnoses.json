@@ -37,11 +37,7 @@
             "pod_name": "spark-worker2-1465037909-f763z"
           },
           "spec": {
-            "resources": {
-              "limits": {
-                "cpu": "1600m"
-              }
-            }
+            "resources_limits_cpu": "1600m"
           }
         }
       ]
@@ -66,7 +62,7 @@
             "pod_name": "spark-worker2-1465037909-f763z"
           },
           "spec": {
-            "resource_limit_ratio": 0.8
+            "resources_limits_cpu": "1600m"
           }
         }
       ]
