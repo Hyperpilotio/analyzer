@@ -1,22 +1,26 @@
 {
-    "problem_id": "problem-0002",
-    "type": "resource_bottleneck",
-    "labels": {
-        "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
-    },
-    "metric": {
-        "name": "intel/psutil/net/all/bytes_sent",
-        "type": "network"
-    },
-    "threshold": {
+  "problem_id": "problem-0002",
+  "description": {
+    "type": "container_interference",
+    "resource": "diskio",
+    "node_name": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb90",
+    "pod_name": "spark-worker3-3703344290-7sb9v"
+  },
+  "metrics": [
+    {
+      "name": "intel/docker/stats/cgroups/blkio_stats/io_service_bytes_recursive/value",
+      "threshold": {
         "type": "UB",
-        "value": 20000000,
+        "value": 10000000,
         "unit": "Bps"
-    },
-    "analysis_result": {
-        "severity": 30.327792,
-        "correlation": 0.890311,
-        "score": 27.001164
-    },
-    "timestamp": 1511980860000000000
+      },
+      "analysis_result": {
+        "severity": 23.351034,
+        "correlation": 0.875508,
+        "score": 20.444023
+      }
+    }
+  ],
+  "overall_score": 20.444023,
+  "timestamp": 1511980830000000000
 }

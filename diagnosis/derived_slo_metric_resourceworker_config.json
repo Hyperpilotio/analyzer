@@ -1,0 +1,22 @@
+{
+    "type": "SLO_violation",
+    "metric": {
+        "name": "hyperpilot/prometheus",
+        "type": "latency",
+        "tags": [
+            {
+                "key": "summary",
+                "value": "quantile_75"
+            }
+        ]
+    },
+    "threshold": {
+        "type": "UB",
+        "value": 0.000319641,
+	"unit": "seconds"
+    },
+    "analysis": {
+	"aggregation": "max",
+        "observation_window_sec": 60
+    }
+}
