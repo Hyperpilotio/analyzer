@@ -236,6 +236,8 @@ echo "add risk-1 with timestamp 1511980830000000000"
 curl -s -X POST -d @workloads/risk.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
 echo "add risk-2 with timestamp 1511980330000000000"
 curl -s -X POST -d @workloads/risk-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
+echo "add risk-2 again: should be error"
+curl -s -X POST -d @workloads/risk-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
 echo "get risks with interval 1511980330000000000 & 1511980530000000000"
 curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/risks | jq -c
 
@@ -249,6 +251,8 @@ curl -s -X GET  ${API_BASE_ENDPOINT}/opportunities | jq -c
 echo "add opportunity-1 with timestamp 1511980830000000000"
 curl -s -X POST -d @workloads/opportunity.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
 echo "add opportunity-2 with timestamp 1511980330000000000"
+curl -s -X POST -d @workloads/opportunity-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
+echo "add opportunity again: should be error"
 curl -s -X POST -d @workloads/opportunity-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
 echo "get opportunities with interval 1511980330000000000 & 1511980530000000000"
 curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/opportunities | jq -c

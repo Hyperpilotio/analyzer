@@ -373,7 +373,7 @@ def get_pod_names(app_id):
     for microservice in app["microservices"]:
         service_id = microservice["service_id"]
         microservice_doc = configdb[k8s_service_collection].find_one({"service_id":
-                                                                          service_id})
+                                                                      service_id})
         if microservice_doc is None:
             return util.error_response("Microservice with id %s not found" %
                                        service_id, 400)
@@ -624,7 +624,13 @@ def add_risks():
         return util.error_response(f"risk data is no available", 400)
     if "id" not in req:
         return util.error_response(f"risk id is not found", 400)
+    risks = resultdb[risks_collection].find_one(
+        {"id": req["id"]},
+        {"_id": 0}
+    )
     risk_id = req["id"]
+    if risks is not None:
+        return util.error_response(f"risk with id {risk_id} already exist", 400)
     try:
         resultdb[risks_collection].insert_one(req)
         return util.ensure_document_found({"risk_id": risk_id})
@@ -660,7 +666,15 @@ def add_opportunities():
         return util.error_response(f"opportunities data is no available", 400)
     if "id" not in opportunity_json:
         return util.error_response(f"opportunity id is not found", 400)
+
+    opportunities = resultdb[opportunities_collection].find_one(
+        {"id": opportunity_json["id"]},
+        {"_id": 0}
+    )
     opportunity_id = opportunity_json["id"]
+
+    if opportunities is not None:
+        return util.error_response(f"opportunity with id {opportunity_id} already exist", 400)
     try:
         resultdb[opportunities_collection].insert_one(opportunity_json)
         return util.ensure_document_found({"opportunity_id": opportunity_id})
