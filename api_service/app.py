@@ -29,6 +29,8 @@ k8s_service_collection = my_config.get("ANALYZER", "K8S_SERVICE_COLLECTION")
 problems_collection = my_config.get("ANALYZER", "PROBLEM_COLLECTION")
 diagnoses_collection = my_config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 incidents_collection = my_config.get("ANALYZER", "INCIDENT_COLLECTION")
+risks_collection = my_config.get("ANALYZER", "RISK_COLLECTION")
+opportunities_collection = my_config.get("ANALYZER", "OPPORTUNITY_COLLECTION")
 
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
@@ -613,3 +615,89 @@ def add_app_features(app_id):
 
     features = request.get_json()
     return util.update_and_return_doc(app_id, {"management_features": features})
+
+
+@app.route("/risks", methods=["POST"])
+def add_risks():
+    req = request.get_json()
+    if req is None:
+        return util.error_response(f"risk data is no available", 400)
+    if "id" not in req:
+        return util.error_response(f"risk id is not found", 400)
+    risks = resultdb[risks_collection].find_one(
+        {"id": req["id"]},
+        {"_id": 0}
+    )
+    risk_id = req["id"]
+    if risks is not None:
+        return util.error_response(f"risk with id {risk_id} already exist", 400)
+    try:
+        resultdb[risks_collection].insert_one(req)
+        return util.ensure_document_found({"risk_id": risk_id})
+    except InvalidOperation:
+        return util.error_response(f"Could not create risk {risk_id}.", 400)
+
+
+@app.route("/risks", methods=["GET"])
+def get_risks():
+    req = request.get_json()
+    if req is None or ("start_time" not in req or "end_time" not in req):
+        end_ts = round(time.time()) * 1000000000
+        start_ts = end_ts - 5 * 60 * 1000000000
+    else:
+        start_ts = req["start_time"]
+        end_ts = req["end_time"]
+
+    if end_ts < start_ts:
+        return util.error_response(f"end_time is before the start_time", 400)
+
+    risks = resultdb[risks_collection]. \
+        find({"$and": [{"timestamp": {"$gte": start_ts}},
+                       {"timestamp": {"$lte": end_ts}}]},
+             {"_id": 0}
+             )
+    return util.ensure_document_found(risks)
+
+
+@app.route("/opportunities", methods=["POST"])
+def add_opportunities():
+    opportunity_json = request.get_json()
+    if opportunity_json is None:
+        return util.error_response(f"opportunities data is no available", 400)
+    if "id" not in opportunity_json:
+        return util.error_response(f"opportunity id is not found", 400)
+
+    opportunities = resultdb[opportunities_collection].find_one(
+        {"id": opportunity_json["id"]},
+        {"_id": 0}
+    )
+    opportunity_id = opportunity_json["id"]
+
+    if opportunities is not None:
+        return util.error_response(f"opportunity with id {opportunity_id} already exist", 400)
+    try:
+        resultdb[opportunities_collection].insert_one(opportunity_json)
+        return util.ensure_document_found({"opportunity_id": opportunity_id})
+    except InvalidOperation:
+        return util.error_response(f"Could not create opportunity {opportunity_id}.", 400)
+    return util.ensure_document_found(None)
+
+
+@app.route("/opportunities", methods=["GET"])
+def get_opportunities():
+    req = request.get_json()
+    if req is None or ("start_time" not in req or "end_time" not in req):
+        end_ts = round(time.time()) * 1000000000
+        start_ts = end_ts - 5 * 60 * 1000000000
+    else:
+        start_ts = req["start_time"]
+        end_ts = req["end_time"]
+
+    if end_ts < start_ts:
+        return util.error_response(f"end_time is before the start_time", 400)
+    opportunities = resultdb[opportunities_collection]. \
+        find({"$and": [{"timestamp": {"$gte": start_ts}},
+                       {"timestamp": {"$lte": end_ts}}]},
+             {"_id": 0}
+             )
+    return util.ensure_document_found(opportunities)
