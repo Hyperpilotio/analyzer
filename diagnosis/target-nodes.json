@@ -1,0 +1,5 @@
+{
+  "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb90",
+  "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-lb90": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-mj60",
+  "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-mj60": "gke-tech-demo-7120d3e9-default-pool-0f79d9e0-dlbq"
+}

@@ -10,9 +10,9 @@ TIMEOUT_WINDOW = int(config.get(
     "ANALYZER", "DIAGNOSIS_TIMEOUT_WINDOW_SECOND"))
 problems_collection = config.get("ANALYZER", "PROBLEM_COLLECTION")
 diagnoses_collection = config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
-pods_json_file = "./diagnosis/tech-demo-pods.json"
 remediations_config = config.get("ANALYZER", "REMEDIATIONS_CONFIG")
-
+pods_json_file = "./diagnosis/tech-demo-pods.json"
+target_nodes_config = "./diagnosis/target-nodes.json"
 
 class DiagnosisGenerator(object):
     def __init__(self, config):
@@ -93,6 +93,9 @@ class DiagnosisGenerator(object):
         with open(remediations_config) as json_data:
             remed_configs = json.load(json_data)
        
+        with open(target_nodes_config) as json_data:
+            target_nodes = json.load(json_data)
+
         problem_type = problem["description"]["type"]
         resource_type = problem["description"]["resource"]
         remed_options = []
@@ -107,7 +110,9 @@ class DiagnosisGenerator(object):
                             option["metadata"][k] = problem["description"][k]
 
                         if "source_node" in option["spec"]:
-                            option["spec"]["source_node"] = problem["description"]["node_name"]
+                            my_node_name = problem["description"]["node_name"]
+                            option["spec"]["source_node"] = my_node_name
+                            option["spec"]["destination_node"] = target_nodes[my_node_name]
 
         return remed_options
 
