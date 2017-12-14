@@ -121,7 +121,7 @@ class DiagnosisGenerator(object):
 
         # Construct top three problems from the top k metrics 
         problems = self.map_problems(sorted_metrics, timestamp) 
-        print("Top three problems found:\n", problems)
+        print("Top problems found:\n", problems)
         if problems:
             resultdb[problems_collection].insert(problems)
       

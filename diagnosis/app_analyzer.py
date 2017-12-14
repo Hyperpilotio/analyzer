@@ -46,7 +46,7 @@ class AppAnalyzer(object):
             config.get("INFLUXDB", "USER"),
             config.get("INFLUXDB", "PASSWORD"),
             influx_db)
-        self.influx_client.create_retention_policy('result_policy', '2w', 1, default=True)
+        self.influx_client.create_retention_policy('result_policy', '3w', 1, default=True)
 
     def loop_all_app_metrics(self, end_time, batch_window, sliding_interval):
         it = 1
@@ -160,3 +160,4 @@ class AppAnalyzer(object):
 if __name__ == "__main__":
     aa = AppAnalyzer(config)
     aa.loop_all_app_metrics(1511980830000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+    #aa.loop_all_app_metrics(1513062600000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
