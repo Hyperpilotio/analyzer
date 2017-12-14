@@ -119,9 +119,14 @@ echo "======================"
 echo
 echo "problem is not added: should be error"
 curl -s -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  ${API_BASE_ENDPOINT}/problems/problem-0001 | jq -c .
-echo "add 3 problems: timestamp are 1511980860000000000 & 1511980860000000000 & 1511980830000000000"
-echo "equal to 2017/11/6/12:26:40 GMT-08:00 & 2018/3/2/06:13:20 GMT-08:00 & 2018/6/26/01:00:00 GMT-07:00"
-mongoimport --db resultdb --collection problems --drop --file ./workloads/3-problems.json
+echo "add problem-0001 with timestamp 1511980830000000000"
+curl -s -X POST -d @workloads/problem-0001.json -H  "Content-Type: application/json"  ${API_BASE_ENDPOINT}/problems | jq -c .
+echo "add problem-0001 again: should be error"
+curl -s -X POST -d @workloads/problem-0001.json -H  "Content-Type: application/json"  ${API_BASE_ENDPOINT}/problems | jq -c .
+echo "add problem-0002 with timestamp 1511980830000000000"
+curl -s -X POST -d @workloads/problem-0002.json -H  "Content-Type: application/json"  ${API_BASE_ENDPOINT}/problems | jq -c .
+echo "add problem-0003 with timestamp 1511980860000000000"
+curl -s -X POST -d @workloads/problem-0003.json -H  "Content-Type: application/json"  ${API_BASE_ENDPOINT}/problems | jq -c .
 echo "get problem-0001 after 3 problems are added"
 curl -s -X GET -d '{"app":"tech-demo"}' -H  "Content-Type: application/json"  ${API_BASE_ENDPOINT}/problems/problem-0001 | jq -c .
 
@@ -148,8 +153,12 @@ curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "
 echo "get by name & interval, return empty array if no result"
 curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1511980830000000000, "end_time":1511980850000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/diagnoses | jq -c .
 
-mongoimport --db resultdb --collection diagnoses --drop --file ./workloads/diagnoses.json
-echo "after add 2 document"
+echo "add diagnosis for tech-demo has incident-0001 with timestamp  1511980830000000000"
+curl -s -X POST -d @workloads/diagnoses.json -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/diagnoses
+echo "add diagnosis for tech-demo has incident-0001 again: should be error"
+curl -s -X POST -d @workloads/diagnoses.json -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/diagnoses
+echo "add diagnosis for tech-demo has incident-0002 with timestamp  1511980860000000000"
+curl -s -X POST -d @workloads/diagnoses-2.json -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/diagnoses
 echo "get by name: find most recent one"
 curl -s -X GET -d '{"app_name":"tech-demo"}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/diagnoses | jq -c .
 echo "get criteria app_name=tech-demo, incident_id=incident-0002"
@@ -157,6 +166,7 @@ curl -s -X GET -d '{"app_name":"tech-demo", "incident_id":"incident-0002"}' -H "
 echo "get by name & interval"
 curl -s -X GET -d '{"app_name":"tech-demo", "start_time":1511980830000000000, "end_time":1511980850000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/diagnoses | jq -c .
 
+return
 
 echo
 echo "================================"
@@ -231,15 +241,15 @@ echo "test risk API"
 echo "================================"
 echo
 echo "get risks before add use default interval"
-curl -s -X GET  ${API_BASE_ENDPOINT}/risks | jq -c
+curl -s -X GET  ${API_BASE_ENDPOINT}/risks | jq -c .
 echo "add risk-1 with timestamp 1511980830000000000"
-curl -s -X POST -d @workloads/risk.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
+curl -s -X POST -d @workloads/risk.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c .
 echo "add risk-2 with timestamp 1511980330000000000"
-curl -s -X POST -d @workloads/risk-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
+curl -s -X POST -d @workloads/risk-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c .
 echo "add risk-2 again: should be error"
-curl -s -X POST -d @workloads/risk-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c
+curl -s -X POST -d @workloads/risk-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/risks | jq -c .
 echo "get risks with interval 1511980330000000000 & 1511980530000000000"
-curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/risks | jq -c
+curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/risks | jq -c .
 
 echo
 echo "================================"
@@ -247,12 +257,12 @@ echo "test opportunity API"
 echo "================================"
 echo
 echo "get opportunity before add use default interval"
-curl -s -X GET  ${API_BASE_ENDPOINT}/opportunities | jq -c
+curl -s -X GET  ${API_BASE_ENDPOINT}/opportunities | jq -c .
 echo "add opportunity-1 with timestamp 1511980830000000000"
-curl -s -X POST -d @workloads/opportunity.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
+curl -s -X POST -d @workloads/opportunity.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c .
 echo "add opportunity-2 with timestamp 1511980330000000000"
-curl -s -X POST -d @workloads/opportunity-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
+curl -s -X POST -d @workloads/opportunity-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c .
 echo "add opportunity again: should be error"
-curl -s -X POST -d @workloads/opportunity-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c
+curl -s -X POST -d @workloads/opportunity-2.json -H "Content-Type: application/json" ${API_BASE_ENDPOINT}/opportunities | jq -c .
 echo "get opportunities with interval 1511980330000000000 & 1511980530000000000"
-curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/opportunities | jq -c
+curl -s -X GET  -d '{"start_time":1511980330000000000, "end_time":1511980530000000000}' -H "Content-Type: application/json"  ${API_BASE_ENDPOINT}/opportunities | jq -c .

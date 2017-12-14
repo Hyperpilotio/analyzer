@@ -465,6 +465,27 @@ def get_app_incidents():
     return util.ensure_document_found(None)
 
 
+@app.route("/problems", methods=["POST"])
+def add_problem():
+    problem_json = request.get_json()
+    if problem_json is None:
+        return util.error_response(f"problem data is no available", 400)
+    if "problem_id" not in problem_json:
+        return util.error_response(f"problem id is not found", 400)
+    problem = resultdb[problems_collection].find_one(
+        {"problem_id": problem_json["problem_id"]},
+        {"_id": 0}
+    )
+    problem_id = problem_json["problem_id"]
+    if problem is not None:
+        return util.error_response(f"problem with id {problem_id} already exist", 400)
+    try:
+        resultdb[problems_collection].insert_one(problem_json)
+        return util.ensure_document_found({"problem_id": problem_id})
+    except InvalidOperation:
+        return util.error_response(f"Could not create problem {problem_id}.", 400)
+
+
 @app.route("/problems/<string:problem_id>", methods=["GET"])
 def get_problems(problem_id):
     problem = resultdb[problems_collection].find_one({"problem_id": problem_id}, {"_id": 0})
@@ -493,6 +514,36 @@ def get_problems_interval():
         {"_id": 0}
     )
     return util.ensure_document_found(problems)
+
+
+@app.route("/diagnoses", methods=["POST"])
+def add_diagnoses():
+    diagnoses_json = request.get_json()
+    print("aa")
+    if diagnoses_json is None:
+        return util.error_response(f"diagnoses data is no available", 400)
+    if "app_name" not in diagnoses_json:
+        return util.error_response(f"app_name is not found", 400)
+    if "incident_id" not in diagnoses_json:
+        return util.error_response(f"incident id is not found", 400)
+
+    diagnosis = resultdb[diagnoses_collection].find_one(
+        {"$and": [
+            {"app_name": diagnoses_json["app_name"]},
+            {"incident_id": diagnoses_json["incident_id"]}]},
+        {"_id": 0}
+    )
+    app_name = diagnoses_json["app_name"]
+    incident_id = diagnoses_json["incident_id"]
+
+    if diagnosis is not None:
+        return util.error_response(f"diagnosis of app ({app_name}) with incident ({incident_id}) already exist", 400)
+    try:
+        resultdb[diagnoses_collection].insert_one(diagnoses_json)
+        return util.ensure_document_found({"app_name": app_name, "incident_id": incident_id})
+    except InvalidOperation:
+        return util.error_response(
+            f"Could not create diagnosis of app ({app_name}) with incident ({incident_id}) already exist", 400)
 
 
 @app.route("/diagnoses", methods=["GET"])
