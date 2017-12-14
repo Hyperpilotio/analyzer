@@ -400,7 +400,7 @@ class MetricsConsumer(object):
                         continue
 
                     if len(normalizer_group_ind) != len(metric_group_ind):
-                        logger.info("WARNING: Normalizer does not have equal length as raw metric; " +
+                        logger.warning("Normalizer does not have equal length as raw metric; " +
                               "adjusting...")
                         minlen = min(len(metric_group_ind), len(normalizer_group_ind))
                         metric_group_ind = metric_group_ind[:minlen]

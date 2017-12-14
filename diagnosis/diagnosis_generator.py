@@ -139,7 +139,7 @@ class DiagnosisGenerator(object):
             problem_id = problem["problem_id"]
             remed_options = self.generate_remediations(problem)
             if len(remed_options) == 0:
-                logger.debug("WARNING: No remediation options can be found for %s" %
+                logger.warning("No remediation options can be found for %s" %
                        (problem_id))
 
             diagnosis_doc["top_related_problems"].append(
