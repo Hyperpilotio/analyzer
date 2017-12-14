@@ -82,7 +82,13 @@ class AppAnalyzer(object):
                 RESULTDB[incidents_collection].insert_one(incident_doc)
 
                 filtered_metrics = self.features_selector.process_metrics(derived_metrics)
-                self.write_results(filtered_metrics, end_time, app_name, self.metrics_consumer.deployment_id)
+                if not filtered_metrics:
+                    print("All %d features have been filtered." % self.features_selector.num_features)
+                    it += 1
+                    continue
+
+                self.write_results(filtered_metrics, end_time, app_name,
+                                   self.metrics_consumer.deployment_id)
 
                 # Sort top k derived metrics based on conficent score
                 sorted_metrics = sorted(filtered_metrics, key=lambda x: self.convertNaN(

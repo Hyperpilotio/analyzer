@@ -22,6 +22,7 @@ class FeaturesSelector(object):
             self.average_threshold = float(config.get("ANALYZER", "AREA_THRESHOLD"))
         else:
             self.average_threshold = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
+        self.num_features = 0
         return
 
     def compute_averages(self, metric_results):
@@ -71,6 +72,7 @@ class FeaturesSelector(object):
                         for node_name in metrics.container_metrics[metric_name]
                         for pod_name in metrics.container_metrics[metric_name][node_name]]
 
+        self.num_features = len(metric_results)
         start_time = metrics.app_metric.index[0]
         time_buckets = [start_time + pd.Timedelta(seconds=s)
                         for s in range(0, WINDOW, SAMPLE_INTERVAL)]
