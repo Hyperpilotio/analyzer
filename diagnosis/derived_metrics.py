@@ -5,12 +5,14 @@ import math
 import requests
 
 from config import get_config
+from logger import get_logger
 
 config = get_config()
 SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
 NANOSECONDS_PER_SECOND = 1000000000
 END_TIME = 1511980800000000000
 WINDOW = 300
+logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class WindowState(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
@@ -189,7 +191,7 @@ class MetricsConsumer(object):
         self.deployment_id = ''
 
     def get_app_metric(self, start_time, end_time, is_derived=True):
-        print("Start processing app metric")
+        logger.info("Start processing app metric")
         metric_name = self.app_metric_config["metric"]["name"]
         aggregation = self.app_metric_config["analysis"]["aggregation"]
         self.incident_type = self.app_metric_config["type"]
@@ -208,7 +210,7 @@ class MetricsConsumer(object):
 
         app_metric_query += (" GROUP BY time(%ds) fill(none)" %
                              (SAMPLE_INTERVAL))
-        #print("app_metric_query = %s" %(app_metric_query))
+        logger.debug("app_metric_query = %s" %(app_metric_query))
         df = self.app_influx_client.query(app_metric_query)
         if metric_name not in df:
             return None
@@ -265,13 +267,13 @@ class MetricsConsumer(object):
             metrics_thresholds = {}
             raw_metrics_len = len(raw_metrics)
             if raw_metrics_len == 0:
-                print("Unable to find data for %s, skipping this metric..." %
+                logger.info("Unable to find data for %s, skipping this metric..." %
                       (metric_source))
                 continue
 
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
-                    print("Unable to find %s in metric %s" %
+                    logger.info("Unable to find %s in metric %s" %
                           (metric_group_name, metric_source))
                     continue
 
@@ -295,7 +297,7 @@ class MetricsConsumer(object):
         container_metric_keys = "value,\"io.kubernetes.pod.name\",nodename,deploymentId"
         time_filter = "WHERE time > %d AND time <= %d" % (start_time, end_time)
 
-        print("Start processing infrastructure metrics")
+        logger.info("Start processing infrastructure metrics")
         for metric_config in self.config:
             metric_source = str(metric_config["metric_name"])
             group_name = self.default_group_key
@@ -327,10 +329,10 @@ class MetricsConsumer(object):
                     (node_metric_keys, metric_source, time_filter))
             if tags_filter:
                 raw_metrics_query += (" AND %s" % (tags_filter))
-            #print("raw metrics query = %s" % (raw_metrics_query))
+            logger.debug("raw metrics query = %s" % (raw_metrics_query))
             raw_metrics = self.influx_client.query(raw_metrics_query)
             if len(raw_metrics) == 0:
-                print("Unable to find data for %s; skipping this metric..." %
+                logger.info("Unable to find data for %s; skipping this metric..." %
                       (metric_source))
                 continue
             metric_df = raw_metrics[metric_source]
@@ -352,26 +354,26 @@ class MetricsConsumer(object):
                         (node_metric_keys, normalizer, time_filter))
                 if tags_filter:
                     normalizer_metrics_query += (" AND %s" % (tags_filter))
-                #print("normalizer metrics query = %s" % (normalizer_metrics_query))
+                logger.debug("normalizer metrics query = %s" % (normalizer_metrics_query))
                 normalizer_metrics = self.influx_client.query(normalizer_metrics_query)
                 if len(normalizer_metrics) == 0:
-                    print("Unable to find data for normalizer %s; skipping metric %s..." %
+                    logger.info("Unable to find data for normalizer %s; skipping metric %s..." %
                           (normalizer, metric_source))
                     continue
                 normalizer_df = normalizer_metrics[normalizer]
                 if normalizer_df["value"].max() == 0:
-                    print("All zero values in normalizer %s, skipping metric %s..." %
+                    logger.info("All zero values in normalizer %s, skipping metric %s..." %
                           (normalizer, metric_source))
                     continue
 
-            #print("Converting raw metric %s\n  into derived metric %s" %
-            #      (metric_source, new_metric_name))
+            logger.debug("Converting raw metric %s\n  into derived metric %s" %
+                  (metric_source, new_metric_name))
 
             # process metric values for each group
             # metric_group_name = nodename for node metrics, pod.name for container metrics
             for metric_group_name in raw_metrics[metric_source][group_name].unique():
                 if not metric_group_name or metric_group_name == "":
-                    print("Unable to find %s in metric %s" %
+                    logger.info("Unable to find %s in metric %s" %
                           (metric_group_name, metric_source))
                     continue
                 if metric_group_name not in metric_group_states:
@@ -391,14 +393,14 @@ class MetricsConsumer(object):
                             normalizer_df[group_name] == metric_group_name].index
 
                     if normalizer_df.loc[normalizer_group_ind,"value"].max() == 0:
-                        #print("Normalizer metric has all zeros for group %s; " %
-                        #      (metric_group_name) +
-                        #      "dropping this group from the raw metric...")
+                        logger.debug("Normalizer metric has all zeros for group %s; " %
+                              (metric_group_name) +
+                              "dropping this group from the raw metric...")
                         metric_df = metric_df.drop(metric_group_ind)
                         continue
 
                     if len(normalizer_group_ind) != len(metric_group_ind):
-                        print("WARNING: Normalizer does not have equal length as raw metric; " +
+                        logger.info("WARNING: Normalizer does not have equal length as raw metric; " +
                               "adjusting...")
                         minlen = min(len(metric_group_ind), len(normalizer_group_ind))
                         metric_group_ind = metric_group_ind[:minlen]
@@ -410,8 +412,8 @@ class MetricsConsumer(object):
                     )
 
                 # compute derived metric values using configured threshold info
-                #print("raw metric before applying threshold for group %s" % (metric_group_name))
-                #print(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
+                logger.debug("raw metric before applying threshold for group %s" % (metric_group_name))
+                logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
                 metric_df.loc[metric_group_ind,"value"] = metric_df.loc[metric_group_ind].apply(
                     lambda row: metric_group_states[row[group_name]].compute_derived_value(
                         row.name.value,
@@ -419,8 +421,8 @@ class MetricsConsumer(object):
                         ),
                     axis=1,
                 )
-                #print("derived metric after applying threshold for group %s" % (metric_group_name))
-                #print(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
+                logger.debug("derived metric after applying threshold for group %s" % (metric_group_name))
+                logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
 
             metric_dfg = metric_df.groupby(group_name)
             derived_metrics_result.add_metric(
@@ -437,9 +439,9 @@ if __name__ == '__main__':
             config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"))
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
     derived_result = dm.get_derived_metrics(END_TIME - WINDOW * NANOSECONDS_PER_SECOND, END_TIME)
-    print("Derived Container metrics:")
-    print(derived_result.container_metrics)
-    print("Derived node metrics:")
-    print(derived_result.node_metrics)
-    print("Derived SLO metric:")
-    print(derived_result.app_metric)
+    logger.info("Derived Container metrics:")
+    logger.info(derived_result.container_metrics)
+    logger.info("Derived node metrics:")
+    logger.info(derived_result.node_metrics)
+    logger.info("Derived SLO metric:")
+    logger.info(derived_result.app_metric)

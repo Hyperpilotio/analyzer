@@ -12,7 +12,6 @@ config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
 DIAGNOSIS_INTERVAL = int(config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
 SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
-
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class FeaturesSelector(object):
@@ -84,14 +83,14 @@ class FeaturesSelector(object):
         metric_results = self.compute_averages(metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="average")
-        print("Filtered %d of %d features with average threshold %s%%" %
+        logger.info("Filtered %d of %d features with average threshold %s%%" %
               (l - len(metric_results),
                l,
                self.average_threshold))
         metric_results = self.compute_correlations(app_df, metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="correlation")
-        print("Filtered %d of %d features with correlation significance threshold %s" %
+        logger.info("Filtered %d of %d features with correlation significance threshold %s" %
               (l - len(metric_results),
                l,
                config.get("ANALYZER", "CORR_SIGNIF_THRESHOLD")))
