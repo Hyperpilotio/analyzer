@@ -3,6 +3,7 @@ from uuid import uuid1
 
 from api_service.db import Database
 from config import get_config
+from logger import get_logger
 
 config = get_config()
 resultdb = Database(config.get("ANALYZER", "RESULTDB_NAME"))
@@ -13,6 +14,7 @@ diagnoses_collection = config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 remediations_config = config.get("ANALYZER", "REMEDIATIONS_CONFIG")
 pods_json_file = "./diagnosis/tech-demo-pods.json"
 target_nodes_config = "./diagnosis/target-nodes.json"
+logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class DiagnosisGenerator(object):
     def __init__(self, config):
@@ -121,7 +123,7 @@ class DiagnosisGenerator(object):
 
         # Construct top three problems from the top k metrics 
         problems = self.map_problems(sorted_metrics, timestamp) 
-        print("Top problems found:\n", problems)
+        logger.info("Top problems found:\n%s" % str(problems))
         if problems:
             resultdb[problems_collection].insert(problems)
       
@@ -137,7 +139,7 @@ class DiagnosisGenerator(object):
             problem_id = problem["problem_id"]
             remed_options = self.generate_remediations(problem)
             if len(remed_options) == 0:
-                print("WARNING: No remediation options can be found for %s" %
+                logger.warning("No remediation options can be found for %s" %
                        (problem_id))
 
             diagnosis_doc["top_related_problems"].append(
@@ -146,5 +148,5 @@ class DiagnosisGenerator(object):
                  "remediation_options": remed_options})
             i += 1
 
-        print("Diagnosis result:\n", diagnosis_doc)
+        logger.info("Diagnosis result:\n%s" % str(diagnosis_doc))
         resultdb[diagnoses_collection].insert_one(diagnosis_doc)

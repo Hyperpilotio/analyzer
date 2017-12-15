@@ -13,6 +13,7 @@ from diagnosis.features_selector import FeaturesSelector
 from diagnosis.diagnosis_generator import DiagnosisGenerator
 from config import get_config
 from api_service.db import Database
+from logger import get_logger
 
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
@@ -26,6 +27,7 @@ else:
 NANOSECONDS_PER_SECOND = 1000000000
 RESULTDB = Database(config.get("ANALYZER", "RESULTDB_NAME"))
 incidents_collection = config.get("ANALYZER", "INCIDENT_COLLECTION")
+logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 
 class AppAnalyzer(object):
@@ -52,20 +54,20 @@ class AppAnalyzer(object):
         it = 1
         while True:
             start_time = end_time - batch_window
-            print("\nIteration %d - Processing metrics from start: %d, to end: %d" %
+            logger.info("\nIteration %d - Processing metrics from start: %d, to end: %d" %
                   (it, start_time, end_time))
             app_metric = self.metrics_consumer.get_app_metric(start_time, end_time, is_derived=True)
             if app_metric is None:
-                print("No app metric found, exiting diagnosis...")
+                logger.info("No app metric found, exiting diagnosis...")
                 return
             window = int(config.get("ANALYZER", "AVERAGE_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
             window_start = to_datetime(end_time - window, unit="ns")
             app_metric_mean = app_metric.loc[app_metric.index >= window_start].mean()
             if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
-                print("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
+                logger.info("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
             else:
-                print("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
+                logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                       (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
                 derived_metrics = self.metrics_consumer.get_derived_metrics(start_time, end_time,
@@ -82,17 +84,23 @@ class AppAnalyzer(object):
                 RESULTDB[incidents_collection].insert_one(incident_doc)
 
                 filtered_metrics = self.features_selector.process_metrics(derived_metrics)
-                self.write_results(filtered_metrics, end_time, app_name, self.metrics_consumer.deployment_id)
+                if not filtered_metrics:
+                    logger.info("All %d features have been filtered." % self.features_selector.num_features)
+                    it += 1
+                    continue
+
+                self.write_results(filtered_metrics, end_time, app_name,
+                                   self.metrics_consumer.deployment_id)
 
                 # Sort top k derived metrics based on conficent score
                 sorted_metrics = sorted(filtered_metrics, key=lambda x: self.convertNaN(
                                         x.confidence_score), reverse=True)[:10]
-                print("Top related metrics for incident %s for application %s:" %
+                logger.info("Top related metrics for incident %s for application %s:" %
                        (incident_id, app_name))
                 self.print_sorted_metrics(sorted_metrics)
 
                 # Identify top problems and generate diagnosis result
-                print("\nStart generating diagnosis for incident %s for application %s:" %
+                logger.info("\nStart generating diagnosis for incident %s for application %s:" %
                        (incident_id, app_name))
                 self.diagnosis_generator.process_features(
                     sorted_metrics, app_name, incident_id, end_time)
@@ -143,16 +151,16 @@ class AppAnalyzer(object):
 
         i = 1
         for m in sorted_metrics:
-            print("Rank: " + str(i))
-            print("Metric name: " + m.metric_name)
-            print("Node name: " + m.node_name)
-            print("Pod name: " + str(m.pod_name))
-            print("Resource type: " + str(m.resource_type))
-            print("Average severity (over last %d seconds): %f" %
-                  (AVERAGE_WINDOW, m.average))
-            print("Correlation (over last %s seconds): %f, p-value: %.2g" %
-                  (WINDOW, m.correlation, m.corr_p_value))
-            print("Confidence score: " + str(m.confidence_score))
+            logger.info("\nRank: " + str(i) + "\n" +
+                        "Metric name: " + m.metric_name + "\n" +
+                        "Node name: " + m.node_name + "\n" +
+                        "Pod name: " + str(m.pod_name) + "\n" +
+                        "Resource type: " + str(m.resource_type) + "\n" +
+                        "Average severity (over last %d seconds): %f" %
+                          (AVERAGE_WINDOW, m.average) + "\n" +
+                        "Correlation (over last %s seconds): %f, p-value: %.2g" %
+                          (WINDOW, m.correlation, m.corr_p_value) + "\n" +
+                        "Confidence score: " + str(m.confidence_score) + "\n")
 
             i += 1
 
