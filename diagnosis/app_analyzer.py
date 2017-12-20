@@ -1,6 +1,7 @@
 import math
 import time
 import requests
+import sys
 from collections import namedtuple
 from math import isnan
 from pandas import to_datetime
@@ -102,20 +103,23 @@ class AppAnalyzer(object):
 
         return True
 
+    def now_nano(self):
+        return time.time() * 1000.
+
     def run(self, batch_window, sliding_interval, delay_interval):
         app_name = config.get("ANALYZER", "APP_NAME")
         logger.info("Starting live diagnosis run for application %s" % app_name)
-        end_time = datetime.datetime.now() - delay_interval
+        end_time =  self.now_nano() - delay_interval
         start_time = end_time - batch_window
         while True:
-            start_run_time = datetime.datetime.now()
+            start_run_time = self.now_nano()
             self.diagnosis_cycle(app_name, start_time, end_time)
-            diagnosis_time = datetime.datetime.now() - start_run_time
+            diagnosis_time = self.now_nano() - start_run_time
             logger.info("Diagnosis cycle took %s" % diagnosis_time)
-            sleep_time = (sliding_interval - (diagnosis_time.total_seconds() * NANOSECONDS_PER_SECOND) * 1.) / NANOSECONDS_PER_SECOND
+            sleep_time = (sliding_interval - diagnosis_time) / (NANOSECONDS_PER_SECOND * 1.)
             if sleep_time > 0:
                 logger.info("Sleeping for %f before next cycle" % sleep_time)
-                usleep(sleep_time)
+                time.sleep(sleep_time)
 
     def loop_all_app_metrics(self, end_time, batch_window, sliding_interval):
         it = 1
@@ -186,7 +190,7 @@ class AppAnalyzer(object):
 if __name__ == "__main__":
     aa = AppAnalyzer(config)
     if len(sys.argv) > 1:
-        aa.run(WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+        aa.run(WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
     else:
         aa.loop_all_app_metrics(1511980830000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
     #aa.loop_all_app_metrics(1513062600000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
