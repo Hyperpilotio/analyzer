@@ -9,6 +9,7 @@ from pymongo.errors import InvalidOperation
 
 from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
 from sizing_service.linear_regression import LinearRegression1
+from diagnosis.app_analyzer import AppAnalyzer
 import api_service.util as util
 from config import get_config
 from logger import get_logger
@@ -42,6 +43,13 @@ FEATURE_NAME = {"INTERFERENCE": "interference_management",
                 "BOTTLENECK": "bottleneck_management",
                 "EFFICIENCY": "efficiency_management"}
 
+NANOSECONDS_PER_SECOND = 1000000000
+WINDOW = int(my_config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
+INTERVAL = int(my_config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
+DELAY_INTERVAL = int(my_config.get("ANALYZER", "DELAY_INTERVAL_SECOND"))
+
+DIAGNOSIS = AppAnalyzer(my_config)
+DIAGNOSIS.run_daemon(WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
 
 @app.route("/")
 def index():

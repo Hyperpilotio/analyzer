@@ -2,6 +2,7 @@ import math
 import time
 import requests
 import sys
+import threading
 from collections import namedtuple
 from math import isnan
 from pandas import to_datetime
@@ -35,6 +36,7 @@ logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 class AppAnalyzer(object):
     def __init__(self, config):
         self.config = config
+        self.stop = False
         self.metrics_consumer = MetricsConsumer(
             self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"))
@@ -106,12 +108,17 @@ class AppAnalyzer(object):
     def now_nano(self):
         return time.time() * 1000.
 
+    def run_daemon(self, *args):
+        thread = threading.Thread(target=self.run, args=args)
+        thread.daemon = True
+        thread.start()
+
     def run(self, batch_window, sliding_interval, delay_interval):
         app_name = config.get("ANALYZER", "APP_NAME")
         logger.info("Starting live diagnosis run for application %s" % app_name)
         end_time =  self.now_nano() - delay_interval
         start_time = end_time - batch_window
-        while True:
+        while self.stop != True:
             start_run_time = self.now_nano()
             self.diagnosis_cycle(app_name, start_time, end_time)
             diagnosis_time = self.now_nano() - start_run_time
