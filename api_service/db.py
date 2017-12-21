@@ -10,7 +10,6 @@ logger = get_logger(__name__, log_level=("MONGODB", "LOGLEVEL"))
 
 
 class CommandLogger(monitoring.CommandListener):
-
     def started(self, event):
         dbname = event.database_name
         request_id = event.request_id
@@ -40,6 +39,8 @@ monitoring.register(CommandLogger())
 client = MongoClient(
     host=config.get("MONGODB", "HOST"),
     port=config.getint("MONGODB", "PORT"),
+    serverSelectionTimeoutMS=5000,
+    socketTimeoutMS=5000,
 )
 
 
