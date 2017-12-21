@@ -71,8 +71,11 @@ class AppAnalyzer(object):
             logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                         (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
+        logger.debug("Getting derived metrics with app metric %s" % app_metric)
         derived_metrics = self.metrics_consumer.get_derived_metrics(start_time, end_time,
                                                                             app_metric)
+        logger.debug("Derived metrics completed")
+
         incident_id = "incident" + "-" + str(uuid1())
         incident_doc = {"incident_id": incident_id,
                         "type": self.metrics_consumer.incident_type,
@@ -81,16 +84,20 @@ class AppAnalyzer(object):
                         "threshold": self.metrics_consumer.incident_threshold,
                         "severity": app_metric_mean["value"],
                         "timestamp": end_time}
+        logger.debug("Creating incident %s" % str(incident_doc))
         RESULTDB[incidents_collection].insert_one(incident_doc)
 
+        logger.debug("Feature selector starting to process derived metrics..")
         filtered_metrics = self.features_selector.process_metrics(derived_metrics)
         if not filtered_metrics:
             logger.info("All %d features have been filtered." % self.features_selector.num_features)
             it += 1
             return True
 
+        logger.debug("Writing filtered metrics results...")
         self.write_results(filtered_metrics, end_time, app_name,
                            self.metrics_consumer.deployment_id)
+        logger.debug("Filtered metrics writing completed")
 
         # Sort top k derived metrics based on conficent score
         sorted_metrics = sorted(filtered_metrics, key=lambda x: self.convert_nan(
@@ -105,6 +112,7 @@ class AppAnalyzer(object):
         self.diagnosis_generator.process_features(
             sorted_metrics, app_name, incident_id, end_time)
 
+        logger.debug("Diagnosis generation completed")
         return True
 
     def now_nano(self):

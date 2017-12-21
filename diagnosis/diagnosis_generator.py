@@ -35,11 +35,10 @@ class DiagnosisGenerator(object):
         return True
 
     def map_problems(self, sorted_metrics, timestamp):
-
         # Find the list of current pods in the application
         with open(pods_json_file) as json_data:
             app_pods = json.load(json_data)
-       
+
         problems = []
         i = 0
         for m in sorted_metrics:
@@ -71,7 +70,7 @@ class DiagnosisGenerator(object):
             problem_description["resource"] = m.resource_type
 
             problem_doc = self.find_same_problem(problems, problem_description)
-            if problem_doc: # problem already exists 
+            if problem_doc: # problem already exists
                 problem_doc["metrics"].append(metric_doc)
                 problem_doc["overall_score"] = max(problem_doc["overall_score"], m.confidence_score)
             elif len(problems) == 3:
@@ -85,16 +84,16 @@ class DiagnosisGenerator(object):
                                "timestamp": timestamp}
                 problem_doc["metrics"].append(metric_doc)
                 problems.append(problem_doc)
-           
+
             i += 1
 
-        return problems    
+        return problems
 
 
     def generate_remediations(self, problem):
         with open(remediations_config) as json_data:
             remed_configs = json.load(json_data)
-       
+
         with open(target_nodes_config) as json_data:
             target_nodes = json.load(json_data)
 
@@ -121,12 +120,12 @@ class DiagnosisGenerator(object):
 
     def process_features(self, sorted_metrics, app_name, incident_id, timestamp):
 
-        # Construct top three problems from the top k metrics 
-        problems = self.map_problems(sorted_metrics, timestamp) 
+        # Construct top three problems from the top k metrics
+        problems = self.map_problems(sorted_metrics, timestamp)
         logger.info("Top problems found:\n%s" % str(problems))
         if problems:
             resultdb[problems_collection].insert(problems)
-      
+
         # Construct diagnosis result and store it in resultdb
         diagnosis_doc = {"app_name": app_name,
                          "incident_id": incident_id,

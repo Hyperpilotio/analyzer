@@ -430,6 +430,7 @@ class MetricsConsumer(object):
                 metric_config["resource"], metric_config["observation_window_sec"],
                 metric_config["threshold"]["value"], metric_config["threshold"]["type"],
                 metric_config["threshold"]["unit"])
+
         return derived_metrics_result
 
 
