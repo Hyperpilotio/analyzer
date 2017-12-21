@@ -118,11 +118,11 @@ class AppAnalyzer(object):
     def run(self, batch_window, sliding_interval, delay_interval):
         app_name = config.get("ANALYZER", "APP_NAME")
         logger.info("Starting live diagnosis run for application %s" % app_name)
-        end_time =  self.now_nano() - delay_interval
-        start_time = end_time - batch_window
         while self.stop != True:
-            start_run_time = self.now_nano()
+            end_time =  self.now_nano() - delay_interval
+            start_time = end_time - batch_window
             logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
+            start_run_time = self.now_nano()
             self.diagnosis_cycle(app_name, start_time, end_time)
             diagnosis_time = self.now_nano() - start_run_time
             logger.info("Diagnosis cycle took %s" % diagnosis_time)
@@ -130,6 +130,7 @@ class AppAnalyzer(object):
             if sleep_time > 0:
                 logger.info("Sleeping for %f before next cycle" % sleep_time)
                 time.sleep(sleep_time)
+
 
     def loop_all_app_metrics(self, end_time, batch_window, sliding_interval):
         it = 1
