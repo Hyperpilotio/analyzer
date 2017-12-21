@@ -65,6 +65,7 @@ class AppAnalyzer(object):
         if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
             logger.info("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
                         (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
+            return False
         else:
             logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                         (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
