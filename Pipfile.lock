@@ -15,6 +15,9 @@
         ]
     },
     "default": {
+        "nanotime": {
+            "version": "==0.5.2"
+        },
         "bayesian-optimization": {
             "version": "==0.5.0"
         },
