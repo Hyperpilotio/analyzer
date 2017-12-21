@@ -3,6 +3,7 @@ import time
 import requests
 import sys
 import threading
+import nanotime
 from collections import namedtuple
 from math import isnan
 from pandas import to_datetime
@@ -107,7 +108,7 @@ class AppAnalyzer(object):
         return True
 
     def now_nano(self):
-        return time.time() * 1000000000
+        return nanotime.now().nanoseconds()
 
     def run_daemon(self, *args):
         thread = threading.Thread(target=self.run, args=args)
@@ -203,3 +204,4 @@ if __name__ == "__main__":
     else:
         aa.loop_all_app_metrics(1511980830000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
     #aa.loop_all_app_metrics(1513062600000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+OA
