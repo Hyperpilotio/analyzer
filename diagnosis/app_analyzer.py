@@ -106,7 +106,7 @@ class AppAnalyzer(object):
         return True
 
     def now_nano(self):
-        return time.time() * 1000.
+        return time.time() * 1000000000
 
     def run_daemon(self, *args):
         thread = threading.Thread(target=self.run, args=args)
@@ -120,10 +120,11 @@ class AppAnalyzer(object):
         start_time = end_time - batch_window
         while self.stop != True:
             start_run_time = self.now_nano()
+            logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
             self.diagnosis_cycle(app_name, start_time, end_time)
             diagnosis_time = self.now_nano() - start_run_time
             logger.info("Diagnosis cycle took %s" % diagnosis_time)
-            sleep_time = (sliding_interval - diagnosis_time) / (NANOSECONDS_PER_SECOND * 1.)
+            sleep_time = ((sliding_interval - diagnosis_time) * 1.) / (NANOSECONDS_PER_SECOND * 1.)
             if sleep_time > 0:
                 logger.info("Sleeping for %f before next cycle" % sleep_time)
                 time.sleep(sleep_time)
