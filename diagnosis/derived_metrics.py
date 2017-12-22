@@ -88,7 +88,7 @@ class MetricResult(object):
         self.threshold_unit = threshold_unit
 
 class MetricsResults(object):
-    def __init__(self, is_derived=False):
+    def __init__(self, influx_client, is_derived=False):
         # for now, app and input data are either both raw or both derived.
         self.is_derived = is_derived
         self.app_metric = None
@@ -100,13 +100,7 @@ class MetricsResults(object):
         # { derived metric name -> { node name -> { pod name -> metric result } } }
         self.container_metrics = {}
 
-        self.influx_client = DataFrameClient(
-            config.get("INFLUXDB", "HOST"),
-            config.get("INFLUXDB", "PORT"),
-            config.get("INFLUXDB", "USERNAME"),
-            config.get("INFLUXDB", "PASSWORD"),
-            config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
-        self.influx_client.create_retention_policy('derived_metric_policy', '3w', 1, default=True)
+        self.influx_client = influx_client
 
     def set_app_metric(self, app_metric, metric_name):
         if self.is_derived:
@@ -161,12 +155,18 @@ class MetricsResults(object):
 
 
 class MetricsConsumer(object):
-    def __init__(self, app_config_file, config_file):
+    def __init__(self, app_slo, app_config_file, config_file):
         with open(config_file) as json_data:
             self.config = json.load(json_data)
 
         with open(app_config_file) as json_data:
             self.app_metric_config = json.load(json_data)
+
+        if "metric" in app_slo:
+            app_metric_config["metric"] = app_slo["metric"]
+
+        if "threshold" in app_slo:
+            app_metric_config["threshold"] = app_slo["threshold"]
 
         self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
         self.default_group_key = "nodename"
@@ -174,8 +174,6 @@ class MetricsConsumer(object):
         influx_port = config.get("INFLUXDB", "PORT")
         influx_user = config.get("INFLUXDB", "USERNAME")
         influx_password = config.get("INFLUXDB", "PASSWORD")
-        requests.post("http://%s:%s/query" % (influx_host, influx_port),
-                params="q=CREATE DATABASE %s" % config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME"))
         self.influx_client = DataFrameClient(
             influx_host,
             influx_port,
@@ -189,6 +187,16 @@ class MetricsConsumer(object):
             influx_password,
             config.get("INFLUXDB", "APP_DB_NAME"))
         self.deployment_id = ''
+
+        derived_db = config.get("INFLUXDB", "DERIVED_METRIC_DB_NAME")
+        self.derived_influx_client = DataFrameClient(
+            influx_host,
+            influx_port,
+            influx_user,
+            influx_password,
+            derived_db)
+        self.derived_influx_client.create_database(derived_db)
+        self.derived_influx_client.create_retention_policy('derived_metric_policy', '3w', 1, default=True)
 
     def get_app_metric(self, start_time, end_time, is_derived=True):
         logger.info("Start processing app metric")
@@ -234,7 +242,7 @@ class MetricsConsumer(object):
         return df[metric_name]
 
     def get_raw_metrics(self, start_time, end_time, app_metric=None):
-        metrics_result = MetricsResults(is_derived=False)
+        metrics_result = MetricsResults(self.derived_influx_client, is_derived=False)
         if app_metric is not None:
             metrics_result.set_app_metric(app_metric,
                                           self.app_metric_config["metric"]["name"])
@@ -288,7 +296,7 @@ class MetricsConsumer(object):
 
 
     def get_derived_metrics(self, start_time, end_time, app_metric=None):
-        derived_metrics_result = MetricsResults(is_derived=True)
+        derived_metrics_result = MetricsResults(self.derived_influx_client, is_derived=True)
         if app_metric is not None:
             derived_metrics_result.set_app_metric(app_metric,
                 self.app_metric_config["metric"]["name"] + "/" +

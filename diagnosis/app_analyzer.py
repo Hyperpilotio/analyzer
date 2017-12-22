@@ -33,12 +33,37 @@ RESULTDB = Database(config.get("ANALYZER", "RESULTDB_NAME"))
 incidents_collection = config.get("ANALYZER", "INCIDENT_COLLECTION")
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
-
-class AppAnalyzer(object):
+class DiagnosisTracker(object):
     def __init__(self, config):
         self.config = config
+        self.apps = {}
+
+    def run_new_app(self, app_id, app_name, app_slo):
+        if app_id in self.apps:
+            logger.info("App id %s is already running in diagnosis, skipping as we don't support update")
+            return
+
+        batch_window = WINDOW * NANOSECONDS_PER_SECOND
+        sliding_interval = INTERVAL * NANOSECONDS_PER_SECOND
+        delay_interval = DELAY_INTERVAL * NANOSECONDS_PER_SECOND
+        analyzer = AppAnalyzer(self.config, app_id, app_name, app_slo, batch_window, sliding_interval, delay_interval)
+        thread = threading.Thread(target=analyzer.run)
+        self.apps[app_id] = thread
+        thread.start()
+
+class AppAnalyzer(object):
+    def __init__(self, config, app_id, app_name, app_slo, batch_window, sliding_interval, delay_interval):
+        # Maps all currently running app name to threads
+        self.config = config
         self.stop = False
+        self.app_id = app_id
+        self.app_name = app_name
+        self.app_slo = app_slo
+        self.batch_window = batch_window
+        self.sliding_interval = sliding_interval
+        self.delay_interval = delay_interval
         self.metrics_consumer = MetricsConsumer(
+            self.app_slo,
             self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"))
         self.features_selector = FeaturesSelector(config)
@@ -46,16 +71,16 @@ class AppAnalyzer(object):
         influx_host = config.get("INFLUXDB", "HOST")
         influx_port = config.get("INFLUXDB", "PORT")
         influx_db = config.get("INFLUXDB", "RESULT_DB_NAME")
-        requests.post("http://%s:%s/query" % (influx_host, influx_port), params="q=CREATE DATABASE %s" % influx_db)
         self.influx_client = InfluxDBClient(
             influx_host,
             influx_port,
             config.get("INFLUXDB", "USER"),
             config.get("INFLUXDB", "PASSWORD"),
             influx_db)
+        self.influx_client.create_database(influx_db)
         self.influx_client.create_retention_policy('result_policy', '3w', 1, default=True)
 
-    def diagnosis_cycle(self, app_name, start_time, end_time):
+    def diagnosis_cycle(self, start_time, end_time):
         app_metric = self.metrics_consumer.get_app_metric(start_time, end_time, is_derived=True)
         if app_metric is None:
             logger.info("No app metric found, exiting diagnosis...")
@@ -71,13 +96,14 @@ class AppAnalyzer(object):
             logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                         (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
-        logger.debug("Getting derived metrics with app metric %s" % app_metric)
+        logger.debug("Getting derived metrics with app metric %s for app_id" % (app_metric, self.app_id))
         derived_metrics = self.metrics_consumer.get_derived_metrics(start_time, end_time,
                                                                             app_metric)
-        logger.debug("Derived metrics completed")
+        logger.debug("Derived metrics completed for app_id %s" % self.app_id)
 
         incident_id = "incident" + "-" + str(uuid1())
         incident_doc = {"incident_id": incident_id,
+                        "app_id": self.app_id,
                         "type": self.metrics_consumer.incident_type,
                         "labels": {"app_name": app_name},
                         "metric": self.metrics_consumer.incident_metric,
@@ -118,20 +144,14 @@ class AppAnalyzer(object):
     def now_nano(self):
         return nanotime.now().nanoseconds()
 
-    def run_daemon(self, *args):
-        thread = threading.Thread(target=self.run, args=args)
-        thread.daemon = True
-        thread.start()
-
-    def run(self, batch_window, sliding_interval, delay_interval):
-        app_name = config.get("ANALYZER", "APP_NAME")
-        logger.info("Starting live diagnosis run for application %s" % app_name)
+    def run(self):
+        logger.info("Starting live diagnosis run for application %s" % app_id)
         while self.stop != True:
-            end_time =  self.now_nano() - delay_interval
-            start_time = end_time - batch_window
+            end_time =  self.now_nano() - self.delay_interval
+            start_time = end_time - self.batch_window
             logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
             start_run_time = self.now_nano()
-            self.diagnosis_cycle(app_name, start_time, end_time)
+            self.diagnosis_cycle(self.app_id, start_time, end_time)
             diagnosis_time = self.now_nano() - start_run_time
             logger.info("Diagnosis cycle took %s" % diagnosis_time)
             sleep_time = ((sliding_interval - diagnosis_time) * 1.) / (NANOSECONDS_PER_SECOND * 1.)
@@ -140,11 +160,11 @@ class AppAnalyzer(object):
                 time.sleep(sleep_time)
 
 
-    def loop_all_app_metrics(self, end_time, batch_window, sliding_interval):
+    def loop_all_app_metrics(self, end_time):
         it = 1
         app_name = config.get("ANALYZER", "APP_NAME")
         while True:
-            start_time = end_time - batch_window
+            start_time = end_time - self.batch_window
             logger.info("\nIteration %d - Processing metrics from start: %d, to end: %d" %
                   (it, start_time, end_time))
             if self.diagnosis_cycle(app_name, start_time, end_time) == False:
@@ -182,7 +202,6 @@ class AppAnalyzer(object):
             tags["resource_type"] = metric.resource_type
             tags["node_name"] = metric.node_name
             tags["pod_name"] = metric.pod_name
-            tags
             point_json["tags"] = tags
             points_json.append(point_json)
 
@@ -207,9 +226,9 @@ class AppAnalyzer(object):
 
 
 if __name__ == "__main__":
-    aa = AppAnalyzer(config)
+    aa = AppAnalyzer("app1", "tech-demo", {}, config, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
     if len(sys.argv) > 1:
-        aa.run(WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
+        aa.run()
     else:
-        aa.loop_all_app_metrics(1511980830000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
+        aa.loop_all_app_metrics(1511980830000000000)
     #aa.loop_all_app_metrics(1513062600000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
