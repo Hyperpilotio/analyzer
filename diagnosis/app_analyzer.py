@@ -38,7 +38,7 @@ class DiagnosisTracker(object):
         self.config = config
         self.apps = {}
 
-    def run_new_app(self, app_id, app_name, app_slo):
+    def run_new_app(self, app_id, app_config):
         if app_id in self.apps:
             logger.info("App id %s is already running in diagnosis, skipping as we don't support update")
             return
@@ -46,19 +46,18 @@ class DiagnosisTracker(object):
         batch_window = WINDOW * NANOSECONDS_PER_SECOND
         sliding_interval = INTERVAL * NANOSECONDS_PER_SECOND
         delay_interval = DELAY_INTERVAL * NANOSECONDS_PER_SECOND
-        analyzer = AppAnalyzer(self.config, app_id, app_name, app_slo, batch_window, sliding_interval, delay_interval)
+        analyzer = AppAnalyzer(self.config, app_id, app_config, batch_window, sliding_interval, delay_interval)
         thread = threading.Thread(target=analyzer.run)
         self.apps[app_id] = thread
         thread.start()
 
 class AppAnalyzer(object):
-    def __init__(self, config, app_id, app_name, app_slo, batch_window, sliding_interval, delay_interval):
+    def __init__(self, config, app_id, app_config, batch_window, sliding_interval, delay_interval):
         # Maps all currently running app name to threads
         self.config = config
         self.stop = False
         self.app_id = app_id
-        self.app_name = app_name
-        self.app_slo = app_slo
+        self.app_config = app_config
         self.batch_window = batch_window
         self.sliding_interval = sliding_interval
         self.delay_interval = delay_interval
@@ -67,7 +66,7 @@ class AppAnalyzer(object):
             self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"))
         self.features_selector = FeaturesSelector(config)
-        self.diagnosis_generator = DiagnosisGenerator(config)
+        self.diagnosis_generator = DiagnosisGenerator(config, app_config)
         influx_host = config.get("INFLUXDB", "HOST")
         influx_port = config.get("INFLUXDB", "PORT")
         influx_db = config.get("INFLUXDB", "RESULT_DB_NAME")
@@ -101,6 +100,7 @@ class AppAnalyzer(object):
                                                                             app_metric)
         logger.debug("Derived metrics completed for app_id %s" % self.app_id)
 
+        app_name = self.app_config["name"]
         incident_id = "incident" + "-" + str(uuid1())
         incident_doc = {"incident_id": incident_id,
                         "app_id": self.app_id,
@@ -121,8 +121,7 @@ class AppAnalyzer(object):
             return True
 
         logger.debug("Writing filtered metrics results...")
-        self.write_results(filtered_metrics, end_time, app_name,
-                           self.metrics_consumer.deployment_id)
+        self.write_results(filtered_metrics, end_time, self.app_id, app_name, self.metrics_consumer.deployment_id)
         logger.debug("Filtered metrics writing completed")
 
         # Sort top k derived metrics based on conficent score
@@ -177,7 +176,7 @@ class AppAnalyzer(object):
             return 0.0
         return value
 
-    def write_results(self, metrics, end_time, app_name, deployment_id):
+    def write_results(self, metrics, end_time, app_id, app_name, deployment_id):
         points_json = []
         for metric in metrics:
             point_json = {}
@@ -197,6 +196,7 @@ class AppAnalyzer(object):
                 continue
             point_json["fields"] = fields
             tags = {}
+            tags["app_id"] = app_id
             tags["app_name"] = app_name
             tags["deployment_id"] = deployment_id
             tags["resource_type"] = metric.resource_type

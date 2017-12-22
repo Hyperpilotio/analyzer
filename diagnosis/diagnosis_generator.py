@@ -12,13 +12,12 @@ TIMEOUT_WINDOW = int(config.get(
 problems_collection = config.get("ANALYZER", "PROBLEM_COLLECTION")
 diagnoses_collection = config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 remediations_config = config.get("ANALYZER", "REMEDIATIONS_CONFIG")
-pods_json_file = "./diagnosis/tech-demo-pods.json"
-target_nodes_config = "./diagnosis/target-nodes.json"
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class DiagnosisGenerator(object):
-    def __init__(self, config):
+    def __init__(self, config, app_config):
         self.config = config
+        self.app_config = config
 
     def find_same_problem(self, problems, problem_desc):
         for problem in problems:
@@ -33,6 +32,9 @@ class DiagnosisGenerator(object):
                 return False
 
         return True
+
+    def is_app_pod(self, pod_name):
+        self.app_config[""]
 
     def map_problems(self, sorted_metrics, timestamp):
         # Find the list of current pods in the application

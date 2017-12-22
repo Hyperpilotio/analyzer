@@ -127,15 +127,18 @@ def get_app_slo_by_name(app_name):
 @app.route("/apps/<string:app_id>", methods=["PUT"])
 def update_app(app_id):
     app_json = request.get_json()
+    updated_doc = util.update_and_return_doc(app_id, app_json)
     # NOTE: Currently the UI is only calling this generic update API to update SLO and k8s objects.
     # Therefore we have to intercept here to start the diagnosis flow, since we need app SLO
     # to start it.
-    if "slo" in app_json:
+    # TODO: We should only try to start the diagnosis flow once, and also it's not gurantee we
+    # have all the information we need already....
+    if "slo" in updated_doc:
         # TODO: Fix namespace prefix that's added by our snap collector
         metric_name = app_json["slo"]["metric"]["name"]
-        app_json["slo"]["metric"]["name"] = "/hyperpilot/goddd/" + metric_name
-        DIAGNOSIS.run_new_app(app_id, app_json["name"], app_json["slo"])
-    return util.update_and_return_doc(app_id, app_json)
+        app_json["slo"]["metric"]["name"] = "hyperpilot/goddd/" + metric_name
+        DIAGNOSIS.run_new_app(app_id, updated_doc)
+    return updated_doc
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
