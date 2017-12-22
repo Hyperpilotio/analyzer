@@ -145,7 +145,7 @@ class AppAnalyzer(object):
         return nanotime.now().nanoseconds()
 
     def run(self):
-        logger.info("Starting live diagnosis run for application %s" % app_id)
+        logger.info("Starting live diagnosis run for application %s" % self.app_id)
         while self.stop != True:
             end_time =  self.now_nano() - self.delay_interval
             start_time = end_time - self.batch_window
