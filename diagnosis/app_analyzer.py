@@ -62,7 +62,7 @@ class AppAnalyzer(object):
         self.sliding_interval = sliding_interval
         self.delay_interval = delay_interval
         self.metrics_consumer = MetricsConsumer(
-            self.app_slo,
+            self.app_config["slo"],
             self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"))
         self.features_selector = FeaturesSelector(config)
