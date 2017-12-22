@@ -46,6 +46,7 @@ class DiagnosisTracker(object):
         batch_window = WINDOW * NANOSECONDS_PER_SECOND
         sliding_interval = INTERVAL * NANOSECONDS_PER_SECOND
         delay_interval = DELAY_INTERVAL * NANOSECONDS_PER_SECOND
+        logger.info("Received start diagnosis for app id %s, config: %s" % (app_id, str(app_config)))
         analyzer = AppAnalyzer(self.config, app_id, app_config, batch_window, sliding_interval, delay_interval)
         thread = threading.Thread(target=analyzer.run)
         self.apps[app_id] = thread

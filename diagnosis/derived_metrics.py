@@ -163,10 +163,10 @@ class MetricsConsumer(object):
             self.app_metric_config = json.load(json_data)
 
         if "metric" in app_slo:
-            app_metric_config["metric"] = app_slo["metric"]
+            self.app_metric_config["metric"] = app_slo["metric"]
 
         if "threshold" in app_slo:
-            app_metric_config["threshold"] = app_slo["threshold"]
+            self.app_metric_config["threshold"] = app_slo["threshold"]
 
         self.group_keys = {"intel/docker": "io.kubernetes.pod.name"}
         self.default_group_key = "nodename"
