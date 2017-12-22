@@ -127,7 +127,10 @@ def get_app_slo_by_name(app_name):
 @app.route("/apps/<string:app_id>", methods=["PUT"])
 def update_app(app_id):
     app_json = request.get_json()
-    updated_doc = util.update_and_return_doc(app_id, app_json)
+    updated_doc = util.update_doc(app_id, app_json)
+    if not updated_doc:
+        return error_response(f"Could not update app {app_id}.", 404)
+
     # NOTE: Currently the UI is only calling this generic update API to update SLO and k8s objects.
     # Therefore we have to intercept here to start the diagnosis flow, since we need app SLO
     # to start it.
@@ -138,7 +141,9 @@ def update_app(app_id):
         metric_name = app_json["slo"]["metric"]["name"]
         app_json["slo"]["metric"]["name"] = "hyperpilot/goddd/" + metric_name
         DIAGNOSIS.run_new_app(app_id, updated_doc)
-    return updated_doc
+    result = jsonify(data=updated_doc)
+    result.status_code = 200
+    return result
 
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])

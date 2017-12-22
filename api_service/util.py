@@ -74,8 +74,7 @@ def ensure_document_found(document, **kwargs):
         response.status_code = 200
         return response
 
-
-def update_and_return_doc(app_id, update_doc, unset=False):
+def update_doc(app_id, update_doc, unset=False):
     if unset:
         updated_doc = configdb[app_collection].find_one_and_update(
             {"app_id": app_id},
@@ -89,6 +88,10 @@ def update_and_return_doc(app_id, update_doc, unset=False):
             return_document=ReturnDocument.AFTER
         )
     updated_doc.pop("_id")
+    return updated_doc
+
+def update_and_return_doc(app_id, update_doc, unset=False):
+    updated_doc = update_doc(app_id, update_doc, unset)
     if updated_doc:
         result = jsonify(data=updated_doc)
         result.status_code = 200
