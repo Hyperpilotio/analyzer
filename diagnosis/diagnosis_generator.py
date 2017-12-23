@@ -17,7 +17,7 @@ logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 class DiagnosisGenerator(object):
     def __init__(self, config, app_config):
         self.config = config
-        self.app_config = config
+        self.app_config = app_config
         self.app_deployments = []
         for microservice in self.app_config["microservices"]:
             if microservice["kind"] == "deployments":
