@@ -220,6 +220,7 @@ class MetricsConsumer(object):
                              (SAMPLE_INTERVAL))
         logger.debug("app_metric_query = %s" %(app_metric_query))
         df = self.app_influx_client.query(app_metric_query)
+        logger.debug("App metric query completed")
         if metric_name not in df:
             return None
 
@@ -337,8 +338,9 @@ class MetricsConsumer(object):
                     (node_metric_keys, metric_source, time_filter))
             if tags_filter:
                 raw_metrics_query += (" AND %s" % (tags_filter))
-            logger.debug("raw metrics query = %s" % (raw_metrics_query))
+            logger.debug("raw metrics for derived metrics query = %s" % (raw_metrics_query))
             raw_metrics = self.influx_client.query(raw_metrics_query)
+            logger.debug("raw metrics query completed")
             if len(raw_metrics) == 0:
                 logger.info("Unable to find data for %s; skipping this metric..." %
                       (metric_source))
