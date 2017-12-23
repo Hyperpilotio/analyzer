@@ -101,6 +101,10 @@ class AppAnalyzer(object):
                                                                             app_metric)
         logger.debug("Derived metrics completed for app_id %s" % self.app_id)
 
+        # TODO: Capture actually running nodes by querying operator.
+        # For now, Get all running nodes from node metrics map.
+        nodes = derived_metrics[derived_metrics.node_metrics.keys()[0]].keys()
+
         app_name = self.app_config["name"]
         incident_id = "incident" + "-" + str(uuid1())
         incident_doc = {"incident_id": incident_id,
@@ -136,7 +140,7 @@ class AppAnalyzer(object):
         logger.info("\nStart generating diagnosis for incident %s for application %s:" %
                     (incident_id, app_name))
         self.diagnosis_generator.process_features(
-            sorted_metrics, app_name, incident_id, end_time)
+            sorted_metrics, nodes, self.app_id, app_name, incident_id, end_time)
 
         logger.debug("Diagnosis generation completed")
         return True
@@ -151,14 +155,13 @@ class AppAnalyzer(object):
             start_time = end_time - self.batch_window
             logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
             start_run_time = self.now_nano()
-            self.diagnosis_cycle(self.app_id, start_time, end_time)
+            self.diagnosis_cycle(start_time, end_time)
             diagnosis_time = self.now_nano() - start_run_time
             logger.info("Diagnosis cycle took %s" % diagnosis_time)
             sleep_time = ((sliding_interval - diagnosis_time) * 1.) / (NANOSECONDS_PER_SECOND * 1.)
             if sleep_time > 0:
                 logger.info("Sleeping for %f before next cycle" % sleep_time)
                 time.sleep(sleep_time)
-
 
     def loop_all_app_metrics(self, end_time):
         it = 1
@@ -167,7 +170,7 @@ class AppAnalyzer(object):
             start_time = end_time - self.batch_window
             logger.info("\nIteration %d - Processing metrics from start: %d, to end: %d" %
                   (it, start_time, end_time))
-            if self.diagnosis_cycle(app_name, start_time, end_time) == False:
+            if self.diagnosis_cycle(start_time, end_time) == False:
                 return
             end_time += sliding_interval
             it += 1

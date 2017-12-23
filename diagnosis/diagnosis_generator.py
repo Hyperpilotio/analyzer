@@ -18,6 +18,13 @@ class DiagnosisGenerator(object):
     def __init__(self, config, app_config):
         self.config = config
         self.app_config = config
+        self.app_deployments = []
+        for microservice in self.app_config["microservices"]:
+            if microservice["kind"] == "deployments":
+                self.app_deployments.append(microservice["name"])
+        with open(remediations_config) as json_data:
+            self.remed_configs = json.load(json_data)
+
 
     def find_same_problem(self, problems, problem_desc):
         for problem in problems:
@@ -34,13 +41,12 @@ class DiagnosisGenerator(object):
         return True
 
     def is_app_pod(self, pod_name):
-        self.app_config[""]
+        for deployment in self.app_deployments:
+            if pod_name.startswith(deployment):
+                return True
+        return False
 
     def map_problems(self, sorted_metrics, timestamp):
-        # Find the list of current pods in the application
-        with open(pods_json_file) as json_data:
-            app_pods = json.load(json_data)
-
         problems = []
         i = 0
         for m in sorted_metrics:
@@ -61,7 +67,7 @@ class DiagnosisGenerator(object):
 
             problem_description = {}
             if m.pod_name: # container metric
-                if m.pod_name in app_pods:
+                if self.is_app_pod(m.pod_name):
                     problem_description["type"] = "container_over_utilization"
                 else:
                     problem_description["type"] = "container_interference"
@@ -92,18 +98,12 @@ class DiagnosisGenerator(object):
         return problems
 
 
-    def generate_remediations(self, problem):
-        with open(remediations_config) as json_data:
-            remed_configs = json.load(json_data)
-
-        with open(target_nodes_config) as json_data:
-            target_nodes = json.load(json_data)
-
+    def generate_remediations(self, nodes, problem):
         problem_type = problem["description"]["type"]
         resource_type = problem["description"]["resource"]
         remed_options = []
 
-        for config in remed_configs:
+        for config in self.remed_configs:
             if problem_type == config["problem_type"]:
                 if config["resource"] == [] or resource_type in config["resource"]:
                     remed_options = config["remediation_options"]
@@ -115,13 +115,20 @@ class DiagnosisGenerator(object):
                         if "source_node" in option["spec"]:
                             my_node_name = problem["description"]["node_name"]
                             option["spec"]["source_node"] = my_node_name
-                            option["spec"]["destination_node"] = target_nodes[my_node_name]
 
+                            # TODO: Have a more intelligent way to pick a target node.
+                            # For now, just pick a node that's not your current running node.
+                            target_node = ""
+                            for node in nodes:
+                                if node != my_node_name:
+                                    target_node = node
+                                    break
+
+                            option["spec"]["destination_node"] = target_node
         return remed_options
 
 
-    def process_features(self, sorted_metrics, app_name, incident_id, timestamp):
-
+    def process_features(self, sorted_metrics, nodes, app_id, app_name, incident_id, timestamp):
         # Construct top three problems from the top k metrics
         problems = self.map_problems(sorted_metrics, timestamp)
         logger.info("Top problems found:\n%s" % str(problems))
@@ -129,7 +136,8 @@ class DiagnosisGenerator(object):
             resultdb[problems_collection].insert(problems)
 
         # Construct diagnosis result and store it in resultdb
-        diagnosis_doc = {"app_name": app_name,
+        diagnosis_doc = {"app_id": app_id,
+                         "app_name": app_name,
                          "incident_id": incident_id,
                          "top_related_problems": [],
                          "timestamp": timestamp,
@@ -138,7 +146,7 @@ class DiagnosisGenerator(object):
         i = 1
         for problem in problems:
             problem_id = problem["problem_id"]
-            remed_options = self.generate_remediations(problem)
+            remed_options = self.generate_remediations(nodes, problem)
             if len(remed_options) == 0:
                 logger.warning("No remediation options can be found for %s" %
                        (problem_id))
