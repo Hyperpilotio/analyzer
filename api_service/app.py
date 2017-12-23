@@ -127,6 +127,11 @@ def get_app_slo_by_name(app_name):
 @app.route("/apps/<string:app_id>", methods=["PUT"])
 def update_app(app_id):
     app_json = request.get_json()
+    if "slo" in app_json:
+        # TODO: Fix namespace prefix that's added by our snap collector
+        metric_name = app_json["slo"]["metric"]["name"]
+        app_json["slo"]["metric"]["name"] = "hyperpilot/goddd/" + metric_name
+
     updated_doc = util.update_doc(app_id, app_json)
     if not updated_doc:
         return error_response(f"Could not update app {app_id}.", 404)
@@ -137,9 +142,6 @@ def update_app(app_id):
     # TODO: We should only try to start the diagnosis flow once, and also it's not gurantee we
     # have all the information we need already....
     if "slo" in updated_doc:
-        # TODO: Fix namespace prefix that's added by our snap collector
-        metric_name = app_json["slo"]["metric"]["name"]
-        app_json["slo"]["metric"]["name"] = "hyperpilot/goddd/" + metric_name
         DIAGNOSIS.run_new_app(app_id, updated_doc)
     result = jsonify(data=updated_doc)
     result.status_code = 200
