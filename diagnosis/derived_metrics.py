@@ -198,8 +198,17 @@ class MetricsConsumer(object):
         self.derived_influx_client.create_database(derived_db)
         self.derived_influx_client.create_retention_policy('derived_metric_policy', '3w', 1, default=True)
 
+    def get_app_threshold(self):
+        threshold_config = self.app_metric_config["threshold"]
+        value = float(threshold_config["value"])
+        unit = threshold_config["unit"]
+        # We app is measured in seconds
+        if unit == "ms":
+            value = value / 1000.
+        return value
+
     def get_app_metric(self, start_time, end_time, is_derived=True):
-        logger.info("Start processing app metric")
+        logger.info("Start processing app metric with app_metric_config %s" % self.app_metric_config)
         metric_name = self.app_metric_config["metric"]["name"]
         aggregation = self.app_metric_config["analysis"]["aggregation"]
         self.incident_type = self.app_metric_config["type"]
@@ -230,7 +239,7 @@ class MetricsConsumer(object):
         if df[metric_name] is not None:
             slo_state = WindowState(
                 self.app_metric_config["analysis"]["observation_window_sec"],
-                self.app_metric_config["threshold"]["value"],
+                self.get_app_threshold(),
                 SAMPLE_INTERVAL,
             )
             df[metric_name]["value"] = df[metric_name].apply(
@@ -422,7 +431,7 @@ class MetricsConsumer(object):
                     )
 
                 # compute derived metric values using configured threshold info
-                logger.debug("raw metric before applying threshold for group %s" % (metric_group_name))
+                #logger.debug("raw metric before applying threshold for group %s" % (metric_group_name))
                 #logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
                 metric_df.loc[metric_group_ind,"value"] = metric_df.loc[metric_group_ind].apply(
                     lambda row: metric_group_states[row[group_name]].compute_derived_value(
@@ -431,7 +440,7 @@ class MetricsConsumer(object):
                         ),
                     axis=1,
                 )
-                logger.debug("derived metric after applying threshold for group %s" % (metric_group_name))
+                #logger.debug("derived metric after applying threshold for group %s" % (metric_group_name))
                 #logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
 
             metric_dfg = metric_df.groupby(group_name)

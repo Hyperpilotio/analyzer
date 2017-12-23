@@ -105,14 +105,15 @@ class AppAnalyzer(object):
             logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                         (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
-        logger.debug("Getting derived metrics with app metric %s for app_id" % (app_metric, self.app_id))
+        logger.debug("Getting derived metrics with app metric %s for app_id %s" % (app_metric, self.app_id))
         derived_metrics = self.metrics_consumer.get_derived_metrics(start_time, end_time,
                                                                             app_metric)
         logger.debug("Derived metrics completed for app_id %s" % self.app_id)
 
         # TODO: Capture actually running nodes by querying operator.
         # For now, Get all running nodes from node metrics map.
-        nodes = derived_metrics[derived_metrics.node_metrics.keys()[0]].keys()
+        first_node_metric = next(iter(derived_metrics.node_metrics.keys()))
+        nodes = list(derived_metrics.node_metrics[first_node_metric].keys())
 
         app_name = self.app_config["name"]
         incident_id = "incident" + "-" + str(uuid1())
@@ -240,6 +241,8 @@ class AppAnalyzer(object):
 
 
 if __name__ == "__main__":
+    d = DiagnosisTracker(config)
+    time.sleep(1000)
     aa = AppAnalyzer("app1", "tech-demo", {}, config, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
     if len(sys.argv) > 1:
         aa.run()
