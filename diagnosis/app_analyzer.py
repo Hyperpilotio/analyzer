@@ -158,10 +158,11 @@ class AppAnalyzer(object):
             self.diagnosis_cycle(start_time, end_time)
             diagnosis_time = self.now_nano() - start_run_time
             logger.info("Diagnosis cycle took %s" % diagnosis_time)
-            sleep_time = ((sliding_interval - diagnosis_time) * 1.) / (NANOSECONDS_PER_SECOND * 1.)
-            if sleep_time > 0:
+            sleep_time = ((self.sliding_interval - diagnosis_time) * 1.) / (NANOSECONDS_PER_SECOND * 1.)
+            if sleep_time > 0.:
                 logger.info("Sleeping for %f before next cycle" % sleep_time)
                 time.sleep(sleep_time)
+        logger.info("Diagnosis loop exiting for app id %s" % self.app_id)
 
     def loop_all_app_metrics(self, end_time):
         it = 1
