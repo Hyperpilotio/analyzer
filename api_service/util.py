@@ -8,6 +8,7 @@ from pymongo.cursor import Cursor
 from werkzeug.routing import BaseConverter, ValidationError
 import numpy as np
 import pandas as pd
+import state.apps
 from scipy.spatial.distance import euclidean
 
 from api_service.db import configdb, metricdb
@@ -74,24 +75,8 @@ def ensure_document_found(document, **kwargs):
         response.status_code = 200
         return response
 
-def update_doc(app_id, update_doc, unset=False):
-    if unset:
-        updated_doc = configdb[app_collection].find_one_and_update(
-            {"app_id": app_id},
-            {"$unset": update_doc},
-            return_document=ReturnDocument.AFTER
-        )
-    else:
-        updated_doc = configdb[app_collection].find_one_and_update(
-            {"app_id": app_id},
-            {"$set": update_doc},
-            return_document=ReturnDocument.AFTER
-        )
-    updated_doc.pop("_id")
-    return updated_doc
-
 def update_and_return_doc(app_id, update_doc, unset=False):
-    updated_doc = update_doc(app_id, update_doc, unset)
+    updated_doc = apps.update_and_get_app(app_id, update_doc, unset)
     if updated_doc:
         result = jsonify(data=updated_doc)
         result.status_code = 200
@@ -100,20 +85,10 @@ def update_and_return_doc(app_id, update_doc, unset=False):
 
 
 def ensure_application_updated(app_id, update_doc):
-    result = configdb[app_collection].update_one(
-        {"app_id": app_id},
-        {"$set": update_doc}
-    )
-
-    if result.modified_count > 0:
+    if apps.update_app(app_id, update_doc):
         return jsonify(status=200)
+
     return util.response("Could not update app.", 404)
-
-
-def get_app_microservices(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
-    if application:
-        return application.get("microservices", [])
 
 
 def shape_service_placement(deploy_json):
@@ -259,14 +234,6 @@ def compute_cost(price, slo_type, qos_value):
         cost = price * qos_value / 60
 
     return cost
-
-
-# get from configdb the application json
-def get_app_info(app_name, app_collection='applications'):
-    app_filter = {'name': app_name}
-    app = configdb[app_collection].find_one(app_filter)
-
-    return app
 
 
 # get from configdb the type of an application ("long-running" or "batch")

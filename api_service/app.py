@@ -11,6 +11,7 @@ from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
 from sizing_service.linear_regression import LinearRegression1
 from diagnosis.app_analyzer import DiagnosisTracker
 import api_service.util as util
+import state.apps
 from config import get_config
 from logger import get_logger
 
@@ -77,7 +78,7 @@ def create_application():
 
 @app.route("/apps", methods=["GET"])
 def get_all_apps():
-    apps = configdb[app_collection].find()
+    apps = apps.get_all_apps()
     response = jsonify(data=apps)
     response.status_code = 200
     return response
@@ -132,7 +133,7 @@ def update_app(app_id):
         metric_name = app_json["slo"]["metric"]["name"]
         app_json["slo"]["metric"]["name"] = "hyperpilot/goddd/" + metric_name
 
-    updated_doc = util.update_doc(app_id, app_json)
+    updated_doc = apps.update_and_get_app(app_id, app_json)
     if not updated_doc:
         return error_response(f"Could not update app {app_id}.", 404)
 
@@ -168,7 +169,7 @@ def delete_app(app_id):
 @app.route("/apps/<string:app_id>/microservices", methods=["POST"])
 def add_app_services(app_id):
     app_json = request.get_json()
-    microservices = util.get_app_microservices(app_id)
+    microservices = apps.get_app_microservices(app_id)
     if microservices is not None:
         microservices.extend(ms for ms in app_json["microservices"]
                              if ms not in microservices)
@@ -178,7 +179,7 @@ def add_app_services(app_id):
 
 @app.route("/apps/<string:app_id>/microservices", methods=["GET"])
 def get_app_microservices(app_id):
-    microservices = util.get_app_microservices(app_id)
+    microservices = apps.get_app_microservices(app_id)
     if microservices is not None:
         response = jsonify(data=microservices)
         response.status_code = 200

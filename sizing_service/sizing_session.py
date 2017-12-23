@@ -12,9 +12,9 @@ from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
 from .session_worker_pool import FuncArgs, Status, SessionStatus, SessionWorkerPool
+from state.apps import (get_app_info, get_slo_type, get_slo_value, get_budget)
 from api_service.util import (get_all_nodetypes, compute_cost, decode_nodetype, encode_nodetype,
-                   get_app_info, get_slo_type, get_slo_value, get_price, get_budget,
-                   get_raw_features, get_feature_bounds, get_resource_requests)
+                              get_price, get_raw_features, get_feature_bounds, get_resource_requests)
 
 config = get_config()
 sizing_collection = config.get("ANALYZER", "SIZING_COLLECTION")

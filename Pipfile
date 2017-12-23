@@ -1,12 +1,17 @@
 [[source]]
+
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 
+
 [requires]
+
 python_version = "3.6"
-python_full_version = "3.6.1"
+python_full_version = "3.6.3"
+
 
 [packages]
+
 nanotime = "*"
 influxdb = "*"
 pymongo = "*"
@@ -14,8 +19,8 @@ numpy = "*"
 pandas = "*"
 gunicorn = "*"
 gevent = "*"
-Werkzeug = "*"
-Flask = "*"
+werkzeug = "*"
+flask = "*"
 scikit-learn = "*"
 scipy = "*"
 bayesian-optimization = "*"

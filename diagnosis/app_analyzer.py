@@ -17,6 +17,7 @@ from diagnosis.diagnosis_generator import DiagnosisGenerator
 from config import get_config
 from api_service.db import Database
 from logger import get_logger
+from state.apps import get_all_apps
 
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
@@ -37,6 +38,14 @@ class DiagnosisTracker(object):
     def __init__(self, config):
         self.config = config
         self.apps = {}
+        self.recover()
+
+    def recover(self):
+        # Find all apps with SLO and start diagnosis for them.
+        all_apps = get_all_apps()
+        for app in apps:
+            if "slo" in app:
+                self.run_new_app(app["app_id"], app)
 
     def run_new_app(self, app_id, app_config):
         if app_id in self.apps:
@@ -46,7 +55,7 @@ class DiagnosisTracker(object):
         batch_window = WINDOW * NANOSECONDS_PER_SECOND
         sliding_interval = INTERVAL * NANOSECONDS_PER_SECOND
         delay_interval = DELAY_INTERVAL * NANOSECONDS_PER_SECOND
-        logger.info("Received start diagnosis for app id %s, config: %s" % (app_id, str(app_config)))
+        logger.info("Starting diagnosis for app id %s, config: %s" % (app_id, str(app_config)))
         analyzer = AppAnalyzer(self.config, app_id, app_config, batch_window, sliding_interval, delay_interval)
         thread = threading.Thread(target=analyzer.run)
         self.apps[app_id] = thread
