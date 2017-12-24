@@ -8,7 +8,7 @@ from pymongo.cursor import Cursor
 from werkzeug.routing import BaseConverter, ValidationError
 import numpy as np
 import pandas as pd
-import state.apps
+import state.apps as apps
 from scipy.spatial.distance import euclidean
 
 from api_service.db import configdb, metricdb

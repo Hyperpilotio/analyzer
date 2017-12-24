@@ -1,5 +1,4 @@
 import bson
-from state import db
 
 from pymongo import ReturnDocument
 from pymongo.cursor import Cursor
@@ -9,6 +8,8 @@ import pandas as pd
 from config import get_config
 from logger import get_logger
 
+from .db import configdb, metricdb
+
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 config = get_config()
@@ -16,7 +17,7 @@ config = get_config()
 app_collection = config.get("ANALYZER", "APP_COLLECTION")
 
 def get_all_apps():
-    return db.configdb[app_collection].find()
+    return configdb[app_collection].find()
 
 def update_and_get_app(app_id, update_doc, unset=False):
     if unset:
