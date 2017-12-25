@@ -44,7 +44,7 @@ class DiagnosisTracker(object):
         # Find all apps with SLO and start diagnosis for them.
         all_apps = get_all_apps()
         for app in all_apps:
-            if "slo" in app:
+            if "slo" in app and app["state"] == "Active":
                 self.run_new_app(app["app_id"], app)
 
     def run_new_app(self, app_id, app_config):
