@@ -142,7 +142,7 @@ def update_app(app_id):
     # to start it.
     # TODO: We should only try to start the diagnosis flow once, and also it's not gurantee we
     # have all the information we need already....
-    if "slo" in updated_doc:
+    if "slo" in updated_doc and updated_doc["state"] == "Active":
         DIAGNOSIS.run_new_app(app_id, updated_doc)
     result = jsonify(data=updated_doc)
     result.status_code = 200
