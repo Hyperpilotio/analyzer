@@ -19,6 +19,9 @@ app_collection = config.get("ANALYZER", "APP_COLLECTION")
 def get_all_apps():
     return configdb[app_collection].find()
 
+def create_app(app_json):
+    return configdb[app_collection].insert_one(app_json)
+
 def update_and_get_app(app_id, update_doc, unset=False):
     if unset:
         updated_doc = configdb[app_collection].find_one_and_update(
@@ -49,30 +52,32 @@ def get_app_microservices(app_id):
     if application:
         return application.get("microservices", [])
 
+def get_app_by_id(app_id):
+    return configdb[app_collection].find_one({"app_id": app_id})
+
 # get from configdb the application json
-def get_app_info(app_name, app_collection='applications'):
+def get_app_by_name(app_name):
     app_filter = {'name': app_name}
     app = configdb[app_collection].find_one(app_filter)
-
     return app
 
 
 # get from configdb the type of an application ("long-running" or "batch")
 def get_app_type(app_name):
-    app = get_app_info(app_name)
+    app = get_app_by_name(app_name)
 
     return app['type']
 
 
 # get from configdb the slo metric type of an application
 def get_slo_type(app_name):
-    app = get_app_info(app_name)
+    app = get_app_by_name(app_name)
 
     return app['slo']['type']
 
 
 def get_slo_value(app_name):
-    app = get_app_info(app_name)
+    app = get_app_by_name(app_name)
 
     try:
         slo_value = app['slo']['value']
@@ -83,7 +88,7 @@ def get_slo_value(app_name):
 
 
 def get_budget(app_name):
-    app = get_app_info(app_name)
+    app = get_app_by_name(app_name)
 
     try:
         budget = app['budget']['value']
@@ -95,7 +100,7 @@ def get_budget(app_name):
 
 # get from configdb the {cpu|mem} requests (i.e. min) for the app service container
 def get_resource_requests(app_name):
-    app = get_app_info(app_name)
+    app = get_app_by_name(app_name)
 
     # TODO: handle apps with multiple services
     service = app['serviceNames'][0]

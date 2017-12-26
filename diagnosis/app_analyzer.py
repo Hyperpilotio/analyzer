@@ -32,6 +32,8 @@ else:
 NANOSECONDS_PER_SECOND = 1000000000
 RESULTDB = Database(config.get("ANALYZER", "RESULTDB_NAME"))
 incidents_collection = config.get("ANALYZER", "INCIDENT_COLLECTION")
+problems_collection = config.get("ANALYZER", "PROBLEM_COLLECTION")
+diagnoses_collection = config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class DiagnosisTracker(object):
@@ -60,6 +62,42 @@ class DiagnosisTracker(object):
         thread = threading.Thread(target=analyzer.run)
         self.apps[app_id] = thread
         thread.start()
+
+# Diagnosis States
+NO_APP_METRICS = 0
+APP_HEALTHY = 1
+METRICS_ALL_FILTERED = 2
+APP_DIAGNOISED = 3
+
+class DiangnosisResults(object):
+    def __init__(self, state=0, problems=[], incident_doc=None, diagnosis_doc=None):
+        self.state = state
+        self.problems = problems
+        self.incident_doc = incident_doc
+        self.diagnosis_doc = diagnosis_doc
+
+    def state_string(self):
+        if self.state == NO_APP_METRICS:
+            return "NO_APP_METRICS"
+        elif self.state == APP_HEALTHY:
+            return "APP_HEALTHY"
+        elif self.state == METRICS_ALL_FILTERED:
+            return "METRICS_ALL_FILTERED"
+        elif self.state == APP_DIAGNOISED:
+            return "APP_DIAGNOISED"
+
+        return "Unknown"
+
+    def write_results(self):
+        if self.problems:
+            RESULTDB[problems_collection].insert_one(self.problems)
+
+        if self.incident_doc:
+            RESULTDB[incidents_collection].insert_one(self.incident_doc)
+
+        if self.diagnosis_doc:
+            RESULTDB[diagnoses_collection].insert_one(self.diagnosis_doc)
+
 
 class AppAnalyzer(object):
     def __init__(self, config, app_id, app_config, batch_window, sliding_interval, delay_interval):
@@ -90,20 +128,22 @@ class AppAnalyzer(object):
         self.influx_client.create_retention_policy('result_policy', '3w', 1, default=True)
 
     def diagnosis_cycle(self, start_time, end_time):
+        results = DiagnosisResults()
         app_metric = self.metrics_consumer.get_app_metric(start_time, end_time, is_derived=True)
         if app_metric is None:
             logger.info("No app metric found, exiting diagnosis...")
-            return False
+            return results
         window = int(config.get("ANALYZER", "AVERAGE_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
         window_start = to_datetime(end_time - window, unit="ns")
         app_metric_mean = app_metric.loc[app_metric.index >= window_start].mean()
         if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
             logger.info("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
                         (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
-            return False
-        else:
-            logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
-                        (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
+            results.state = APP_HEALTHY
+            return results
+
+        logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
+                    (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
         logger.debug("Getting derived metrics with app metric %s for app_id %s" % (app_metric, self.app_id))
         derived_metrics = self.metrics_consumer.get_derived_metrics(start_time, end_time,
@@ -126,14 +166,15 @@ class AppAnalyzer(object):
                         "severity": app_metric_mean["value"],
                         "timestamp": end_time}
         logger.debug("Creating incident %s" % str(incident_doc))
-        RESULTDB[incidents_collection].insert_one(incident_doc)
+        results.incident_doc = incident_doc
 
         logger.debug("Feature selector starting to process derived metrics..")
         filtered_metrics = self.features_selector.process_metrics(derived_metrics)
         if not filtered_metrics:
             logger.info("All %d features have been filtered." % self.features_selector.num_features)
             it += 1
-            return True
+            results.state = METRICS_ALL_FILTERED
+            return results
 
         logger.debug("Writing filtered metrics results...")
         self.write_results(filtered_metrics, end_time, self.app_id, app_name, self.metrics_consumer.deployment_id)
@@ -149,25 +190,38 @@ class AppAnalyzer(object):
         # Identify top problems and generate diagnosis result
         logger.info("\nStart generating diagnosis for incident %s for application %s:" %
                     (incident_id, app_name))
-        self.diagnosis_generator.process_features(
+        problems, diagnosis_doc = self.diagnosis_generator.process_features(
             sorted_metrics, nodes, self.app_id, app_name, incident_id, end_time)
 
+        results.problems = problems
+        results.diagnosis_doc = diagnosis_doc
+
         logger.debug("Diagnosis generation completed")
-        return True
+        return results
 
     def now_nano(self):
         return nanotime.now().nanoseconds()
 
     def run(self):
         logger.info("Starting live diagnosis run for application %s" % self.app_id)
+        app_was_diagnosised = False
         while self.stop != True:
             end_time =  self.now_nano() - self.delay_interval
             start_time = end_time - self.batch_window
             logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
             start_run_time = self.now_nano()
-            self.diagnosis_cycle(start_time, end_time)
+            diagnosis_results = self.diagnosis_cycle(start_time, end_time).state
+            if diagnosis_results.state == APP_DIAGNOISED:
+                if app_was_diagnosised:
+                    logger.info("Skipping writing diagnosis results as app is diaganoised already.")
+                else:
+                    app_was_diagnosised = True
+                    diagnosis_results.write_results()
+            else:
+                app_was_diagnosised = False
+
             diagnosis_time = self.now_nano() - start_run_time
-            logger.info("Diagnosis cycle took %s" % diagnosis_time)
+            logger.info("Diagnosis cycle took %s with result state %s" % (diagnosis_time, diagnosis_results.state_string()))
             sleep_time = ((self.sliding_interval - diagnosis_time) * 1.) / (NANOSECONDS_PER_SECOND * 1.)
             if sleep_time > 0.:
                 logger.info("Sleeping for %f before next cycle" % sleep_time)
@@ -181,8 +235,12 @@ class AppAnalyzer(object):
             start_time = end_time - self.batch_window
             logger.info("\nIteration %d - Processing metrics from start: %d, to end: %d" %
                   (it, start_time, end_time))
-            if self.diagnosis_cycle(start_time, end_time) == False:
+            results = self.diagnosis_cycle(start_time, end_time)
+            if results.state < METRICS_ALL_FILTERED:
                 return
+
+            results.write_results()
+
             end_time += sliding_interval
             it += 1
 

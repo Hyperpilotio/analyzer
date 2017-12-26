@@ -68,7 +68,7 @@ def create_application():
     app_json["state"] = APP_STATE["REGISTERED"]
 
     try:
-        result = configdb[app_collection].insert_one(app_json)
+        result = appstate.create_app(app_json)
         response = jsonify(data=app_json)
         response.status_code = 200
         return response
@@ -105,19 +105,19 @@ def _get_all_apps():
 
 @app.route("/apps/<string:app_id>", methods=["GET"])
 def get_app_info_by_id(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     return util.ensure_document_found(application)
 
 
 @app.route("/apps/info/<string:app_name>", methods=["GET"])
 def get_app_info(app_name):
-    application = configdb[app_collection].find_one({"name": app_name})
+    application = appstate.get_app_by_name(app_name)
     return util.ensure_document_found(application)
 
 
 @app.route("/apps/info/<string:app_name>/slo", methods=["GET"])
 def get_app_slo_by_name(app_name):
-    application = configdb[app_collection].find_one({"name": app_name})
+    application = appstate.get_app_by_name(app_name)
     if application is None:
         return util.ensure_document_found(None)
     if "slo" not in application:
@@ -154,13 +154,10 @@ def delete_app(app_id):
     # Method to keep app in internal system but with unregistered state.
 
     # Check for existence
-    app = configdb[app_collection].find_one({"app_id": app_id})
+    app = appstate.get_app_by_id(app_id)
     if not app:
         return util.error_response(f"Tried to delete app {app_id} but app not found.", 404)
-    result = configdb[app_collection].update_one(
-        {"app_id": app_id},
-        {"$set": {"state": APP_STATE["UNREGISTERED"]}}
-    )
+    result = appstate.update_app(app_id, {"state": APP_STATE["UNREGISTERED"]})
     if result.modified_count > 0:
         return jsonify(status=200, deleted_id=app_id)
     return util.error_response(f"Could not delete app {app_id}.", 404)
@@ -202,7 +199,7 @@ def get_app_microservices(app_id):
 
 @app.route("/apps/<objectid:app_id>/calibration")
 def app_calibration(app_id):
-    application = configdb[app_collection].find_one(app_id)
+    application = appstate.get_app_by_id(app_id)
     if app is None:
         return util.ensure_document_found(None)
 
@@ -222,7 +219,7 @@ def app_calibration(app_id):
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/profiling")
 def service_profiling(app_id, service_name):
-    application = configdb[app_collection].find_one(app_id)
+    application = appstate.get_app_by_id(app_id)
     if app is None:
         return util.ensure_document_found(None)
 
@@ -242,7 +239,7 @@ def service_profiling(app_id, service_name):
 
 @app.route("/apps/<objectid:app_id>/services/<service_name>/interference")
 def interference_scores(app_id, service_name):
-    application = configdb[app_collection].find_one(app_id)
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
 
@@ -281,7 +278,7 @@ def get_next_instance_types(session_id):
     app_name = request_body['appName']
 
     # check if the target app exists in the configdb
-    application = configdb[app_collection].find_one({"name": app_name})
+    application = appstate.get_app_by_name(app_name)
     if application is None:
         response = jsonify({"status": "bad_request",
                             "error": "Target application not found"})
@@ -387,7 +384,7 @@ def create_k8s_service():
 
 @app.route("/apps/<string:app_id>/pods", methods=["GET"])
 def get_pod_names(app_id):
-    app = configdb[app_collection].find_one({"app_id": app_id})
+    app = appstate.get_app_by_id(app_id)
     if app is None:
         return util.ensure_document_found(None)
     pod_names = []
@@ -404,7 +401,7 @@ def get_pod_names(app_id):
 
 @app.route("/apps/<string:app_id>/state", methods=["GET"])
 def get_app_state(app_id):
-    app = configdb[app_collection].find_one({"app_id": app_id})
+    app = appstate.get_app_by_id(app_id)
     if app is None:
         return util.ensure_document_found(None)
     return util.ensure_document_found({"state": app["state"]})
@@ -412,7 +409,7 @@ def get_app_state(app_id):
 
 @app.route("/apps/<string:app_id>/state", methods=["PUT"])
 def update_app_state(app_id):
-    app = configdb[app_collection].find_one({"app_id": app_id})
+    app = appstate.get_app_by_id(app_id)
     if app is None:
         return util.ensure_document_found(None)
 
@@ -427,7 +424,7 @@ def update_app_state(app_id):
 
 @app.route("/apps/<string:app_id>/slo", methods=["GET"])
 def get_app_slo(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
     if "slo" not in application:
@@ -437,7 +434,7 @@ def get_app_slo(app_id):
 
 @app.route("/apps/<string:app_id>/slo", methods=["PUT"])
 def update_app_slo(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
     if "slo" not in application:
@@ -449,7 +446,7 @@ def update_app_slo(app_id):
 
 @app.route("/apps/<string:app_id>/slo", methods=["POST"])
 def add_app_slo(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
     if "slo" in application:
@@ -617,7 +614,7 @@ def check_diagnosis_input(request_json):
 
 @app.route("/apps/<string:app_id>/management_features", methods=["GET"])
 def get_app_all_features(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
     if "management_features" not in application:
@@ -627,7 +624,7 @@ def get_app_all_features(app_id):
 
 @app.route("/apps/<string:app_id>/management_features/<string:feature_name>", methods=["GET"])
 def get_app_one_feature(app_id, feature_name):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
     if feature_name != FEATURE_NAME["INTERFERENCE"] and feature_name != FEATURE_NAME["BOTTLENECK"] and feature_name != \
@@ -649,7 +646,7 @@ def get_app_one_feature(app_id, feature_name):
 
 @app.route("/apps/<string:app_id>/management_features/<string:feature_name>", methods=["PUT"])
 def update_app_features(app_id, feature_name):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
     if feature_name != FEATURE_NAME["INTERFERENCE"] and feature_name != FEATURE_NAME["BOTTLENECK"] and feature_name != \
@@ -679,7 +676,7 @@ def update_app_features(app_id, feature_name):
 
 @app.route("/apps/<string:app_id>/management_features", methods=["POST"])
 def add_app_features(app_id):
-    application = configdb[app_collection].find_one({"app_id": app_id})
+    application = appstate.get_app_by_id(app_id)
     if application is None:
         return util.ensure_document_found(None)
     if "management_features" in application:

@@ -12,7 +12,7 @@ from logger import get_logger
 
 from .bayesian_optimizer import get_candidate
 from .session_worker_pool import FuncArgs, Status, SessionStatus, SessionWorkerPool
-from state.apps import (get_app_info, get_slo_type, get_slo_value, get_budget)
+from state.apps import (get_app_by_name, get_slo_type, get_slo_value, get_budget)
 from api_service.util import (get_all_nodetypes, compute_cost, decode_nodetype, encode_nodetype,
                               get_price, get_raw_features, get_feature_bounds, get_resource_requests)
 
@@ -468,7 +468,7 @@ class SizingSession():
             This method is called only when a sizing session is initiated
         """
 
-        app = get_app_info(app_name)
+        app = get_app_by_name(app_name)
         sizing_doc = {'sessionId': self.session_id, 'appName': app['name'], 'sloType': app['slo']['type'],
                       'sloValue': app['slo']['value'], 'budget': app['budget']['value'],
                       'sizingRuns': [], 'status': "started"}
