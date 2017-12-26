@@ -12,6 +12,7 @@ from sizing_service.linear_regression import LinearRegression1
 from diagnosis.app_analyzer import DiagnosisTracker
 import api_service.util as util
 from state import apps as appstate
+from state import results as resultstate
 from config import get_config
 from logger import get_logger
 
@@ -30,7 +31,6 @@ sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
 k8s_service_collection = my_config.get("ANALYZER", "K8S_SERVICE_COLLECTION")
 problems_collection = my_config.get("ANALYZER", "PROBLEM_COLLECTION")
 diagnoses_collection = my_config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
-incidents_collection = my_config.get("ANALYZER", "INCIDENT_COLLECTION")
 risks_collection = my_config.get("ANALYZER", "RISK_COLLECTION")
 opportunities_collection = my_config.get("ANALYZER", "OPPORTUNITY_COLLECTION")
 
@@ -468,18 +468,13 @@ def add_app_slo(app_id):
 #     return util.update_and_return_doc(app_id, {"slo": ""}, unset=True)
 
 
-@app.route("/incidents", methods=["GET"])
-def get_app_incidents():
-    request_json = request.get_json()
-    if "app_name" not in request_json:
-        return util.error_response(f"app_name is not found", 400)
-    app_name = request_json["app_name"]
-    incidents = resultdb[incidents_collection]. \
-        find({"labels": {"app_name": app_name}}, {"_id": 0}). \
-        sort("timestamp", DESCENDING).limit(1)
+@app.route("/apps/<string:app_id>/incidents", methods=["GET"])
+def get_app_incidents(app_id):
+    incidents = resultstate.get_last_app_incident(app_id)
 
     for doc in incidents:
         return util.ensure_document_found(doc)
+
     return util.ensure_document_found(None)
 
 
@@ -534,58 +529,41 @@ def get_problems_interval():
     return util.ensure_document_found(problems)
 
 
-@app.route("/diagnoses", methods=["POST"])
-def add_diagnoses():
+@app.route("/apps/<string:app_id>/diagnosis", methods=["POST"])
+def add_diagnosis(app_id):
     diagnoses_json = request.get_json()
-    print("aa")
     if diagnoses_json is None:
-        return util.error_response(f"diagnoses data is no available", 400)
-    if "app_name" not in diagnoses_json:
-        return util.error_response(f"app_name is not found", 400)
+        return util.error_response(f"No body found in request", 400)
     if "incident_id" not in diagnoses_json:
         return util.error_response(f"incident id is not found", 400)
 
-    diagnosis = resultdb[diagnoses_collection].find_one(
-        {"$and": [
-            {"app_name": diagnoses_json["app_name"]},
-            {"incident_id": diagnoses_json["incident_id"]}]},
-        {"_id": 0}
-    )
-    app_name = diagnoses_json["app_name"]
+
     incident_id = diagnoses_json["incident_id"]
+    diagnosis = resultstate.get_incident_diagnosis(app_id, incident_id)
 
     if diagnosis is not None:
-        return util.error_response(f"diagnosis of app ({app_name}) with incident ({incident_id}) already exist", 400)
+        return util.error_response(f"diagnosis of app ({app_id}) with incident ({incident_id}) already exist", 400)
     try:
         resultdb[diagnoses_collection].insert_one(diagnoses_json)
-        return util.ensure_document_found({"app_name": app_name, "incident_id": incident_id})
+        return util.ensure_document_found({"app_id": app_id, "incident_id": incident_id})
     except InvalidOperation:
         return util.error_response(
-            f"Could not create diagnosis of app ({app_name}) with incident ({incident_id}) already exist", 400)
+            f"Could not create diagnosis of app id ({app_id}) with incident ({incident_id}) already exist", 400)
 
 
-@app.route("/diagnoses", methods=["GET"])
-def get_app_diagnoses():
+@app.route("/apps/<string:app_id>/diagnosis", methods=["GET"])
+def get_app_diagnosis(app_id):
     request_json = request.get_json()
-    if "app_name" not in request_json:
-        return util.error_response(f"app_name is not found", 400)
 
     query_type = check_diagnosis_input(request_json)
     if query_type == 0:
         # query by name
-        diagnosis = resultdb[diagnoses_collection]. \
-            find({"app_name": request_json["app_name"]}, {"_id": 0}). \
-            sort("timestamp", DESCENDING).limit(1)
+        diagnosis = resultstate.get_last_app_diagnosis(app_Id)
         if diagnosis.count() == 0:
             return util.ensure_document_found(None)
     elif query_type == 1:
         # query by name & incident_id
-        diagnosis = resultdb[diagnoses_collection].find_one(
-            {"$and": [
-                {"app_name": request_json["app_name"]},
-                {"incident_id": request_json["incident_id"]}]},
-            {"_id": 0}
-        )
+        diagnosis = resultstate.get_incident_diagnosis(app_id, request_json["incident_id"])
     elif query_type == 2:
         # query by name & interval
         start_ts = request_json["start_time"]
@@ -593,7 +571,7 @@ def get_app_diagnoses():
         if end_ts < start_ts:
             return util.error_response(f"end_time is before the start_time", 400)
         diagnosis = resultdb[diagnoses_collection]. \
-            find({"$and": [{"app_name": request_json["app_name"]},
+            find({"$and": [{"app_id": app_id},
                            {"timestamp": {"$gte": start_ts}},
                            {"timestamp": {"$lte": end_ts}}]},
                  {"_id": 0}
