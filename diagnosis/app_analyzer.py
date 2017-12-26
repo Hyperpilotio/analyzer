@@ -67,9 +67,9 @@ class DiagnosisTracker(object):
 NO_APP_METRICS = 0
 APP_HEALTHY = 1
 METRICS_ALL_FILTERED = 2
-APP_DIAGNOISED = 3
+APP_DIAGNOSED = 3
 
-class DiangnosisResults(object):
+class DiagnosisResults(object):
     def __init__(self, state=0, problems=[], incident_doc=None, diagnosis_doc=None):
         self.state = state
         self.problems = problems
@@ -83,14 +83,14 @@ class DiangnosisResults(object):
             return "APP_HEALTHY"
         elif self.state == METRICS_ALL_FILTERED:
             return "METRICS_ALL_FILTERED"
-        elif self.state == APP_DIAGNOISED:
-            return "APP_DIAGNOISED"
+        elif self.state == APP_DIAGNOSED:
+            return "APP_DIAGNOSED"
 
         return "Unknown"
 
     def write_results(self):
         if self.problems:
-            RESULTDB[problems_collection].insert_one(self.problems)
+            RESULTDB[problems_collection].insert_many(self.problems)
 
         if self.incident_doc:
             RESULTDB[incidents_collection].insert_one(self.incident_doc)
@@ -195,6 +195,7 @@ class AppAnalyzer(object):
 
         results.problems = problems
         results.diagnosis_doc = diagnosis_doc
+        results.state = APP_DIAGNOSED
 
         logger.debug("Diagnosis generation completed")
         return results
@@ -210,8 +211,8 @@ class AppAnalyzer(object):
             start_time = end_time - self.batch_window
             logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
             start_run_time = self.now_nano()
-            diagnosis_results = self.diagnosis_cycle(start_time, end_time).state
-            if diagnosis_results.state == APP_DIAGNOISED:
+            diagnosis_results = self.diagnosis_cycle(start_time, end_time)
+            if diagnosis_results.state == APP_DIAGNOSED:
                 if app_was_diagnosised:
                     logger.info("Skipping writing diagnosis results as app is diaganoised already.")
                 else:

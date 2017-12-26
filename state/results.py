@@ -19,7 +19,7 @@ def get_last_app_diagnosis(app_id):
         sort("timestamp", DESCENDING).limit(1)
 
 def get_incident_diagnosis(app_id, incident_id):
-    return resultdb[diagnoses_collection].find_one(
+    return resultdb[diagnosis_collection].find_one(
             {"$and": [
                 {"app_id": app_id},
                 {"incident_id": incident_id}]},
