@@ -1,31 +1,16 @@
-from configparser import ConfigParser, NoOptionError
+import os
+from configparser import ConfigParser
 from functools import lru_cache
-from pathlib import Path
 
 @lru_cache(maxsize=1)
 def get_config():
-    return Config()
+    config = EnvironInterpolatedConfigParser()
+    config.read("config.ini")
+    return config
 
-class Config():
-    def __init__(self):
-        config = ConfigParser()
-        config.read(Path(__file__).absolute().parent / "config.ini")
-        self._config = config
-
-    def get(self, section, option, default=None):
-        value = None
-        try:
-            value = self._config.get(section, option)
-        except NoOptionError:
-            pass
-
-        if value is None:
-            return default
-
-        return value
-
-    def getint(self, *args):
-        return int(self.get(*args))
-
-    def getfloat(self, *args):
-        return float(self.get(*args))
+class EnvironInterpolatedConfigParser(ConfigParser):
+    def get(self, section, option, **kwargs):
+        return os.environ.get(
+            f"{section}_{option}".upper(),
+            default=super().get(section, option, **kwargs)
+        )
