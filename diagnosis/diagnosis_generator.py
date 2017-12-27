@@ -56,6 +56,7 @@ class DiagnosisGenerator(object):
                 m.metric_name) - len(metric_type) - 1]
 
             metric_doc["name"] = metric_name
+            metric_doc["source"] = m.raw_metric_name
             metric_doc["threshold"] = {"type": m.threshold_type,
                                 "value": m.threshold,
                                 "unit": m.threshold_unit}

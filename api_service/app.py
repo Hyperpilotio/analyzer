@@ -13,6 +13,7 @@ from diagnosis.app_analyzer import DiagnosisTracker
 import api_service.util as util
 from state import apps as appstate
 from state import results as resultstate
+from state import k8s_service as k8sservicestate
 from config import get_config
 from logger import get_logger
 
@@ -24,13 +25,9 @@ app.json_encoder = util.JSONEncoderWithMongo
 app.url_map.converters["objectid"] = util.ObjectIdConverter
 
 my_config = get_config()
-app_collection = my_config.get("ANALYZER", "APP_COLLECTION")
 calibration_collection = my_config.get("ANALYZER", "CALIBRATION_COLLECTION")
 profiling_collection = my_config.get("ANALYZER", "PROFILING_COLLECTION")
 sizing_collection = my_config.get("ANALYZER", "SIZING_COLLECTION")
-k8s_service_collection = my_config.get("ANALYZER", "K8S_SERVICE_COLLECTION")
-problems_collection = my_config.get("ANALYZER", "PROBLEM_COLLECTION")
-diagnoses_collection = my_config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 risks_collection = my_config.get("ANALYZER", "RISK_COLLECTION")
 opportunities_collection = my_config.get("ANALYZER", "OPPORTUNITY_COLLECTION")
 
@@ -82,25 +79,6 @@ def get_all_apps():
     response = jsonify(data=all_apps)
     response.status_code = 200
     return response
-
-
-@app.route("/deprecated/apps", methods=["GET"])
-def _get_all_apps():
-    with open(my_config.get("ANALYZER", "DEPLOY_JSON")) as f:
-        deploy_json = json.load(f)
-    apps = {}
-    service_names = [
-        task["deployment"]["metadata"]["name"]
-        for task in deploy_json["kubernetes"]["taskDefinitions"]
-        if task["deployment"]["metadata"].get("namespace") != "hyperpilot"
-    ]
-    for application in configdb[app_collection].find(
-        {"serviceNames": {"$in": service_names}},
-        {"name": 1, "serviceNames": 1}
-    ):
-        app_id = application.pop("_id")
-        apps[str(app_id)] = application
-    return jsonify(apps)
 
 
 @app.route("/apps/<string:app_id>", methods=["GET"])
@@ -361,7 +339,7 @@ def recommended_service_placement():
 
 @app.route("/k8s_services/<string:service_id>", methods=["GET"])
 def get_k8s_service(service_id):
-    service = configdb[k8s_service_collection].find_one({"service_id": service_id})
+    service = k8sservicestate.get_service(service_id)
     service.pop("_id")
     return util.ensure_document_found(service)
 
@@ -374,7 +352,7 @@ def create_k8s_service():
     service_json["service_id"] = service_id
     # TODO: Validate the json?
     try:
-        result = configdb[k8s_service_collection].insert_one(service_json)
+        k8sservicestate.create_service(service_json)
         response = jsonify(data=service_id)
         response.status_code = 200
         return response
@@ -390,8 +368,7 @@ def get_pod_names(app_id):
     pod_names = []
     for microservice in app["microservices"]:
         service_id = microservice["service_id"]
-        microservice_doc = configdb[k8s_service_collection].find_one({"service_id":
-                                                                      service_id})
+        microservice_doc = k8sservicestate.get_service(service_id)
         if microservice_doc is None:
             return util.error_response("Microservice with id %s not found" %
                                        service_id, 400)
@@ -482,28 +459,25 @@ def get_app_incidents(app_id):
 def add_problem():
     problem_json = request.get_json()
     if problem_json is None:
-        return util.error_response(f"problem data is no available", 400)
+        return util.error_response(f"No body found in request", 400)
     if "problem_id" not in problem_json:
         return util.error_response(f"problem id is not found", 400)
-    problem = resultdb[problems_collection].find_one(
-        {"problem_id": problem_json["problem_id"]},
-        {"_id": 0}
-    )
     problem_id = problem_json["problem_id"]
+    problem = resultstate.get_problem(problem_id)
+
     if problem is not None:
         return util.error_response(f"problem with id {problem_id} already exist", 400)
     try:
-        resultdb[problems_collection].insert_one(problem_json)
-        return util.ensure_document_found({"problem_id": problem_id})
+        resultstate.create_problem(problem_json)
     except InvalidOperation:
         return util.error_response(f"Could not create problem {problem_id}.", 400)
+
+    return util.ensure_document_found({"problem_id": problem_id})
 
 
 @app.route("/problems/<string:problem_id>", methods=["GET"])
 def get_problems(problem_id):
-    problem = resultdb[problems_collection].find_one({"problem_id": problem_id}, {"_id": 0})
-    if problem is None:
-        return util.ensure_document_found(None)
+    problem = resultstate.get_problem(problem_id)
     return util.ensure_document_found(problem)
 
 
@@ -520,35 +494,29 @@ def get_problems_interval():
     if end_ts < start_ts:
         return util.error_response(f"end_time is before start_time", 400)
 
-    problems = resultdb[problems_collection].find(
-        {"$and": [
-            {"timestamp": {"$gte": start_ts}},
-            {"timestamp": {"$lte": end_ts}}]},
-        {"_id": 0}
-    )
+    problems = resultstate.get_problems_between_time(start_ts, end_ts)
     return util.ensure_document_found(problems)
 
 
 @app.route("/apps/<string:app_id>/diagnosis", methods=["POST"])
 def add_diagnosis(app_id):
-    diagnoses_json = request.get_json()
+    diagnosis_json = request.get_json()
     if diagnoses_json is None:
         return util.error_response(f"No body found in request", 400)
-    if "incident_id" not in diagnoses_json:
+    if "incident_id" not in diagnosis_json:
         return util.error_response(f"incident id is not found", 400)
 
-
-    incident_id = diagnoses_json["incident_id"]
+    incident_id = diagnosis_json["incident_id"]
     diagnosis = resultstate.get_incident_diagnosis(app_id, incident_id)
 
     if diagnosis is not None:
         return util.error_response(f"diagnosis of app ({app_id}) with incident ({incident_id}) already exist", 400)
     try:
-        resultdb[diagnoses_collection].insert_one(diagnoses_json)
-        return util.ensure_document_found({"app_id": app_id, "incident_id": incident_id})
+        resultstate.create_diagnosis(diagnosis_json)
     except InvalidOperation:
         return util.error_response(
             f"Could not create diagnosis of app id ({app_id}) with incident ({incident_id}) already exist", 400)
+    return util.ensure_document_found({"app_id": app_id, "incident_id": incident_id})
 
 
 @app.route("/apps/<string:app_id>/diagnosis", methods=["GET"])
@@ -570,12 +538,7 @@ def get_app_diagnosis(app_id):
         end_ts = request_json["end_time"]
         if end_ts < start_ts:
             return util.error_response(f"end_time is before the start_time", 400)
-        diagnosis = resultdb[diagnoses_collection]. \
-            find({"$and": [{"app_id": app_id},
-                           {"timestamp": {"$gte": start_ts}},
-                           {"timestamp": {"$lte": end_ts}}]},
-                 {"_id": 0}
-                 )
+        diagnosis = resultstate.get_diagnosis_between_time(app_id, start_ts, end_ts)
     return util.ensure_document_found(diagnosis)
 
 

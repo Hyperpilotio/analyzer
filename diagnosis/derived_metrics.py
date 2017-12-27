@@ -70,11 +70,12 @@ class WindowState(object):
             return 100. * (num_severe/len(self.values))
 
 class MetricResult(object):
-    def __init__(self, df, metric_name, resource_type, node_name,
+    def __init__(self, df, raw_metric_name, metric_name, resource_type, node_name,
                  observation_window, threshold, threshold_type,
                  threshold_unit, pod_name=None):
         self.df = df
         self.metric_name = metric_name
+        self.raw_metric_name = raw_metric_name
         self.node_name = node_name
         self.pod_name = pod_name
         self.resource_type = resource_type # e.g: network, cpu, memory
@@ -107,20 +108,22 @@ class MetricsResults(object):
             self.influx_client.write_points(app_metric, metric_name)
         self.app_metric = app_metric
 
-    def add_node_metric(self, metric_name, node_name, df, resource_type,
+    def add_node_metric(self, raw_metric_name, metric_name, node_name, df, resource_type,
                         observation_window, threshold, threshold_type,
                         threshold_unit):
         if metric_name not in self.node_metrics:
             self.node_metrics[metric_name] = {}
-        self.node_metrics[metric_name][node_name] = MetricResult(df,
-                                metric_name, resource_type, node_name,
-                                observation_window, threshold,
-                                threshold_type, threshold_unit)
+
+        result = MetricResult(df, raw_metric_name, metric_name, resource_type, \
+                              node_name, observation_window, \
+                              threshold, threshold_type, threshold_unit)
+        self.node_metrics[metric_name][node_name] = result
+
         if self.is_derived:
             tags = {"resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
-    def add_container_metric(self, metric_name, node_name, pod_name, df,
+    def add_container_metric(self, raw_metric_name, metric_name, node_name, pod_name, df,
                              resource_type, observation_window, threshold,
                              threshold_type, threshold_unit):
         if metric_name not in self.container_metrics:
@@ -130,26 +133,26 @@ class MetricsResults(object):
         if node_name not in nodes:
             nodes[node_name] = {}
 
-        nodes[node_name][pod_name] = MetricResult(df,
+        nodes[node_name][pod_name] = MetricResult(df, raw_metric_name,
                 metric_name, resource_type, node_name, observation_window,
                 threshold, threshold_type, threshold_unit, pod_name)
         if self.is_derived:
             tags = {"resource_type": resource_type, "deployment_id": self.deployment_id}
             self.influx_client.write_points(df.interpolate(), metric_name, tags)
 
-    def add_metric(self, metric_name, is_container_metric, dfg, resource_type,
+    def add_metric(self, raw_metric_name, metric_name, is_container_metric, dfg, resource_type,
                   observation_window, threshold, threshold_type, threshold_unit):
         for df in dfg:
             if is_container_metric:
                 node_col = df[1]["nodename"]
                 if len(node_col) > 0:
                     nodename = node_col[0]
-                    self.add_container_metric(
+                    self.add_container_metric(raw_metric_name,
                         metric_name, nodename, df[0], df[1], resource_type,
                         observation_window, threshold, threshold_type,
                         threshold_unit)
             else:
-                self.add_node_metric(metric_name, df[0], df[1], resource_type,
+                self.add_node_metric(raw_metric_name, metric_name, df[0], df[1], resource_type,
                                      observation_window, threshold, threshold_type,
                                      threshold_unit)
 
@@ -298,7 +301,7 @@ class MetricsConsumer(object):
             df = raw_metrics[metric_source]
             dfg = df.groupby(group_name)
             metrics_result.add_metric(
-                metric_source, is_container_metric, dfg,
+                metric_source, metric_source, is_container_metric, dfg,
                 metric_config["resource"], metric_config["analysis"]["observation_window_sec"],
                 metric_config["threshold"]["value"], metric_config["threshold"]["type"],
                 metric_config["threshold"]["unit"])
@@ -445,7 +448,7 @@ class MetricsConsumer(object):
 
             metric_dfg = metric_df.groupby(group_name)
             derived_metrics_result.add_metric(
-                new_metric_name, is_container_metric, metric_dfg,
+                metric_source, new_metric_name, is_container_metric, metric_dfg,
                 metric_config["resource"], metric_config["observation_window_sec"],
                 metric_config["threshold"]["value"], metric_config["threshold"]["type"],
                 metric_config["threshold"]["unit"])
