@@ -121,7 +121,7 @@ class AppAnalyzer(object):
         self.influx_client = InfluxDBClient(
             influx_host,
             influx_port,
-            config.get("INFLUXDB", "USER"),
+            config.get("INFLUXDB", "USERNAME"),
             config.get("INFLUXDB", "PASSWORD"),
             influx_db)
         self.influx_client.create_database(influx_db)
