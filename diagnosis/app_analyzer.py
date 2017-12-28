@@ -17,7 +17,8 @@ from diagnosis.diagnosis_generator import DiagnosisGenerator
 from config import get_config
 from api_service.db import Database
 from logger import get_logger
-from state.apps import get_all_apps
+from state import apps as appstate
+from state import results as resultstate
 
 config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
@@ -30,10 +31,6 @@ if severity_compute_type == "AREA":
 else:
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
 NANOSECONDS_PER_SECOND = 1000000000
-RESULTDB = Database(config.get("ANALYZER", "RESULTDB_NAME"))
-incidents_collection = config.get("ANALYZER", "INCIDENT_COLLECTION")
-problems_collection = config.get("ANALYZER", "PROBLEM_COLLECTION")
-diagnoses_collection = config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class DiagnosisTracker(object):
@@ -44,7 +41,7 @@ class DiagnosisTracker(object):
 
     def recover(self):
         # Find all apps with SLO and start diagnosis for them.
-        all_apps = get_all_apps()
+        all_apps = appstate.get_all_apps()
         for app in all_apps:
             if "slo" in app and app["state"] == "Active":
                 self.run_new_app(app["app_id"], app)
@@ -89,14 +86,14 @@ class DiagnosisResults(object):
         return "Unknown"
 
     def write_results(self):
-        if self.problems:
-            RESULTDB[problems_collection].insert_many(self.problems)
+        for problem in self.problems:
+            resultstate.create_problem(problem)
 
         if self.incident_doc:
-            RESULTDB[incidents_collection].insert_one(self.incident_doc)
+            resultstate.create_incident(self.incident_doc)
 
         if self.diagnosis_doc:
-            RESULTDB[diagnoses_collection].insert_one(self.diagnosis_doc)
+            resultstate.create_diagnosis(self.diagnosis_doc)
 
 
 class AppAnalyzer(object):
@@ -164,7 +161,8 @@ class AppAnalyzer(object):
                         "metric": self.metrics_consumer.incident_metric,
                         "threshold": self.metrics_consumer.incident_threshold,
                         "severity": app_metric_mean["value"],
-                        "timestamp": end_time}
+                        "timestamp": end_time,
+                        "state": "Active"}
         logger.debug("Creating incident %s" % str(incident_doc))
         results.incident_doc = incident_doc
 
@@ -205,7 +203,7 @@ class AppAnalyzer(object):
 
     def run(self):
         logger.info("Starting live diagnosis run for application %s" % self.app_id)
-        app_was_diagnosised = False
+        app_last_incident = None
         while self.stop != True:
             end_time =  self.now_nano() - self.delay_interval
             start_time = end_time - self.batch_window
@@ -213,13 +211,18 @@ class AppAnalyzer(object):
             start_run_time = self.now_nano()
             diagnosis_results = self.diagnosis_cycle(start_time, end_time)
             if diagnosis_results.state == APP_DIAGNOSED:
-                if app_was_diagnosised:
+                if app_last_incident:
                     logger.info("Skipping writing diagnosis results as app is diaganoised already.")
                 else:
-                    app_was_diagnosised = True
+                    app_last_incident = diagnosis_results.incident_doc
                     diagnosis_results.write_results()
             else:
-                app_was_diagnosised = False
+                if app_last_incident:
+                    app_last_incident["state"] = "Resolved"
+                    if resultstate.update_incident(app_last_incident["incident_id"], app_last_incident) == False:
+                        logger.info("Unable to set app's last incident to resolve state")
+
+                app_last_incident = None
 
             diagnosis_time = self.now_nano() - start_run_time
             logger.info("Diagnosis cycle took %s with result state %s" % (diagnosis_time, diagnosis_results.state_string()))
@@ -227,6 +230,7 @@ class AppAnalyzer(object):
             if sleep_time > 0.:
                 logger.info("Sleeping for %f before next cycle" % sleep_time)
                 time.sleep(sleep_time)
+
         logger.info("Diagnosis loop exiting for app id %s" % self.app_id)
 
     def loop_all_app_metrics(self, end_time):

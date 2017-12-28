@@ -9,6 +9,7 @@ incidents_collection = config.get("ANALYZER", "INCIDENT_COLLECTION")
 diagnosis_collection = config.get("ANALYZER", "DIAGNOSIS_COLLECTION")
 problems_collection = config.get("ANALYZER", "PROBLEM_COLLECTION")
 
+
 def create_diagnosis(diagnosis_json):
     resultdb[diagnosis_collection].insert_one(diagnosis_json)
 
@@ -47,6 +48,19 @@ def get_problem(problem_id):
 
 def create_problem(problem_json):
     resultdb[problems_collection].insert_one(problem_json)
+
+
+def create_incident(incident_json):
+    resultdb[incidents_collection].insert_one(incident_json)
+
+
+def update_incident(incident_id, incident_json):
+    result = configdb[incidents_collection].update_one(
+        {"incident_id": incident_id},
+        {"$set": incident_json}
+    )
+
+    return result.modified_count > 0
 
 
 def get_problems_between_time(start_ts, end_ts):

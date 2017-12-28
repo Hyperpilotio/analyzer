@@ -17,7 +17,7 @@ from state import k8s_service as k8sservicestate
 from config import get_config
 from logger import get_logger
 
-from .db import configdb, metricdb, resultdb
+from .db import metricdb, resultdb
 
 app = Flask(__name__)
 
