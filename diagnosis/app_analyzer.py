@@ -170,7 +170,6 @@ class AppAnalyzer(object):
         filtered_metrics = self.features_selector.process_metrics(derived_metrics)
         if not filtered_metrics:
             logger.info("All %d features have been filtered." % self.features_selector.num_features)
-            it += 1
             results.state = METRICS_ALL_FILTERED
             return results
 
