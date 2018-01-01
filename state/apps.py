@@ -19,8 +19,14 @@ app_collection = config.get("ANALYZER", "APP_COLLECTION")
 def get_all_apps():
     return configdb[app_collection].find()
 
+
+def get_all_apps_by_state(state_filter):
+    return configdb[app_collection].find({"state": state_filter})
+
+
 def create_app(app_json):
     return configdb[app_collection].insert_one(app_json)
+
 
 def update_and_get_app(app_id, update_doc, unset=False):
     if unset:

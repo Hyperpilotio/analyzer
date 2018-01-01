@@ -75,7 +75,11 @@ def create_application():
 
 @app.route("/apps", methods=["GET"])
 def get_all_apps():
-    all_apps = appstate.get_all_apps()
+    state_filter = request.args.get("state")
+    if state_filter:
+        all_apps = appstate.get_all_apps_by_state(state_filter)
+    else:
+        all_apps = appstate.get_all_apps()
     response = jsonify(data=all_apps)
     response.status_code = 200
     return response
