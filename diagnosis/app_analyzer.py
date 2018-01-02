@@ -309,5 +309,5 @@ class AppAnalyzer(object):
 if __name__ == "__main__":
     with open("workloads/tech-demo-app.json") as f:
         aa = AppAnalyzer(config, "tech-demo", json.load(f), WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
-        aa.loop_all_app_metrics(1513274320000000000)
+        aa.loop_all_app_metrics(1513271903332233880)
     #aa.loop_all_app_metrics(1513062600000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
