@@ -4,6 +4,7 @@ import requests
 import sys
 import threading
 import nanotime
+import json
 from collections import namedtuple
 from math import isnan
 from pandas import to_datetime
@@ -170,7 +171,6 @@ class AppAnalyzer(object):
         filtered_metrics = self.features_selector.process_metrics(derived_metrics)
         if not filtered_metrics:
             logger.info("All %d features have been filtered." % self.features_selector.num_features)
-            it += 1
             results.state = METRICS_ALL_FILTERED
             return results
 
@@ -242,10 +242,11 @@ class AppAnalyzer(object):
                   (it, start_time, end_time))
             results = self.diagnosis_cycle(start_time, end_time)
             if results.state < METRICS_ALL_FILTERED:
-                return
+                it += 1
+                continue
 
             results.write_results()
-
+            sliding_interval = INTERVAL * NANOSECONDS_PER_SECOND
             end_time += sliding_interval
             it += 1
 
@@ -304,6 +305,7 @@ class AppAnalyzer(object):
 
 
 if __name__ == "__main__":
-    aa = AppAnalyzer("app1", "tech-demo", {}, config, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
-    aa.loop_all_app_metrics(1511980830000000000)
+    with open("workloads/tech-demo-app.json") as f:
+        aa = AppAnalyzer(config, "tech-demo", json.load(f), WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
+        aa.loop_all_app_metrics(1513274320000000000)
     #aa.loop_all_app_metrics(1513062600000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
