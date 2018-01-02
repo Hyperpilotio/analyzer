@@ -304,11 +304,6 @@ class AppAnalyzer(object):
 
 
 if __name__ == "__main__":
-    d = DiagnosisTracker(config)
-    time.sleep(1000)
     aa = AppAnalyzer("app1", "tech-demo", {}, config, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND, DELAY_INTERVAL * NANOSECONDS_PER_SECOND)
-    if len(sys.argv) > 1:
-        aa.run()
-    else:
-        aa.loop_all_app_metrics(1511980830000000000)
+    aa.loop_all_app_metrics(1511980830000000000)
     #aa.loop_all_app_metrics(1513062600000000000, WINDOW * NANOSECONDS_PER_SECOND, INTERVAL * NANOSECONDS_PER_SECOND)
