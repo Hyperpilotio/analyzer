@@ -55,7 +55,7 @@ def create_incident(incident_json):
 
 
 def update_incident(incident_id, incident_json):
-    result = configdb[incidents_collection].update_one(
+    result = resultdb[incidents_collection].update_one(
         {"incident_id": incident_id},
         {"$set": incident_json}
     )

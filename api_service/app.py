@@ -117,7 +117,7 @@ def update_app(app_id):
 
     updated_doc = appstate.update_and_get_app(app_id, app_json)
     if not updated_doc:
-        return error_response(f"Could not update app {app_id}.", 404)
+        return util.error_response(f"Could not update app {app_id}.", 404)
 
     # NOTE: Currently the UI is only calling this generic update API to update SLO and k8s objects.
     # Therefore we have to intercept here to start the diagnosis flow, since we need app SLO
