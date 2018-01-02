@@ -242,6 +242,8 @@ class AppAnalyzer(object):
                   (it, start_time, end_time))
             results = self.diagnosis_cycle(start_time, end_time)
             if results.state < METRICS_ALL_FILTERED:
+                sliding_interval = INTERVAL * NANOSECONDS_PER_SECOND
+                end_time += sliding_interval
                 it += 1
                 continue
 
