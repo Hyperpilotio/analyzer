@@ -130,7 +130,7 @@ class DiagnosisGenerator(object):
     def process_features(self, sorted_metrics, nodes, app_id, app_name, incident_id, timestamp):
         # Construct top three problems from the top k metrics
         problems = self.map_problems(sorted_metrics, timestamp)
-        logger.info("Top problems found:\n%s" % str(problems))
+        logger.info("Top problems found:\n%s" % json.dumps(problems))
 
         # Construct diagnosis result and store it in resultdb
         diagnosis_doc = {"app_id": app_id,
@@ -154,5 +154,5 @@ class DiagnosisGenerator(object):
                  "remediation_options": remed_options})
             i += 1
 
-        logger.info("Diagnosis result:\n%s" % str(diagnosis_doc))
+        logger.info("Diagnosis result:\n%s" % json.dumps(diagnosis_doc))
         return (problems, diagnosis_doc)
