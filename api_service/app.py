@@ -113,23 +113,9 @@ def update_app(app_id):
     if "slo" in app_json:
         # TODO: Fix namespace prefix that's added by our snap collector
         metric_name = app_json["slo"]["metric"]["name"]
-        app_json["slo"]["metric"]["name"] = "hyperpilot/goddd/" + metric_name
+        app_json["slo"]["metric"]["name"] = "hyperpilot/prometheus/" + metric_name
 
-    updated_doc = appstate.update_and_get_app(app_id, app_json)
-    if not updated_doc:
-        return util.error_response(f"Could not update app {app_id}.", 404)
-
-    # NOTE: Currently the UI is only calling this generic update API to update SLO and k8s objects.
-    # Therefore we have to intercept here to start the diagnosis flow, since we need app SLO
-    # to start it.
-    # TODO: We should only try to start the diagnosis flow once, and also it's not gurantee we
-    # have all the information we need already....
-    if "slo" in updated_doc and updated_doc["state"] == "Active":
-        DIAGNOSIS.run_new_app(app_id, updated_doc)
-    result = jsonify(data=updated_doc)
-    result.status_code = 200
-    return result
-
+    return util.update_and_return_doc(app_id, app_json)
 
 @app.route("/apps/<string:app_id>", methods=["DELETE"])
 def delete_app(app_id):
@@ -398,9 +384,24 @@ def update_app_state(app_id):
     state = state_json["state"]
     if state != APP_STATE["REGISTERED"] and state != APP_STATE["UNREGISTERED"] and state != APP_STATE["ACTIVE"]:
         return util.error_response(f"{state} is not valid state", 400)
+
     app["state"] = state
 
-    return util.update_and_return_doc(app_id, app)
+    updated_doc = appstate.update_and_get_app(app_id, app)
+    if not updated_doc:
+        return util.error_response(f"Could not update app {app_id}.", 404)
+
+    # NOTE: Currently the UI is only calling this generic update API to update SLO and k8s objects.
+    # Therefore we have to intercept here to start the diagnosis flow, since we need app SLO
+    # to start it.
+    # TODO: We should only try to start the diagnosis flow once, and also it's not gurantee we
+    # have all the information we need already....
+    if "slo" in updated_doc and updated_doc["state"] == APP_STATE["ACTIVE"]:
+        DIAGNOSIS.run_new_app(app_id, updated_doc)
+
+    result = jsonify(data=updated_doc)
+    result.status_code = 200
+    return result
 
 
 @app.route("/apps/<string:app_id>/slo", methods=["GET"])
