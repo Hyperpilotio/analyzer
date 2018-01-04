@@ -9,7 +9,7 @@ def get_logger(name, log_level=None):
     config = get_config()
     logger = logging.getLogger(name)
     log_format = "[%(asctime)s] [%(name)s:%(lineno)s] [%(levelname)s]\n%(message)s"
-    logging.basicConfig(filename="diagnosis/logs/diagnosis", format=log_format)
+    logging.basicConfig(format=log_format)
     # handler = logging.StreamHandler()
     # logger.addHandler(handler)
 
