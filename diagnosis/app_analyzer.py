@@ -48,6 +48,16 @@ class DiagnosisTracker(object):
             if "slo" in app and app["state"] == "Active":
                 self.run_new_app(app["app_id"], app)
 
+    def stop_app(self, app_id):
+        if app_id not in self.apps:
+            logger.info("App id %s is not found in diagnosis tracker, skipping stop" % app_id)
+            return
+
+        analyzer, thread = self.apps[app_id]
+        logger.info("Signaling app %s diagnosis loop to stop..." % app_id)
+        analyzer.stop_loop()
+        del(self.apps[app_id])
+
     def run_new_app(self, app_id, app_config):
         if app_id in self.apps:
             self.logger.info("App id %s is already running in diagnosis, skipping as we don't support update")
@@ -58,8 +68,8 @@ class DiagnosisTracker(object):
         delay_interval = DELAY_INTERVAL * NANOSECONDS_PER_SECOND
         self.logger.info("Starting diagnosis for app id %s, config: %s" % (app_id, str(app_config)))
         analyzer = AppAnalyzer(self.config, app_id, app_config, batch_window, sliding_interval, delay_interval)
-        thread = threading.Thread(target=analyzer.run)
-        self.apps[app_id] = thread
+        thread = threading.Thread(target=analyzer.run_loop)
+        self.apps[app_id] = (analyzer, thread)
         thread.start()
 
 # Diagnosis States
@@ -209,7 +219,10 @@ class AppAnalyzer(object):
     def now_nano(self):
         return nanotime.now().nanoseconds()
 
-    def run(self):
+    def stop_loop(self):
+        self.stop = True
+
+    def run_loop(self):
         self.logger.info("Starting live diagnosis run for application %s" % self.app_id)
         app_last_incident = None
         while self.stop != True:
