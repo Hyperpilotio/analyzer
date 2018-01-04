@@ -1,19 +1,18 @@
 import json
+import logging
 from uuid import uuid1
 
 from api_service.db import Database
 from config import get_config
-from logger import get_logger
 
 config = get_config()
 resultdb = Database(config.get("ANALYZER", "RESULTDB_NAME"))
 TIMEOUT_WINDOW = int(config.get(
     "ANALYZER", "DIAGNOSIS_TIMEOUT_WINDOW_SECOND"))
 remediations_config = config.get("ANALYZER", "REMEDIATIONS_CONFIG")
-logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class DiagnosisGenerator(object):
-    def __init__(self, config, app_config):
+    def __init__(self, config, app_config, app_id):
         self.config = config
         self.app_config = app_config
         self.app_deployments = []
@@ -22,6 +21,7 @@ class DiagnosisGenerator(object):
                 self.app_deployments.append(microservice["name"])
         with open(remediations_config) as json_data:
             self.remed_configs = json.load(json_data)
+        self.logger = logging.getLogger(app_id) 
 
 
     def find_same_problem(self, problems, problem_desc):
@@ -130,7 +130,7 @@ class DiagnosisGenerator(object):
     def process_features(self, sorted_metrics, nodes, app_id, app_name, incident_id, timestamp):
         # Construct top three problems from the top k metrics
         problems = self.map_problems(sorted_metrics, timestamp)
-        logger.info("Top problems found:\n%s" % json.dumps(problems))
+        self.logger.info("Top problems found:\n%s" % json.dumps(problems))
 
         # Construct diagnosis result and store it in resultdb
         diagnosis_doc = {"app_id": app_id,
@@ -145,7 +145,7 @@ class DiagnosisGenerator(object):
             problem_id = problem["problem_id"]
             remed_options = self.generate_remediations(nodes, problem)
             if len(remed_options) == 0:
-                logger.warning("No remediation options can be found for %s" %
+                self.logger.warning("No remediation options can be found for %s" %
                        (problem_id))
 
             diagnosis_doc["top_related_problems"].append(
@@ -154,5 +154,5 @@ class DiagnosisGenerator(object):
                  "remediation_options": remed_options})
             i += 1
 
-        logger.info("Diagnosis result:\n%s" % json.dumps(diagnosis_doc))
+        self.logger.info("Diagnosis result:\n%s" % json.dumps(diagnosis_doc))
         return (problems, diagnosis_doc)

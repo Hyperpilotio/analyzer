@@ -1,9 +1,9 @@
 import time
 from collections import namedtuple
+import logging
 
 from diagnosis.derived_metrics import MetricsResults
 from config import get_config
-from logger import get_logger
 import pandas as pd
 from numpy import NaN, mean
 from scipy.stats.stats import pearsonr
@@ -12,16 +12,16 @@ config = get_config()
 WINDOW = int(config.get("ANALYZER", "CORRELATION_WINDOW_SECOND"))
 DIAGNOSIS_INTERVAL = int(config.get("ANALYZER", "DIAGNOSIS_INTERVAL_SECOND"))
 SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
-logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class FeaturesSelector(object):
-    def __init__(self, config):
+    def __init__(self, config, app_id):
         self.config = config
         if config.get("ANALYZER", "SEVERITY_COMPUTE_TYPE") == "AREA":
             self.average_threshold = float(config.get("ANALYZER", "AREA_THRESHOLD"))
         else:
             self.average_threshold = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
         self.num_features = 0
+        self.logger = logging.getLogger(app_id)
         return
 
     def compute_averages(self, metric_results):
@@ -83,14 +83,14 @@ class FeaturesSelector(object):
         metric_results = self.compute_averages(metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="average")
-        logger.info("Filtered %d of %d features with average threshold %s%%" %
+        self.logger.info("Filtered %d of %d features with average threshold %s%%" %
               (l - len(metric_results),
                l,
                self.average_threshold))
         metric_results = self.compute_correlations(app_df, metric_results)
         l = len(metric_results)
         metric_results = self.filter_features(metric_results, filter_type="correlation")
-        logger.info("Filtered %d of %d features with correlation significance threshold %s" %
+        self.logger.info("Filtered %d of %d features with correlation significance threshold %s" %
               (l - len(metric_results),
                l,
                config.get("ANALYZER", "CORR_SIGNIF_THRESHOLD")))

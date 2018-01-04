@@ -5,6 +5,7 @@ import sys
 import threading
 import nanotime
 import json
+import logging
 from collections import namedtuple
 from math import isnan
 from pandas import to_datetime
@@ -32,13 +33,13 @@ if severity_compute_type == "AREA":
 else:
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
 NANOSECONDS_PER_SECOND = 1000000000
-logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class DiagnosisTracker(object):
-    def __init__(self, config):
+    def __init__(self, config, logger):
         self.config = config
         self.apps = {}
         self.recover()
+        self.logger = logger
 
     def recover(self):
         # Find all apps with SLO and start diagnosis for them.
@@ -49,13 +50,13 @@ class DiagnosisTracker(object):
 
     def run_new_app(self, app_id, app_config):
         if app_id in self.apps:
-            logger.info("App id %s is already running in diagnosis, skipping as we don't support update")
+            self.logger.info("App id %s is already running in diagnosis, skipping as we don't support update")
             return
 
         batch_window = WINDOW * NANOSECONDS_PER_SECOND
         sliding_interval = INTERVAL * NANOSECONDS_PER_SECOND
         delay_interval = DELAY_INTERVAL * NANOSECONDS_PER_SECOND
-        logger.info("Starting diagnosis for app id %s, config: %s" % (app_id, str(app_config)))
+        self.logger.info("Starting diagnosis for app id %s, config: %s" % (app_id, str(app_config)))
         analyzer = AppAnalyzer(self.config, app_id, app_config, batch_window, sliding_interval, delay_interval)
         thread = threading.Thread(target=analyzer.run)
         self.apps[app_id] = thread
@@ -100,6 +101,12 @@ class DiagnosisResults(object):
 class AppAnalyzer(object):
     def __init__(self, config, app_id, app_config, batch_window, sliding_interval, delay_interval):
         # Maps all currently running app name to threads
+        self.logger = get_logger(app_id, log_level=("ANALYZER", "LOGLEVEL"))
+        log_format = "[%(asctime)s] [%(name)s:%(lineno)s] [%(levelname)s]\n%(message)s"
+        handler = logging.FileHandler("diagnosis/logs/" + app_id + ".log")
+        handler.setFormatter(logging.Formatter(log_format))
+        self.logger.addHandler(handler)
+        self.logger.propagate = False
         self.config = config
         self.stop = False
         self.app_id = app_id
@@ -110,9 +117,10 @@ class AppAnalyzer(object):
         self.metrics_consumer = MetricsConsumer(
             self.app_config["slo"],
             self.config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
-            self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"))
-        self.features_selector = FeaturesSelector(config)
-        self.diagnosis_generator = DiagnosisGenerator(config, app_config)
+            self.config.get("ANALYZER", "DERIVED_METRICS_CONFIG"),
+            self.app_id)
+        self.features_selector = FeaturesSelector(config, self.app_id)
+        self.diagnosis_generator = DiagnosisGenerator(config, app_config, self.app_id)
         influx_host = config.get("INFLUXDB", "HOST")
         influx_port = config.get("INFLUXDB", "PORT")
         influx_db = config.get("INFLUXDB", "RESULT_DB_NAME")
@@ -129,24 +137,24 @@ class AppAnalyzer(object):
         results = DiagnosisResults()
         app_metric = self.metrics_consumer.get_app_metric(start_time, end_time, is_derived=True)
         if app_metric is None:
-            logger.info("No app metric found, exiting diagnosis...")
+            self.logger.info("No app metric found, exiting diagnosis...")
             return results
         window = int(config.get("ANALYZER", "AVERAGE_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
         window_start = to_datetime(end_time - window, unit="ns")
         app_metric_mean = app_metric.loc[app_metric.index >= window_start].mean()
         if app_metric_mean["value"] < DIAGNOSIS_THRESHOLD:
-            logger.info("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
+            self.logger.info("Derived app metric mean: %f below threshold %f; skipping diagnosis..." %
                         (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
             results.state = APP_HEALTHY
             return results
 
-        logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
+        self.logger.info("Derived app metric mean: %f above threshold %f; starting diagnosis..." %
                     (app_metric_mean["value"], DIAGNOSIS_THRESHOLD))
 
-        logger.debug("Getting derived metrics with app metric %s for app_id %s" % (app_metric, self.app_id))
+        self.logger.debug("Getting derived metrics with app metric %s for app_id %s" % (app_metric, self.app_id))
         derived_metrics = self.metrics_consumer.get_derived_metrics(start_time, end_time,
                                                                             app_metric)
-        logger.debug("Derived metrics completed for app_id %s" % self.app_id)
+        self.logger.debug("Derived metrics completed for app_id %s" % self.app_id)
 
         # TODO: Capture actually running nodes by querying operator.
         # For now, Get all running nodes from node metrics map.
@@ -164,29 +172,29 @@ class AppAnalyzer(object):
                         "severity": app_metric_mean["value"],
                         "timestamp": end_time,
                         "state": "Active"}
-        logger.debug("Creating incident %s" % str(incident_doc))
+        self.logger.debug("Creating incident %s" % str(incident_doc))
         results.incident_doc = incident_doc
 
-        logger.debug("Feature selector starting to process derived metrics..")
+        self.logger.debug("Feature selector starting to process derived metrics..")
         filtered_metrics = self.features_selector.process_metrics(derived_metrics)
         if not filtered_metrics:
-            logger.info("All %d features have been filtered." % self.features_selector.num_features)
+            self.logger.info("All %d features have been filtered." % self.features_selector.num_features)
             results.state = METRICS_ALL_FILTERED
             return results
 
-        logger.debug("Writing filtered metrics results...")
+        self.logger.debug("Writing filtered metrics results...")
         self.write_results(filtered_metrics, end_time, self.app_id, app_name, self.metrics_consumer.deployment_id)
-        logger.debug("Filtered metrics writing completed")
+        self.logger.debug("Filtered metrics writing completed")
 
         # Sort top k derived metrics based on conficent score
         sorted_metrics = sorted(filtered_metrics, key=lambda x: self.convert_nan(
             x.confidence_score), reverse=True)[:10]
-        logger.info("Top related metrics for incident %s for application %s:" %
+        self.logger.info("Top related metrics for incident %s for application %s:" %
                     (incident_id, app_name))
         self.print_sorted_metrics(sorted_metrics)
 
         # Identify top problems and generate diagnosis result
-        logger.info("\nStart generating diagnosis for incident %s for application %s:" %
+        self.logger.info("\nStart generating diagnosis for incident %s for application %s:" %
                     (incident_id, app_name))
         problems, diagnosis_doc = self.diagnosis_generator.process_features(
             sorted_metrics, nodes, self.app_id, app_name, incident_id, end_time)
@@ -195,24 +203,24 @@ class AppAnalyzer(object):
         results.diagnosis_doc = diagnosis_doc
         results.state = APP_DIAGNOSED
 
-        logger.debug("Diagnosis generation completed")
+        self.logger.debug("Diagnosis generation completed")
         return results
 
     def now_nano(self):
         return nanotime.now().nanoseconds()
 
     def run(self):
-        logger.info("Starting live diagnosis run for application %s" % self.app_id)
+        self.logger.info("Starting live diagnosis run for application %s" % self.app_id)
         app_last_incident = None
         while self.stop != True:
             end_time =  self.now_nano() - self.delay_interval
             start_time = end_time - self.batch_window
-            logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
+            self.logger.info("Diagnosis cycle start: %f, end: %f", start_time, end_time)
             start_run_time = self.now_nano()
             diagnosis_results = self.diagnosis_cycle(start_time, end_time)
             if diagnosis_results.state == APP_DIAGNOSED:
                 if app_last_incident:
-                    logger.info("Skipping writing diagnosis results as app is diaganoised already.")
+                    self.logger.info("Skipping writing diagnosis results as app is diaganoised already.")
                 else:
                     app_last_incident = diagnosis_results.incident_doc
                     diagnosis_results.write_results()
@@ -220,25 +228,25 @@ class AppAnalyzer(object):
                 if app_last_incident:
                     app_last_incident["state"] = "Resolved"
                     if resultstate.update_incident(app_last_incident["incident_id"], app_last_incident) == False:
-                        logger.info("Unable to set app's last incident to resolve state")
+                        self.logger.info("Unable to set app's last incident to resolve state")
 
                 app_last_incident = None
 
             diagnosis_time = self.now_nano() - start_run_time
-            logger.info("Diagnosis cycle took %s with result state %s" % (diagnosis_time, diagnosis_results.state_string()))
+            self.logger.info("Diagnosis cycle took %s with result state %s" % (diagnosis_time, diagnosis_results.state_string()))
             sleep_time = ((self.sliding_interval - diagnosis_time) * 1.) / (NANOSECONDS_PER_SECOND * 1.)
             if sleep_time > 0.:
-                logger.info("Sleeping for %f before next cycle" % sleep_time)
+                self.logger.info("Sleeping for %f before next cycle" % sleep_time)
                 time.sleep(sleep_time)
 
-        logger.info("Diagnosis loop exiting for app id %s" % self.app_id)
+        self.logger.info("Diagnosis loop exiting for app id %s" % self.app_id)
 
     def loop_all_app_metrics(self, end_time):
         it = 1
         app_name = config.get("ANALYZER", "APP_NAME")
         while True:
             start_time = end_time - self.batch_window
-            logger.info("\nIteration %d - Processing metrics from start: %d, to end: %d" %
+            self.logger.info("\nIteration %d - Processing metrics from start: %d, to end: %d" %
                   (it, start_time, end_time))
             results = self.diagnosis_cycle(start_time, end_time)
             if results.state < METRICS_ALL_FILTERED:
@@ -292,7 +300,7 @@ class AppAnalyzer(object):
     def print_sorted_metrics(self, sorted_metrics):
         i = 1
         for m in sorted_metrics:
-            logger.info("\nRank: " + str(i) + "\n" +
+            self.logger.info("\nRank: " + str(i) + "\n" +
                         "Metric name: " + m.metric_name + "\n" +
                         "Node name: " + m.node_name + "\n" +
                         "Pod name: " + str(m.pod_name) + "\n" +
