@@ -33,13 +33,13 @@ if severity_compute_type == "AREA":
 else:
     DIAGNOSIS_THRESHOLD = float(config.get("ANALYZER", "FREQUENCY_THRESHOLD"))
 NANOSECONDS_PER_SECOND = 1000000000
+logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class DiagnosisTracker(object):
-    def __init__(self, config, logger):
+    def __init__(self, config):
         self.config = config
         self.apps = {}
         self.recover()
-        self.logger = logger
 
     def recover(self):
         # Find all apps with SLO and start diagnosis for them.

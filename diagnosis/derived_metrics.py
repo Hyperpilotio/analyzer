@@ -6,14 +6,12 @@ import requests
 import logging
 
 from config import get_config
-from logger import get_logger
 
 config = get_config()
 SAMPLE_INTERVAL = int(config.get("ANALYZER", "SAMPLE_INTERVAL_SECOND"))
 NANOSECONDS_PER_SECOND = 1000000000
 END_TIME = 1511980800000000000
 WINDOW = 300
-#logger = get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL"))
 
 class WindowState(object):
     def __init__(self, window_seconds, threshold, sample_interval_seconds):
@@ -462,7 +460,7 @@ if __name__ == '__main__':
     dm = MetricsConsumer(
             config.get("ANALYZER", "DERIVED_SLO_CONFIG"),
             config.get("ANALYZER", "DERIVED_METRIC_TEST_CONFIG"),
-            get_logger(__name__, log_level=("ANALYZER", "LOGLEVEL")))
+            "test_app_id")
     #derived_result = dm.get_derived_metrics(-9223372036854775806, 9223372036854775806)
     derived_result = dm.get_derived_metrics(END_TIME - WINDOW * NANOSECONDS_PER_SECOND, END_TIME)
     dm.logger.info("Derived Container metrics:")
