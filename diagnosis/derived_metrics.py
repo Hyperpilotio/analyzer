@@ -198,7 +198,7 @@ class MetricsConsumer(object):
             influx_password,
             derived_db)
         self.derived_influx_client.create_database(derived_db)
-        self.derived_influx_client.create_retention_policy('derived_metric_policy', '3w', 1, default=True)
+        self.derived_influx_client.create_retention_policy('derived_metric_policy', '5w', 1, default=True)
         self.logger = logging.getLogger(app_id)
 
     def get_app_threshold(self):
