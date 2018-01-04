@@ -385,6 +385,7 @@ def update_app_state(app_id):
     if state != APP_STATE["REGISTERED"] and state != APP_STATE["UNREGISTERED"] and state != APP_STATE["ACTIVE"]:
         return util.error_response(f"{state} is not valid state", 400)
 
+    previous_state = app["state"]
     app["state"] = state
 
     updated_doc = appstate.update_and_get_app(app_id, app)
@@ -396,8 +397,11 @@ def update_app_state(app_id):
     # to start it.
     # TODO: We should only try to start the diagnosis flow once, and also it's not gurantee we
     # have all the information we need already....
-    if "slo" in updated_doc and updated_doc["state"] == APP_STATE["ACTIVE"]:
-        DIAGNOSIS.run_new_app(app_id, updated_doc)
+    if "slo" in updated_doc:
+        if updated_doc["state"] == APP_STATE["ACTIVE"]:
+            DIAGNOSIS.run_new_app(app_id, updated_doc)
+        elif previous_state == APP_STATE["ACTIVE"] and updated_doc["state"] != APP_STATE["ACTIVE"]:
+            DIAGNOSIS.stop_app(app_id)
 
     result = jsonify(data=updated_doc)
     result.status_code = 200
