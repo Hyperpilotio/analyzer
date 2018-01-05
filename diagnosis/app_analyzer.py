@@ -60,7 +60,7 @@ class DiagnosisTracker(object):
 
     def run_new_app(self, app_id, app_config):
         if app_id in self.apps:
-            self.logger.info("App id %s is already running in diagnosis, skipping as we don't support update")
+            self.logger.warning("App id %s is already running in diagnosis, skipping as we don't support update")
             return
 
         batch_window = WINDOW * NANOSECONDS_PER_SECOND
@@ -113,7 +113,7 @@ class AppAnalyzer(object):
         # Maps all currently running app name to threads
         self.logger = get_logger(app_id, log_level=("ANALYZER", "LOGLEVEL"))
         log_format = "[%(asctime)s] [%(name)s:%(lineno)s] [%(levelname)s]\n%(message)s"
-        handler = logging.FileHandler("diagnosis/logs/" + app_id + ".log")
+        handler = logging.FileHandler("diagnosis/logs/analyzer_" + app_id + ".log")
         handler.setFormatter(logging.Formatter(log_format))
         self.logger.addHandler(handler)
         self.logger.propagate = False
@@ -147,7 +147,7 @@ class AppAnalyzer(object):
         results = DiagnosisResults()
         app_metric = self.metrics_consumer.get_app_metric(start_time, end_time, is_derived=True)
         if app_metric is None:
-            self.logger.info("No app metric found, exiting diagnosis...")
+            self.logger.error("No app metric found, exiting diagnosis...")
             return results
         window = int(config.get("ANALYZER", "AVERAGE_WINDOW_SECOND")) * NANOSECONDS_PER_SECOND
         window_start = to_datetime(end_time - window, unit="ns")
@@ -241,7 +241,7 @@ class AppAnalyzer(object):
                 if app_last_incident:
                     app_last_incident["state"] = "Resolved"
                     if resultstate.update_incident(app_last_incident["incident_id"], app_last_incident) == False:
-                        self.logger.info("Unable to set app's last incident to resolve state")
+                        self.logger.info("Unable to set app's last incident to resolved state")
 
                 app_last_incident = None
 

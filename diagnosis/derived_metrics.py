@@ -434,8 +434,8 @@ class MetricsConsumer(object):
                     )
 
                 # compute derived metric values using configured threshold info
-                #self.logger.debug("raw metric before applying threshold for group %s" % (metric_group_name))
-                #self.logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
+                self.logger.debug("raw metric before applying threshold for group %s" % (metric_group_name))
+                self.logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
                 metric_df.loc[metric_group_ind,"value"] = metric_df.loc[metric_group_ind].apply(
                     lambda row: metric_group_states[row[group_name]].compute_derived_value(
                         row.name.value,
@@ -443,8 +443,8 @@ class MetricsConsumer(object):
                         ),
                     axis=1,
                 )
-                #self.logger.debug("derived metric after applying threshold for group %s" % (metric_group_name))
-                #self.logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
+                self.logger.debug("derived metric after applying threshold for group %s" % (metric_group_name))
+                self.logger.debug(metric_df.loc[metric_group_ind,[group_name,"value"]].to_string(index=False))
 
             metric_dfg = metric_df.groupby(group_name)
             derived_metrics_result.add_metric(
