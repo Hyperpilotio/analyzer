@@ -56,8 +56,19 @@ class MetricsConsumerTest(TestCase):
         pass
 
 
-# class DiagnosisGeneratorTest(TestCase):
-# (many DiagnosisGenerator functions will be covered by AppAnalyzer.)    
+class DiagnosisGeneratorTest(TestCase):
+    def testMapProblems(self):
+        """ Assert that each problem is mapped from a source
+        (container or node) and that each problem has numerical
+        values for severity, correlation and score. """
+        pass
+
+    def testGenerateRemdiations(self):
+        """ Assert that the object returned by generate_remediations
+        is json with destination to target node mapping. (Also
+        check that target and destination nodes are unique). """
+        pass
+
 
 class FeaturesSelectorTest(TestCase):
     def testDataPointGroupingbyTime(self):
