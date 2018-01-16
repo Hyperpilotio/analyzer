@@ -45,7 +45,7 @@ class DiagnosisTracker(object):
         # Find all apps with SLO and start diagnosis for them.
         all_apps = appstate.get_all_apps()
         for app in all_apps:
-            if "slo" in app and app["state"] == "Active":
+            if "slo" in app and app["state"] == "Detected":
                 self.run_new_app(app["app_id"], app)
 
     def stop_app(self, app_id):
@@ -180,8 +180,11 @@ class AppAnalyzer(object):
                         "metric": self.metrics_consumer.incident_metric,
                         "threshold": self.metrics_consumer.incident_threshold,
                         "severity": app_metric_mean["value"],
-                        "timestamp": end_time,
-                        "state": "Active"}
+                        "timestamps": {
+                            "detected": end_time,
+                            "resolved": None,
+                        },
+                        "state": "Detected"}
         self.logger.debug("Creating incident %s" % str(incident_doc))
         results.incident_doc = incident_doc
 
@@ -240,6 +243,7 @@ class AppAnalyzer(object):
             else:
                 if app_last_incident:
                     app_last_incident["state"] = "Resolved"
+                    app_last_incident["timestamps"]["resolved"] = end_time
                     if resultstate.update_incident(app_last_incident["incident_id"], app_last_incident) == False:
                         self.logger.info("Unable to set app's last incident to resolved state")
 
