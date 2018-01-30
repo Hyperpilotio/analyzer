@@ -1,0 +1,311 @@
+[
+  {
+    "metric_name": "node_load1",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 0.8,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_load5",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 0.75,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_load15",
+    "type": "over_utilization",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "threshold": {
+      "type": "UB",
+      "value": 0.7,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_cpu",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "tags": {
+        "mode": "user"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.8,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_cpu",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "observation_window_sec": 60,
+    "tags": {
+        "mode": "iowait"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.1,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_cpu",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "observation_window_sec": 60,
+    "tags": {
+        "mode": "softirq"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.05,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_cpu",
+    "metric_type": "counter",
+    "type": "vm_interference",
+    "resource": "cpu",
+    "observation_window_sec": 60,
+    "tags": {
+        "mode": "steal"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.05,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_disk_bytes_read",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "sda"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 12000000,
+      "unit": "Bps"
+    }
+  },
+  {
+    "metric_name": "node_disk_bytes_written",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "sda"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 12000000,
+      "unit": "Bps"
+    }
+  },
+  {
+    "metric_name": "node_disk_reads_completed",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "sda"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 75,
+      "unit": "IOps"
+    }
+  },
+  {
+    "metric_name": "node_disk_writes_completed",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "sda"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 150,
+      "unit": "IOps"
+  },
+  {
+    "metric_name": "node_disk_read_time_ms",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "normalizer": "node_disk_reads_completed",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "sda"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 50,
+      "unit": "ms"
+    }
+  },
+  {
+    "metric_name": "node_disk_write_time_ms",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "normalizer": "node_disk_writes_completed",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "sda"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 50,
+      "unit": "ms"
+    }
+  },
+  {
+    "metric_name": "node_disk_io_time_weighted",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "diskio",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "sda"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 500,
+      "unit": "ms"
+    }
+  },
+  {
+    "metric_name": "node_filesystem_avail",
+    "type": "over_utilization",
+    "resource": "diskspace",
+    "normalizer": "node_filesystem_size",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "/dev/sda1",
+        "mount_point": "/etc/hosts"
+    },
+    "threshold": {
+      "type": "LB",
+      "value": 10,
+      "unit": "percent"
+    }
+  },
+  {
+    "metric_name": "node_network_receive_bytes",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "network",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "eth0"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 10000000,
+      "unit": "Bps"
+    }
+  },
+  {
+    "metric_name": "node_network_transmit_bytes",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "network",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "eth0"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 20000000,
+      "unit": "Bps"
+    }
+  },
+  {
+    "metric_name": "node_network_receive_errs",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "network",
+    "normalizer": "node_network_receive_packets",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "eth0"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.01,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_network_transmit_errs",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "network",
+    "normalizer": "node_network_receive_packets",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "eth0"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.01,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_network_receive_drop",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "network",
+    "normalizer": "node_network_receive_packets",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "eth0"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.01,
+      "unit": ""
+    }
+  },
+  {
+    "metric_name": "node_network_transmit_drop",
+    "metric_type": "counter",
+    "type": "resource_bottleneck",
+    "resource": "network",
+    "normalizer": "node_network_receive_packets",
+    "observation_window_sec": 60,
+    "tags": {
+        "device": "eth0"
+    },
+    "threshold": {
+      "type": "UB",
+      "value": 0.01,
+      "unit": ""
+    }
+  }
+]
