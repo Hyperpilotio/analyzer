@@ -1,6 +1,8 @@
 import json
 import traceback
 import time
+import rollbar
+import rollbar.contrib.flask
 from uuid import uuid1
 
 from flask import Flask, jsonify, request
@@ -42,6 +44,20 @@ FEATURE_NAME = {"INTERFERENCE": "interference_management",
                 "EFFICIENCY": "efficiency_management"}
 
 DIAGNOSIS = DiagnosisTracker(my_config)
+
+@app.before_first_request
+def init_rollbar():
+    """init rollbar module"""
+    rollbar.init(
+        my_config.get("ANALYZER", "ROLLBAR_TOKEN"),
+        my_config.get("ANALYZER", "ROLLBAR_ENV_NAME"),
+        # server root directory, makes tracebacks prettier
+        root=os.path.dirname(os.path.realpath(__file__)),
+        # flask already sets up logging
+        allow_logging_basic_config=False)
+
+    # send exceptions from `app` to rollbar, using flask's signal system.
+    got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
 
 @app.route("/")
 def index():
