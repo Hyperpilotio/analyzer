@@ -44,7 +44,6 @@ client = MongoClient(
 
 
 class Database(object):
-
     def __init__(self, name):
         self.name = name
         self.auth = (config.get("MONGODB", "USERNAME"),
@@ -73,3 +72,4 @@ class Database(object):
 configdb = Database(config.get("ANALYZER", "CONFIGDB_NAME"))
 metricdb = Database(config.get("ANALYZER", "METRICDB_NAME"))
 resultdb = Database(config.get("ANALYZER", "RESULTDB_NAME"))
+jobdb = Database(config.get("ANALYZER", "JOBDB_NAME"))
