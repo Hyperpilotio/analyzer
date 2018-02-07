@@ -1,11 +1,12 @@
 import json
 import traceback
 import time
+import os
 import rollbar
 import rollbar.contrib.flask
 from uuid import uuid1
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, got_request_exception
 from pymongo import DESCENDING
 from pymongo.errors import InvalidOperation
 
