@@ -55,76 +55,85 @@ class SizingAnalyzer(object):
             output_db_name)
 
     def analyze_node_cpu(self, start_time, end_time, sample_interval, percentiles):        
-        print("-- Query influxdb and compute node cpu usage stats --\n")
+        print("-- [node_cpu] Query influxdb for raw metrics data --")
         output_filter = "derivative(sum(value)) / " + str(sample_interval) + " as node_usage"
-        tags_filter = "mode=~ /(user|system)/"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
-        group_by = "group by instance,time(" + str(sample_interval) + "s)"
-        node_cpu_usage_query = ("SELECT %s FROM node_cpu WHERE %s AND %s %s" 
-                               % (output_filter, tags_filter, time_filter, group_by))
+        tags_filter = "AND mode=~ /(user|system)/"
+        group_tags = "instance,time(" + str(sample_interval) + "s)"
+        metric_name = "node_cpu"
+        node_cpu_usage_query = ("SELECT %s FROM %s WHERE %s %s GROUP BY %s"
+                               % (output_filter, metric_name, time_filter, tags_filter, group_tags))
 
         #print("CPU usage query:\n", node_cpu_usage_query)
         try:
             node_cpu_usage_dict = self.influx_client_input.query(node_cpu_usage_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to read node_cpu measurement from InfluxDB" + str(e))
+                             error="Unable to fetch %s from influxDB: " % (metric_name, str(e)))
 
+        print("-- [node_cpu] Compute summary stats --")
         node_cpu_summary = pd.DataFrame()
         for k, df in node_cpu_usage_dict.items():
             node_name = k[1][0][1]
             try:
-                self.influx_client_output.write_points(df, "node_cpu_usage", {'instance': node_name})
+                self.influx_client_output.write_points(
+                    df, "node_cpu_usage", {'instance': node_name})
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
-                                 error="Unable to write query result back to influxDB" + str(e))
+                                 error="Unable to write query result back to influxDB: " + str(e))
             #TODO: Need to filter out abnormal values
             node_cpu_summary[node_name] = df.node_usage.describe(percentiles)
                 
         #print("node cpu usage summary: ", node_cpu_summary)
         # store_summary_stats(node_cpu_summary)
 
-        print("--- Compute sizing recommendation for node cpu ---\n")
+        print("-- [node_cpu] Compute sizing recommendation --")
         # node_cpu_sizes = compute_sizing_recommendation(node_cpu_summary)
         # store_sizing_recommenation(node_cpu_sizes)
 
         return JobStatus(status=Status.SUCCESS)
 
+
     def analyze_node_memory(self, start_time, end_time, percentiles):
-        print("-- Query influxdb and compute node memory usage and active stats --\n")
+        print("-- [node_memory] Query influxdb for raw metrics data --")
         output_filter = "value/1024/1024/1024"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
-        group_by = "group by instance"
+        group_tags = "instance"
 
+        metric_name = "node_memory_Active"
         try:
             node_mem_active_dict = self.influx_client_input.query(
-                "SELECT %s FROM node_memory_Active WHERE %s %s" % 
-                 (output_filter, time_filter, group_by))       
+                "SELECT %s FROM %s WHERE %s GROUP BY %s" %
+                 (output_filter, metric_name, time_filter, group_tags))
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to fetch node_memory_Active from influxDB" + str(e))
+                             error="Unable to fetch %s from influxDB: " % (metric_name, str(e)))
 
+        metric_name = "node_memory_MemTotal"
         try:
             node_mem_total_dict = self.influx_client_input.query(
-                "SELECT %s FROM node_memory_MemTotal WHERE %s %s" %
-                 (output_filter, time_filter, group_by))
+                "SELECT %s FROM %s WHERE %s GROUP BY %s" %
+                 (output_filter, metric_name, time_filter, group_tags))
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to fetch node_memory_MemTotal from influxDB: " + str(e))
+                             error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
         
+        metric_name = "node_memory_MemFree"
         try:
             node_mem_free_dict = self.influx_client_input.query(
-                "SELECT %s FROM node_memory_MemFree WHERE %s %s" %
-                 (output_filter, time_filter, group_by))
+                "SELECT %s FROM %s WHERE %s GROUP BY %s" %
+                 (output_filter, metric_name, time_filter, group_tags))
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to fetch node_memory_MemFree from influxDB: " + str(e))
+                             error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
 
+        print("-- [node_memory] Compute summary stats --")
         node_mem_summary = pd.DataFrame()
         for k, df_active in node_mem_active_dict.items():
             node_name = k[1][0][1]
             try:
-                self.influx_client_output.write_points(df_active, "node_memory_active", {'instance': node_name})
+                self.influx_client_output.write_points(
+                    df_active, "node_memory_active", {'instance': node_name})
             except Exception as e:
                 return JobStatus(status=STATUS.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
@@ -138,7 +147,8 @@ class SizingAnalyzer(object):
 
             df_usage = df_total - df_free
             try:
-                self.influx_client_output.write_points(df_usage, "node_memory_usage", {'instance': node_name})
+                self.influx_client_output.write_points(
+                    df_usage, "node_memory_usage", {'instance': node_name})
             except Exception as e:
                 return JobStatus(status=STATUS.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
@@ -147,7 +157,7 @@ class SizingAnalyzer(object):
         #print("node memory usage summary: ", node_mem_summary)
         #store_summary_stats(node_mem_summary)
         
-        print("--- Compute sizing recommendation for node memory ---\n")
+        print("-- [node_memory] Compute sizing recommendation --")
         # node_mem_sizes = compute_sizing_recommendation(node_mem_summary)
         # store_sizing_recommenation(node_mem_sizes)
 
@@ -155,14 +165,62 @@ class SizingAnalyzer(object):
 
 
     def analyze_container_cpu(self, start_time, end_time, sample_interval, percentiles):
-        print("-- Query influxdb and compute container cpu usage stats --\n")
-        print("--- Compute requests and limits for container cpu ---\n")
+        print("-- [container_cpu] Query influxdb for raw metrics data --")
+        print("-- [container_cpu] Compute summary stats --")
+        print("-- [container_cpu] Compute requests and limits --")
 
         return JobStatus(status=Status.SUCCESS)
-        
+
     def analyze_container_memory(self, start_time, end_time, sample_interval, percentiles):
-        print("-- Query influxdb and compute container memory usage and working set stats --\n")
-        print("--- Compute requests and limits for container memory ---\n")
+        print("-- [container_memory] Query influxdb for raw metrics data --")
+        output_filter = "max(value)/1024/1024/1024 as value"
+        time_filter = "time > %d AND time <= %d" % (start_time, end_time)
+        tags_filter = "AND image!=''"
+        group_tags = "image,time(" + str(sample_interval) + "s)"
+
+        metric_name = "container_memory_working_set_bytes"
+        try:
+            container_mem_active_dict = self.influx_client_input.query(
+                "SELECT %s FROM %s WHERE %s %s GROUP BY %s" %
+                 (output_filter, metric_name, time_filter, tags_filter, group_tags))
+        except Exception as e:
+            return JobStatus(status=Status.DB_ERROR,
+                             error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
+
+        metric_name = "container_memory_usage_bytes"
+        try:
+            container_mem_usage_dict = self.influx_client_input.query(
+                "SELECT %s FROM %s WHERE %s %s GROUP BY %s" %
+                 (output_filter, metric_name, time_filter, tags_filter, group_tags))
+        except Exception as e:
+            return JobStatus(status=Status.DB_ERROR,
+                             error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
+
+        print("-- [container_memory] Compute summary stats --")
+        container_mem_summary = pd.DataFrame()
+        for k, df_active in container_mem_active_dict.items():
+            image_name = k[1][0][1]
+            df_active = df_active.dropna()
+            try:
+                self.influx_client_output.write_points(
+                    df_active, "container_memory_active", {'image': image_name})
+            except Exception as e:
+                return JobStatus(status=Status.DB_ERROR,
+                                 error="Unable to write query result back to influxDB: " + str(e))
+            container_mem_summary[image_name, 'active'] = df_active.value.describe(percentiles)
+
+        for k, df_usage in container_mem_usage_dict.items():
+            image_name = k[1][0][1]
+            df_usage = df_usage.dropna()
+            try:
+                self.influx_client_output.write_points(
+                    df_usage, "container_memory_usage", {'image': image_name})
+            except Exception as e:
+                return JobStatus(status=Status.DB_ERROR,
+                                 error="Unable to write query result back to influxDB: " + str(e))
+            container_mem_summary[image_name, 'usage'] = df_usage.value.describe(percentiles)
+
+        print("-- [container_memory] Compute requests and limits --")
 
         return JobStatus(status=Status.SUCCESS)
 
