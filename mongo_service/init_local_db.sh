@@ -1,9 +1,9 @@
 #!/bin/bash
 
-MONGO_URL=internal-mongo-elb-624130134.us-east-1.elb.amazonaws.com:27017
+MONGO_URL=localhost:27017
 DB_URL=${MONGO_URL}/admin
 echo Create new dbs and users for mongodb at $MONGO_URL
-mongo $DB_URL -u admin -p hyperpilot create-dbuser.js
+mongo $DB_URL create-dbuser.js
 
 MONGO_USER=analyzer
 MONGO_PWD=hyperpilot
