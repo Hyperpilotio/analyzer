@@ -6,17 +6,10 @@ import datetime
 import schedule
 from state import jobs
 
-class JobStatus(object):
-    RUNNING = "running"
-    WAITING = "waiting"
-    RETRYING = "retrying"
-    FAILED = "failed"
-
 class JobState(object):
     def init_from_map(state):
         return JobState(state["job_name"], state["job_function"], state["job_config"], \
-                        state["schedule_at"], state["created_at"], state["finished_at"], \
-                        state["job_status"])
+                        state["schedule_at"], state["created_at"], state["finished_at"])
 
     def to_map(self):
         return {
@@ -28,13 +21,13 @@ class JobState(object):
             "finished_at": self.finished_at
         }
 
-    def __init__(self, job_name, job_function, job_config, schedule_at, created_at, finished_at=None, job_status=JobStatus.WAITING):
+    def __init__(self, job_name, job_function, job_config, schedule_at, created_at, finished_at=None):
         self.job_name = job_name
         self.job_config = job_config
-        self.job_status = job_status
         self.job_package, self.job_module, self.job_function = job_function.split(".")
         self.schedule_at = schedule_at
         self.created_at = created_at
+        self.running_at = None
         if finished_at:
             self.finished_at = int(finished_at)
         else:
@@ -109,6 +102,18 @@ class JobsRunner(object):
         continuous_thread.start()
         return cease_continuous_run
 
+    def job_finish(self, fn, job_state):
+        if fn.cancelled():
+            self.logger.warning("Job %s cancelled" % job_state.job_name)
+        elif fn.done():
+            job_state.finished_at = job_state.running_at
+            job_state.running_at = None
+            error = fn.exception()
+            if error:
+                self.logger.warning("Job %s failed: %s" % (job_state.job_name, error))
+            else:
+                self.logger.info("Job %s completed" % job_state.job_name)
+
     def _submit_job(self, job_state, current_date=datetime.datetime.now().date()):
         try:
             package = __import__(job_state.job_package)
@@ -118,9 +123,11 @@ class JobsRunner(object):
             self.logger.warning("Job %s function cannot be referenced: %s" % (job_state.job_name, e))
             return
 
-        self.worker_pool.submit(self._run_job, function, job_state, current_date)
+        f = self.worker_pool.submit(self._run_job, function, job_state, current_date)
+        f.add_done_callback(lambda fn: self.job_finish(fn, job_state))
 
     def _run_job(self, function, job_state, current_date):
+        job_state.running_at = int(time.time())
         job_failed = False
         attempts = 0
 
