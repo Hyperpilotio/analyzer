@@ -13,6 +13,7 @@ from pymongo.errors import InvalidOperation
 from sizing_service.bayesian_optimizer_pool import BayesianOptimizerPool
 from sizing_service.linear_regression import LinearRegression1
 from diagnosis.app_analyzer import DiagnosisTracker
+from jobs.runner import JobsRunner
 import api_service.util as util
 from state import apps as appstate
 from state import results as resultstate
@@ -36,7 +37,6 @@ opportunities_collection = my_config.get("ANALYZER", "OPPORTUNITY_COLLECTION")
 
 logger = get_logger(__name__, log_level=("APP", "LOGLEVEL"))
 
-BOP = BayesianOptimizerPool()
 APP_STATE = {"REGISTERED": "Registered",
              "UNREGISTERED": "Unregistered",
              "ACTIVE": "Active"}
@@ -44,10 +44,29 @@ FEATURE_NAME = {"INTERFERENCE": "interference_management",
                 "BOTTLENECK": "bottleneck_management",
                 "EFFICIENCY": "efficiency_management"}
 
-DIAGNOSIS = DiagnosisTracker(my_config)
+class Analyzer(object):
+    def __init__(self, config):
+        self.config = config
+        self.diagnosis = DiagnosisTracker(config)
+        self.bop = BayesianOptimizerPool()
+        self.jobs = JobsRunner(config)
+        self.jobs_context = self.jobs.run_loop()
+        self.initialize_utilization_jobs()
+
+    def initialize_utilization_jobs(self):
+        self.jobs.add_job("utilization_node_cpu", "utilization.sizing_analyzer.node_cpu_job", {"schedule_at": "12:30"})
+        self.jobs.add_job("utilization_node_memory", "utilization.sizing_analyzer.node_memory_job", {"schedule_at": "12:30"})
+        self.jobs.add_job("utilization_container_cpu", "utilization.sizing_analyzer.container_cpu_job", {"schedule_at": "12:30"})
+        self.jobs.add_job("utilization_container_memory", "utilization.sizing_analyzer.container_memory_job", {"schedule_at": "12:30"})
+
+ANALYZER = Analyzer(my_config)
 
 @app.before_first_request
 def init_rollbar():
+    env_name = my_config.get("ANALYZER", "ROLLBAR_ENV_NAME")
+    if env_name == "dev":
+        return
+
     """init rollbar module"""
     rollbar.init(
         my_config.get("ANALYZER", "ROLLBAR_TOKEN"),
@@ -270,7 +289,7 @@ def get_next_instance_types(session_id):
         return response
 
     # TODO: This causes the candidate list to be filtered twice - needs improvement
-    if BOP.get_status(session_id).status == Status.RUNNING:
+    if ANALYZER.bop.get_status(session_id).status == "running":
         response = jsonify({"status": "bad_request",
                             "error": "Optimization process still running"})
         return response
@@ -278,7 +297,7 @@ def get_next_instance_types(session_id):
     logger.info(
         f"Starting a new sizing session {session_id} for app {app_name}")
     try:
-        response = jsonify(BOP.get_candidates(
+        response = jsonify(ANALYZER.bop.get_candidates(
             session_id, request_body).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -291,7 +310,7 @@ def get_next_instance_types(session_id):
 @app.route("/apps/<string:session_id>/get-optimizer-status")
 def get_task_status(session_id):
     try:
-        response = jsonify(BOP.get_status(session_id).to_dict())
+        response = jsonify(Analyzer.bop.get_status(session_id).to_dict())
     except Exception as e:
         logger.error(traceback.format_exc())
         response = jsonify({"status": "server_error",
@@ -416,9 +435,9 @@ def update_app_state(app_id):
     # have all the information we need already....
     if "slo" in updated_doc:
         if updated_doc["state"] == APP_STATE["ACTIVE"]:
-            DIAGNOSIS.run_new_app(app_id, updated_doc)
+            ANALYZER.diagnosis.run_new_app(app_id, updated_doc)
         elif previous_state == APP_STATE["ACTIVE"] and updated_doc["state"] != APP_STATE["ACTIVE"]:
-            DIAGNOSIS.stop_app(app_id)
+            ANALYZER.diagnosis.stop_app(app_id)
 
     result = jsonify(data=updated_doc)
     result.status_code = 200

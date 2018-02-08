@@ -1,4 +1,3 @@
-
 from unittest import TestCase
 from logger import get_logger
 from config import get_config
@@ -7,7 +6,6 @@ from .runner import JobsRunner
 logger = get_logger(__name__, log_level=("TEST", "LOGLEVEL"))
 
 config = get_config()
-
 
 def test_run(self, config, job_config, date):
     print("Running test job")

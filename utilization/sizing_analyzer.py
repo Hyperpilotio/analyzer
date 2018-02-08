@@ -1,15 +1,15 @@
 import json
 import pandas as pd
 import numpy as np
+import datetime
 import matplotlib.pyplot as plt
 
 from influxdb import DataFrameClient
 
 ANALYSIS_WINDOW_SECOND = 600
 SAMPLE_INTERVAL_SECOND = 5
-NANOSECONDS_PER_SECOND = 1000000000  
+NANOSECONDS_PER_SECOND = 1000000000
 PERCENTILES = [.5, .95, .99]
-
 
 class Status():
     SUCCESS = "success"
@@ -29,9 +29,39 @@ class JobStatus():
             "data": self.data
         }
 
+def get_daily_timepair(current_date):
+    today = datetime.datetime.combine(current_date, datetime.datetime.min.time())
+    yesterday = today + datetime.timedelta(days=-1)
+    return yesterday.timestamp(), today.timestamp()
+
+def node_cpu_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_node_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    print("Node cpu finished with status: " + str(status.to_dict()))
+
+def node_memory_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_node_memory(yesterday, today, PERCENTILES)
+    print("Node memory finished with status: " + str(status.to_dict()))
+
+def container_cpu_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_container_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    print("Container cpu finished with status: " + str(status.to_dict()))
+
+def container_memory_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_container_memory(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    print("Container memory finished with status: " + str(status.to_dict()))
 
 class SizingAnalyzer(object):
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
+
         influx_host = "localhost"
         influx_port = 8086
         influx_user = "root"
@@ -39,14 +69,14 @@ class SizingAnalyzer(object):
         input_db_name = "prometheus"
         output_db_name = "hyperpilot"
         result_db_name = "resultdb" # in MongoDB
-        
+
         self.influx_client_input = DataFrameClient(
             influx_host,
             influx_port,
             influx_user,
             influx_password,
             input_db_name)
-    
+
         self.influx_client_output = DataFrameClient(
             influx_host,
             influx_port,
@@ -54,7 +84,7 @@ class SizingAnalyzer(object):
             influx_password,
             output_db_name)
 
-    def analyze_node_cpu(self, start_time, end_time, sample_interval, percentiles):        
+    def analyze_node_cpu(self, start_time, end_time, sample_interval, percentiles):
         print("-- [node_cpu] Query influxdb for raw metrics data --")
         output_filter = "derivative(sum(value)) / " + str(sample_interval) + " as node_usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
@@ -83,7 +113,7 @@ class SizingAnalyzer(object):
                                  error="Unable to write query result back to influxDB: " + str(e))
             #TODO: Need to filter out abnormal values
             node_cpu_summary[node_name] = df.node_usage.describe(percentiles)
-                
+
         #print("node cpu usage summary: ", node_cpu_summary)
         # store_summary_stats(node_cpu_summary)
 
@@ -117,7 +147,7 @@ class SizingAnalyzer(object):
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
-        
+
         metric_name = "node_memory_MemFree"
         try:
             node_mem_free_dict = self.influx_client_input.query(
@@ -153,10 +183,10 @@ class SizingAnalyzer(object):
                 return JobStatus(status=STATUS.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
             node_mem_summary[node_name, 'usage'] = df_usage.value.describe(percentiles)
-       
+
         #print("node memory usage summary: ", node_mem_summary)
         #store_summary_stats(node_mem_summary)
-        
+
         print("-- [node_memory] Compute sizing recommendation --")
         # node_mem_sizes = compute_sizing_recommendation(node_mem_summary)
         # store_sizing_recommenation(node_mem_sizes)
