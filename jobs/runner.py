@@ -132,14 +132,19 @@ class JobsRunner(object):
 
             print("Running job %s with attempt %d" % (job_state.job_name, attempts))
             job_failed = False
+            error = None
             try:
-                function(config, job_state.job_config, current_date)
+                error = function(config, job_state.job_config, current_date)
             except Exception as e:
                 print("Job %s failed with error: %s" % (job_state.job_name, e))
                 traceback.print_exc()
                 job_failed = True
 
-            if not job_failed:
+            if error:
+                job_failed = True
+                print("Job %s failed with error: %s" % (job_state.job_name, error))
+
+            if job_failed == False:
                 return
 
         print("Unable to run job after 3 attempts, aborting job")

@@ -19,14 +19,12 @@ class Status():
 class JobStatus():
     def __init__(self, status, data=None, error=None):
         self.status = status
-        self.data = data
         self.error = error
 
     def to_dict(self):
         return {
             "status": self.status,
             "error": self.error,
-            "data": self.data
         }
 
 def get_daily_timepair(current_date):
@@ -39,24 +37,28 @@ def node_cpu_job(config, job_config, current_date):
     yesterday, today = get_daily_timepair(current_date)
     status = analyzer.analyze_node_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
     print("Node cpu finished with status: " + str(status.to_dict()))
+    return status.error
 
 def node_memory_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
     yesterday, today = get_daily_timepair(current_date)
     status = analyzer.analyze_node_memory(yesterday, today, PERCENTILES)
     print("Node memory finished with status: " + str(status.to_dict()))
+    return status.error
 
 def container_cpu_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
     yesterday, today = get_daily_timepair(current_date)
     status = analyzer.analyze_container_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
     print("Container cpu finished with status: " + str(status.to_dict()))
+    return status.error
 
 def container_memory_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
     yesterday, today = get_daily_timepair(current_date)
     status = analyzer.analyze_container_memory(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
     print("Container memory finished with status: " + str(status.to_dict()))
+    return status.error
 
 class SizingAnalyzer(object):
     def __init__(self, config):
