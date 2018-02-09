@@ -63,13 +63,12 @@ class SizingAnalyzer(object):
     def __init__(self, config):
         self.config = config
 
-        influx_host = "localhost"
-        influx_port = 8086
-        influx_user = "root"
-        influx_password = "root"
-        input_db_name = "prometheus"
-        output_db_name = "hyperpilot"
-        result_db_name = "resultdb" # in MongoDB
+        influx_host = config.get("INFLUXDB", "HOST")
+        influx_port = int(config.get("INFLUXDB", "PORT"))
+        influx_user = config.get("INFLUXDB", "USERNAME")
+        influx_password = config.get("INFLUXDB", "PASSWORD")
+        input_db_name = config.get("INFLUXDB", "INPUT_DB_NAME")
+        output_db_name = config.get("INFLUXDB", "OUTPUT_DB_NAME")
 
         self.influx_client_input = DataFrameClient(
             influx_host,
