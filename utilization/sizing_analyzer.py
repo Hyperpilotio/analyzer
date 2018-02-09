@@ -73,7 +73,7 @@ class SizingAnalyzer(object):
         
         #influx_host = config.get("INFLUXDB", "HOST")
         influx_host = "localhost"
-        influx_port = config.get("INFLUXDB", "PORT")
+        influx_port = int(config.get("INFLUXDB", "PORT"))
         influx_user = config.get("INFLUXDB", "USERNAME")
         influx_password = config.get("INFLUXDB", "PASSWORD")
         input_db = config.get("INFLUXDB", "SIZING_INPUT_DB_NAME")
