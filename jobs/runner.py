@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from logger import get_logger
+import rollbar
 import importlib
 import traceback
 import threading
@@ -121,7 +122,7 @@ class JobsRunner(object):
             else:
                 self.logger.info("Job %s completed" % job_state.job_name)
 
-    def _run_job(config, function, job_state, current_date):
+    def _run_job(logger, config, function, job_state, current_date):
         job_state.running_at = int(time.time())
         job_failed = False
         attempts = 0
@@ -130,24 +131,26 @@ class JobsRunner(object):
         while attempts <= 3:
             attempts += 1
 
-            print("Running job %s with attempt %d" % (job_state.job_name, attempts))
+            logger.info("Running job %s with attempt %d" % (job_state.job_name, attempts))
             job_failed = False
             error = None
             try:
                 error = function(config, job_state.job_config, current_date)
             except Exception as e:
-                print("Job %s failed with error: %s" % (job_state.job_name, e))
+                logger.warning("Job %s failed with error: %s" % (job_state.job_name, e))
                 traceback.print_exc()
+                rollbar.report_exc_info()
+                rollbar.report_message("Job %s failed with error: %s" % (job_state.job_name, e), "warning")
                 job_failed = True
 
             if error:
                 job_failed = True
-                print("Job %s failed with error: %s" % (job_state.job_name, error))
+                logger.warning("Job %s failed with error: %s" % (job_state.job_name, error))
 
             if job_failed == False:
                 return
 
-        print("Unable to run job after 3 attempts, aborting job")
+        logger.warning("Unable to run job after 3 attempts, aborting job")
 
     def _submit_job(self, job_state, current_date=datetime.datetime.now().date()):
         self.logger.info("Submitting new job %s to be executed" % job_state.job_name)
@@ -157,9 +160,10 @@ class JobsRunner(object):
             function = getattr(module, job_state.job_function)
         except Exception as e:
             self.logger.warning("Job %s function cannot be referenced: %s" % (job_state.job_name, e))
+            rollbar.report_message("Job %s function cannot be referenced: %s" % (job_state.job_name, e), "warning")
             return
 
-        f = self.worker_pool.submit(JobsRunner._run_job, self.config, function, job_state, current_date)
+        f = self.worker_pool.submit(JobsRunner._run_job, self.logger, self.config, function, job_state, current_date)
         f.add_done_callback(lambda fn: self.job_finish(fn, job_state))
 
 

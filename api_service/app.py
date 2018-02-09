@@ -43,9 +43,9 @@ FEATURE_NAME = {"INTERFERENCE": "interference_management",
                 "BOTTLENECK": "bottleneck_management",
                 "EFFICIENCY": "efficiency_management"}
 
-@app.before_first_request
 def init_rollbar():
-    env_name = my_config.get("ANALYZER", "ROLLBAR_ENV_NAME")
+    config = get_config()
+    env_name = config.get("ANALYZER", "ROLLBAR_ENV_NAME")
     if env_name == "dev":
         return
 
@@ -58,6 +58,9 @@ def init_rollbar():
         # flask already sets up logging
         allow_logging_basic_config=False)
 
+@app.before_first_request
+def init_rollbar_on_flask():
+    init_rollbar()
     # send exceptions from `app` to rollbar, using flask's signal system.
     got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
 

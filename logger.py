@@ -1,7 +1,7 @@
 import logging
 from config import get_config
 from functools import lru_cache
-
+import rollbar
 
 @lru_cache(maxsize=8)
 def get_logger(name, log_level=None):
@@ -10,11 +10,8 @@ def get_logger(name, log_level=None):
     logger = logging.getLogger(name)
     log_format = "[%(asctime)s] [%(name)s:%(lineno)s] [%(levelname)s]\n%(message)s"
     logging.basicConfig(format=log_format)
-    # handler = logging.StreamHandler()
-    # logger.addHandler(handler)
 
     log_level = getattr(logging, config.get(*log_level))
     logger.setLevel(log_level)
-    # handler.setLevel(log_level)
 
     return logger
