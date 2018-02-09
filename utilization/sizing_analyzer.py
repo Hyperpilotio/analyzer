@@ -6,9 +6,9 @@ import datetime
 from influxdb import DataFrameClient
 
 ANALYSIS_WINDOW_SECOND = 3000
-SAMPLE_INTERVAL_SECOND = 5
 NANOSECONDS_PER_SECOND = 1000000000
 PERCENTILES = [.5, .95, .99]
+DEFAULT_STAT = "99%" # default stat value used for computing recommendations
 
 class Status():
     SUCCESS = "success"
@@ -34,28 +34,28 @@ def get_daily_timepair(current_date):
 def node_cpu_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
     yesterday, today = get_daily_timepair(current_date)
-    status = analyzer.analyze_node_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    status = analyzer.analyze_node_cpu(yesterday, today, PERCENTILES, DEFAULT_STAT)
     print("Node cpu finished with status: " + str(status.to_dict()))
     return status.error
 
 def node_memory_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
     yesterday, today = get_daily_timepair(current_date)
-    status = analyzer.analyze_node_memory(yesterday, today, PERCENTILES)
+    status = analyzer.analyze_node_memory(yesterday, today, PERCENTILES, DEFAULT_STAT)
     print("Node memory finished with status: " + str(status.to_dict()))
     return status.error
 
 def container_cpu_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
     yesterday, today = get_daily_timepair(current_date)
-    status = analyzer.analyze_container_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    status = analyzer.analyze_container_cpu(yesterday, today, PERCENTILES, DEFAULT_STAT)
     print("Container cpu finished with status: " + str(status.to_dict()))
     return status.error
 
 def container_memory_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
     yesterday, today = get_daily_timepair(current_date)
-    status = analyzer.analyze_container_memory(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    status = analyzer.analyze_container_memory(yesterday, today, PERCENTILES, DEFAULT_STAT)
     print("Container memory finished with status: " + str(status.to_dict()))
     return status.error
 
@@ -85,7 +85,7 @@ class SizingAnalyzer(object):
             influx_password,
             output_db_name)
 
-    def analyze_node_cpu(self, start_time, end_time, percentiles):
+    def analyze_node_cpu(self, start_time, end_time, percentiles, stat_type):
         print("-- [node_cpu] Query influxdb for raw metrics data --")
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
@@ -121,7 +121,7 @@ class SizingAnalyzer(object):
         print("-- [node_cpu] Query influxdb for current node configs --")
 
         print("-- [node_cpu] Compute sizing recommendation --")
-        # node_cpu_sizes = compute_sizing_recommendation(node_cpu_summary)
+        # node_cpu_sizes = compute_sizing_recommendation(node_cpu_summary, stat_type)
 
         print("-- [node_cpu] Store analysis results in mongodb --")
         # store_analysis_result(node_cpu_summary, node_cpu_sizes)
@@ -129,7 +129,7 @@ class SizingAnalyzer(object):
         return JobStatus(status=Status.SUCCESS)
 
 
-    def analyze_node_memory(self, start_time, end_time, percentiles):
+    def analyze_node_memory(self, start_time, end_time, percentiles, stat_type):
         print("-- [node_memory] Query influxdb for raw metrics data --")
         output_filter = "value/1024/1024/1024"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
@@ -195,7 +195,7 @@ class SizingAnalyzer(object):
         print("-- [node_memory] Query influxdb for current node configs --")
 
         print("-- [node_memory] Compute sizing recommendation --")
-        # node_mem_sizes = compute_sizing_recommendation(node_mem_summary)
+        # node_mem_sizes = compute_sizing_recommendation(node_mem_summary, stat_type)
 
         print("-- [node_memory] Store analysis results in mongodb --")
         # store_analysis_result(node_mem_summary, node_mem_sizes)
@@ -203,7 +203,7 @@ class SizingAnalyzer(object):
         return JobStatus(status=Status.SUCCESS)
 
 
-    def analyze_container_cpu(self, start_time, end_time, percentiles):
+    def analyze_container_cpu(self, start_time, end_time, percentiles, stat_type):
         print("-- [container_cpu] Query influxdb for raw metrics data --")
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
@@ -251,19 +251,20 @@ class SizingAnalyzer(object):
         print("-- [container_cpu] Query influxdb for current requests and limits --")
 
         print("-- [container_cpu] Compute requests and limits --")
-        # container_cpu_settings = compute_sizing_recommendation(container_cpu_summary)
+        # container_cpu_settings = compute_sizing_recommendation(container_cpu_summary, stat_type)
 
         print("-- [container_cpu] Store analysis results in mongodb --")
         # store_analysis_result(container_cpu_summary, container_cpu_settings)
 
         return JobStatus(status=Status.SUCCESS)
 
-    def analyze_container_memory(self, start_time, end_time, sample_interval, percentiles):
+
+    def analyze_container_memory(self, start_time, end_time, percentiles, stat_type):
         print("-- [container_memory] Query influxdb for raw metrics data --")
         output_filter = "max(value)/1024/1024 as value"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND image!=''"
-        group_tags = "image,time(" + str(sample_interval) + "s)"
+        group_tags = "image,time(5s)"
 
         metric_name = "container_memory_working_set_bytes"
         try:
@@ -310,7 +311,7 @@ class SizingAnalyzer(object):
         print("-- [container_memory] Query influxdb for current requests and limits --")
 
         print("-- [container_memory] Compute requests and limits --")
-        # container_mem_settings = compute_sizing_recommendation(container_mem_summary)
+        # container_mem_settings = compute_sizing_recommendation(container_mem_summary, stat_type)
 
         print("-- [container_memory] Store analysis results in mongodb --")
         # store_analysis_result(container_mem_summary, container_mem_settings)
@@ -323,11 +324,11 @@ if __name__ == "__main__":
     end_time = 1517016459493000000
     start_time = end_time - ANALYSIS_WINDOW_SECOND * NANOSECONDS_PER_SECOND
 
-    job = sa.analyze_node_cpu(start_time, end_time, PERCENTILES)
+    job = sa.analyze_node_cpu(start_time, end_time, PERCENTILES, DEFAULT_STAT)
     print(job.to_dict())
-    job = sa.analyze_node_memory(start_time, end_time, PERCENTILES)
+    job = sa.analyze_node_memory(start_time, end_time, PERCENTILES, DEFAULT_STAT)
     print(job.to_dict())
-    job = sa.analyze_container_cpu(start_time, end_time, ßPERCENTILES)
+    job = sa.analyze_container_cpu(start_time, end_time, ßPERCENTILES, DEFAULT_STAT)
     print(job.to_dict())
-    job = sa.analyze_container_memory(start_time, end_time, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    job = sa.analyze_container_memory(start_time, end_time, PERCENTILES, DEFAULT_STAT)
     print(job.to_dict())
