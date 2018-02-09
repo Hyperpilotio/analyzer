@@ -10,6 +10,12 @@ import schedule
 from state import jobs
 
 class JobState(object):
+    PENDING = "Pending"
+    SUBMITTED = "Submitted"
+    RUNNING = "Running"
+    FINISHED = "Finished"
+    FAILED = "Failed"
+
     def init_from_map(state):
         return JobState(state["job_name"], state["job_function"], state["job_config"], \
                         state["schedule_at"], state["created_at"], state["finished_at"])
@@ -21,7 +27,9 @@ class JobState(object):
             "job_config": self.job_config,
             "schedule_at": self.schedule_at,
             "created_at": self.created_at,
-            "finished_at": self.finished_at
+            "finished_at": self.finished_at,
+            "status": self.status,
+            "last_error": self.last_error
         }
 
     def __init__(self, job_name, job_function, job_config, schedule_at, created_at, finished_at=None):
@@ -31,6 +39,8 @@ class JobState(object):
         self.schedule_at = schedule_at
         self.created_at = created_at
         self.running_at = None
+        self.status = JobState.PENDING
+        self.last_error = ""
         if finished_at:
             self.finished_at = int(finished_at)
         else:
@@ -80,6 +90,9 @@ class JobsRunner(object):
             recovered += 1
         self.logger.info("Job runner recovered %d jobs", recovered)
 
+    def get_job_states(self):
+        return self.job_states.values()
+
     def run_loop(self, interval=1):
         if self.running:
             self.logger.warning("Runner already running")
@@ -124,6 +137,7 @@ class JobsRunner(object):
 
     def _run_job(logger, config, function, job_state, current_date):
         job_state.running_at = int(time.time())
+        job_state.status = JobState.RUNNING
         job_failed = False
         attempts = 0
 
@@ -148,8 +162,11 @@ class JobsRunner(object):
                 logger.warning("Job %s failed with error: %s" % (job_state.job_name, error))
 
             if job_failed == False:
+                job_state.status = JobState.FINISHED
                 return
 
+        job_state.status = JobState.FAILED
+        job_state.last_error = error
         logger.warning("Unable to run job after 3 attempts, aborting job")
 
     def _submit_job(self, job_state, current_date=datetime.datetime.now().date()):
@@ -163,6 +180,7 @@ class JobsRunner(object):
             rollbar.report_message("Job %s function cannot be referenced: %s" % (job_state.job_name, e), "warning")
             return
 
+        job_state.status = JobState.SUBMITTED
         f = self.worker_pool.submit(JobsRunner._run_job, self.logger, self.config, function, job_state, current_date)
         f.add_done_callback(lambda fn: self.job_finish(fn, job_state))
 
