@@ -1,0 +1,252 @@
+[
+  {
+    "object_type": "node",
+    "resource": "cpu",
+    "unit": "cores",
+    "end_time": 1517016459493000000,
+    "duration_days": 7,
+    "labels": [
+      "node_pool"
+    ],
+    "results": [
+      {
+        "label_values": {
+          "node_pool": "druid-preempt"
+        },
+        "summary_stats": {
+          "cpu_usage": {
+            "mean": 0.93,
+            "50%": 0.79,
+            "95%": 1.93,
+            "99%": 2.5,
+            "max": 3.65
+          }
+        },
+        "current_settings": {
+          "size": 16
+        },
+        "recommended_settings": {
+          "size": 4
+        }
+      },
+      {
+        "label_values": {
+          "node_pool": "nginx"
+        },
+        "summary_stats": {
+          "cpu_usage": {
+            "mean": 0.32,
+            "50%": 0.32,
+            "95%": 0.42,
+            "99%": 0.48,
+            "max": 0.71
+          }
+        },
+        "current_settings": {
+          "size": 8
+        },
+        "recommended_settings": {
+          "size": 1
+        }
+      }
+    ]
+  },
+  {
+    "object_type": "node",
+    "resource": "memory",
+    "unit": "GB",
+    "end_time": 1517016459493000000,
+    "duration_days": 7,
+    "labels": [
+      "node_pool"
+    ],
+    "results": [
+      {
+        "label_values": {
+          "node_pool": "druid-preempt"
+        },
+        "summary_stats": {
+          "memory_usage": {
+            "mean": 62.35,
+            "50%": 59.13,
+            "95%": 72.96,
+            "99%": 76.43,
+            "max": 77.62
+          },
+          "memory_active": {
+            "mean": 58.46,
+            "50%": 55.07,
+            "95%": 68.51,
+            "99%": 71.51,
+            "max": 72.71
+          }
+        },
+        "current_settings": {
+          "size": 104
+        },
+        "recommended_settings": {
+          "size": 96
+        }
+      },
+      {
+        "label_values": {
+          "node_pool": "nginx"
+        },
+        "summary_stats": {
+          "memory_usage": {
+            "mean": 7.9,
+            "50%": 7.9,
+            "95%": 7.93,
+            "99%": 7.94,
+            "max": 7.96
+          },
+          "memory_active": {
+            "mean": 3.59,
+            "50%": 3.59,
+            "95%": 3.6,
+            "99%": 3.61,
+            "max": 3.62
+          }
+        },
+        "current_settings": {
+          "size": 30
+        },
+        "recommended_settings": {
+          "size": 10
+        }
+      }
+    ]
+  },
+  {
+    "object_type": "container",
+    "resource": "cpu",
+    "unit": "cores",
+    "end_time": 1517016459493000000,
+    "duration_days": 7,
+    "labels": [
+      "app",
+      "image"
+    ],
+    "results": [
+      {
+        "label_values": {
+          "app": "action-scale",
+          "image": "action-scale"
+        },
+        "summary_stats": {
+          "cpu_usage": {
+            "mean": 0.03,
+            "50%": 0.04,
+            "95%": 0.05,
+            "99%": 0.06,
+            "max": 0.08
+          }
+        },
+        "current_settings": {
+          "requests": 1,
+          "limits": 8
+        },
+        "recommended_settings": {
+          "requests": 0.25,
+          "limits": 0.5
+        }
+      },
+      {
+        "label_values": {
+          "app": "druid-broker",
+          "image": "druid"
+        },
+        "summary_stats": {
+          "cpu_usage": {
+            "mean": 0.01,
+            "50%": 0.01,
+            "95%": 0.02,
+            "99%": 0.04,
+            "max": 0.06
+          }
+        },
+        "current_settings": {
+          "requests": 1,
+          "limits": 8
+        },
+        "recommended_settings": {
+          "requests": 0.4,
+          "limits": 0.5
+        }
+      }
+    ]
+  },
+  {
+    "object_type": "container",
+    "resource": "memory",
+    "unit": "MB",
+    "end_time": 1517016459493000000,
+    "duration_days": 7,
+    "labels": [
+      "app",
+      "image"
+    ],
+    "results": [
+      {
+        "label_values": {
+          "app": "action-scale",
+          "image": "action-scale"
+        },
+        "summary_stats": {
+          "memory_usage": {
+            "mean": 4892,
+            "50%": 5075,
+            "95%": 5919,
+            "99%": 6340,
+            "max": 6841
+          },
+          "memory_active": {
+            "mean": 3890,
+            "50%": 4060,
+            "95%": 4735,
+            "99%": 5072,
+            "max": 5473
+          }
+        },
+        "current_settings": {
+          "requests": 2048,
+          "limits": 8192
+        },
+        "recommended_settings": {
+          "requests": 5072,
+          "limits": 8192
+        }
+      },
+      {
+        "label_values": {
+          "app": "druid-broker",
+          "image": "druid"
+        },
+        "summary_stats": {
+          "memory_usage": {
+            "mean": 12433,
+            "50%": 12649,
+            "95%": 13582,
+            "99%": 14206,
+            "max": 16174
+          },
+          "memory_active": {
+            "mean": 9946,
+            "50%": 10119,
+            "95%": 10865,
+            "99%": 11365,
+            "max": 12939
+          }
+        },
+        "current_settings": {
+          "requests": 8192,
+          "limits": 16384
+        },
+        "recommended_settings": {
+          "requests": 11365,
+          "limits": 16384
+        }
+      }
+    ]
+  }
+]
