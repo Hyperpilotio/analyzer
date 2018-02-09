@@ -200,7 +200,7 @@ class JobsRunner(object):
         self.schedule_job(job_state)
 
     def schedule_job(self, job_state):
-        schedule.every().days.at(job_state.schedule_at).do(self._submit_job, job_state).tag(job_state.job_name)
+        schedule.every(1).days.at(job_state.schedule_at).do(self._submit_job, job_state).tag(job_state.job_name)
         #schedule.every(5).seconds.do(self._submit_job, job_state).tag(job_state.job_name)
 
     def save_job_state(self, job_state):
