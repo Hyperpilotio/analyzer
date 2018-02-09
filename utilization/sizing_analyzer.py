@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import numpy as np
+import datetime
 
 from influxdb import DataFrameClient
 
@@ -8,7 +9,6 @@ ANALYSIS_WINDOW_SECOND = 3000
 SAMPLE_INTERVAL_SECOND = 5
 NANOSECONDS_PER_SECOND = 1000000000
 PERCENTILES = [.5, .95, .99]
-
 
 class Status():
     SUCCESS = "success"
@@ -18,19 +18,51 @@ class Status():
 class JobStatus():
     def __init__(self, status, data=None, error=None):
         self.status = status
-        self.data = data
         self.error = error
 
     def to_dict(self):
         return {
             "status": self.status,
             "error": self.error,
-            "data": self.data
         }
 
+def get_daily_timepair(current_date):
+    today = datetime.datetime.combine(current_date, datetime.datetime.min.time())
+    yesterday = today + datetime.timedelta(days=-1)
+    return yesterday.timestamp(), today.timestamp()
+
+def node_cpu_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_node_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    print("Node cpu finished with status: " + str(status.to_dict()))
+    return status.error
+
+def node_memory_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_node_memory(yesterday, today, PERCENTILES)
+    print("Node memory finished with status: " + str(status.to_dict()))
+    return status.error
+
+def container_cpu_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_container_cpu(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    print("Container cpu finished with status: " + str(status.to_dict()))
+    return status.error
+
+def container_memory_job(config, job_config, current_date):
+    analyzer = SizingAnalyzer(config)
+    yesterday, today = get_daily_timepair(current_date)
+    status = analyzer.analyze_container_memory(yesterday, today, SAMPLE_INTERVAL_SECOND, PERCENTILES)
+    print("Container memory finished with status: " + str(status.to_dict()))
+    return status.error
 
 class SizingAnalyzer(object):
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
+
         influx_host = "localhost"
         influx_port = 8086
         influx_user = "root"

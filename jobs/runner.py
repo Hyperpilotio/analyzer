@@ -1,5 +1,8 @@
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from logger import get_logger
+import rollbar
+import importlib
+import traceback
 import threading
 import time
 import datetime
@@ -14,7 +17,7 @@ class JobState(object):
     def to_map(self):
         return {
             "job_name": self.job_name,
-            "job_function": self.job_package + "." + self.job_module + "." + self.job_function,
+            "job_function": self.job_module + "." + self.job_function,
             "job_config": self.job_config,
             "schedule_at": self.schedule_at,
             "created_at": self.created_at,
@@ -24,7 +27,7 @@ class JobState(object):
     def __init__(self, job_name, job_function, job_config, schedule_at, created_at, finished_at=None):
         self.job_name = job_name
         self.job_config = job_config
-        self.job_package, self.job_module, self.job_function = job_function.split(".")
+        self.job_module, self.job_function = job_function.rsplit(".", 1)
         self.schedule_at = schedule_at
         self.created_at = created_at
         self.running_at = None
@@ -44,13 +47,14 @@ class JobsRunner(object):
         self.stop = False
         self.job_states = {}
         workers = int(config.get("JOBS", "WORKER_SIZE"))
-        self.worker_pool = ProcessPoolExecutor(max_workers=workers)
+        self.worker_pool = ThreadPoolExecutor(max_workers=workers)
         self.running = None
         self.recover()
 
     def recover(self):
         job_states = jobs.get_job_states()
         now = int(time.time())
+        recovered = 0
         for job_state in job_states:
             job_state = JobState.init_from_map(job_state)
             self.job_states[job_state.job_name] = job_state
@@ -69,9 +73,12 @@ class JobsRunner(object):
 
             if now - last_completion_time > datetime.timedelta(days=1):
                 yesterday = now.date() + datetime.timedelta(days=-1)
+                self.logger.info("Submitting job %s to be executed now as it has missed it's last execution" % job_state.job_name)
                 self._submit_job(job_state, yesterday)
 
             self.schedule_job(job_state)
+            recovered += 1
+        self.logger.info("Job runner recovered %d jobs", recovered)
 
     def run_loop(self, interval=1):
         if self.running:
@@ -79,6 +86,7 @@ class JobsRunner(object):
             return
 
         self.running = self._run_loop(interval)
+        self.logger.info("Job runner is running")
 
     def stop_loop(self):
         if not self.running:
@@ -114,19 +122,7 @@ class JobsRunner(object):
             else:
                 self.logger.info("Job %s completed" % job_state.job_name)
 
-    def _submit_job(self, job_state, current_date=datetime.datetime.now().date()):
-        try:
-            package = __import__(job_state.job_package)
-            module = getattr(package, job_state.job_module)
-            function = getattr(module, job_state.job_function)
-        except Exception as e:
-            self.logger.warning("Job %s function cannot be referenced: %s" % (job_state.job_name, e))
-            return
-
-        f = self.worker_pool.submit(self._run_job, function, job_state, current_date)
-        f.add_done_callback(lambda fn: self.job_finish(fn, job_state))
-
-    def _run_job(self, function, job_state, current_date):
+    def _run_job(logger, config, function, job_state, current_date):
         job_state.running_at = int(time.time())
         job_failed = False
         attempts = 0
@@ -134,17 +130,42 @@ class JobsRunner(object):
         # TODO: Make attempt count configurable
         while attempts <= 3:
             attempts += 1
+
+            logger.info("Running job %s with attempt %d" % (job_state.job_name, attempts))
             job_failed = False
+            error = None
             try:
-                function(self.config, job_config, current_date)
+                error = function(config, job_state.job_config, current_date)
             except Exception as e:
-                self.logger.warning("Job %s failed with error: %s" % (job_state.job_name, e))
+                logger.warning("Job %s failed with error: %s" % (job_state.job_name, e))
+                traceback.print_exc()
+                rollbar.report_exc_info()
+                rollbar.report_message("Job %s failed with error: %s" % (job_state.job_name, e), "warning")
                 job_failed = True
 
-            if not job_failed:
+            if error:
+                job_failed = True
+                logger.warning("Job %s failed with error: %s" % (job_state.job_name, error))
+
+            if job_failed == False:
                 return
 
-        self.logger.warning("Unable to run job after 3 attempts, aborting job")
+        logger.warning("Unable to run job after 3 attempts, aborting job")
+
+    def _submit_job(self, job_state, current_date=datetime.datetime.now().date()):
+        self.logger.info("Submitting new job %s to be executed" % job_state.job_name)
+
+        try:
+            module = importlib.import_module(job_state.job_module)
+            function = getattr(module, job_state.job_function)
+        except Exception as e:
+            self.logger.warning("Job %s function cannot be referenced: %s" % (job_state.job_name, e))
+            rollbar.report_message("Job %s function cannot be referenced: %s" % (job_state.job_name, e), "warning")
+            return
+
+        f = self.worker_pool.submit(JobsRunner._run_job, self.logger, self.config, function, job_state, current_date)
+        f.add_done_callback(lambda fn: self.job_finish(fn, job_state))
+
 
     def add_job(self, job_name, job_function, job_config):
         """
@@ -161,7 +182,8 @@ class JobsRunner(object):
         self.schedule_job(job_state)
 
     def schedule_job(self, job_state):
-        schedule.every().day.at(job_state.schedule_at).do(self._submit_job, job_state).tag(job_state.job_name)
+        schedule.every().days.at(job_state.schedule_at).do(self._submit_job, job_state).tag(job_state.job_name)
+        #schedule.every(5).seconds.do(self._submit_job, job_state).tag(job_state.job_name)
 
     def save_job_state(self, job_state):
         jobs.save_job_state(job_state.job_name, job_state.to_map())
