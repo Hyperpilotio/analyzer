@@ -1,8 +1,10 @@
 import json
 import ast
+import math
 import pandas as pd
 import numpy as np
 import datetime
+
 from influxdb import DataFrameClient
 
 from config import get_config
@@ -10,6 +12,8 @@ from logger import get_logger
 
 config = get_config()
 
+STAT_TYPES = {"mean": "mean", "median": "50%", "50p": "50%", "95p": "95%",
+              "99p": "99%", "max": "max", "100p": "max"}
 
 class Status():
     SUCCESS = "success"
@@ -66,14 +70,15 @@ def container_memory_job(config, job_config, current_date):
 class SizingAnalyzer(object):
     def __init__(self, config):
         self.config = config
-        self.logger = get_logger(__name__, log_level=("JOBS", "LOGLEVEL"))
+        self.logger = get_logger(__name__, log_level=("UTILIZATION", "LOGLEVEL"))
 
         self.percentiles = ast.literal_eval(config.get("UTILIZATION", "PERCENTILES"))
-        self.stat_type = config.get("UTILIZATION", "DEFAULT_STAT")
+        self.stat_type = config.get("UTILIZATION", "DEFAULT_STAT_TYPE")
+        self.scaling_factor = float(self.config.get("UTILIZATION", "DEFAULT_SCALING_FACTOR"))
         
         #influx_host = config.get("INFLUXDB", "HOST")
         influx_host = "localhost"
-        influx_port = int(config.get("INFLUXDB", "PORT"))
+        influx_port = config.get("INFLUXDB", "PORT")
         influx_user = config.get("INFLUXDB", "USERNAME")
         influx_password = config.get("INFLUXDB", "PASSWORD")
         input_db = config.get("INFLUXDB", "SIZING_INPUT_DB_NAME")
@@ -97,12 +102,12 @@ class SizingAnalyzer(object):
         self.influx_client_output.create_retention_policy('sizing_result_policy', '4w', 1, default=True)
 
 
-    def analyze_node_cpu(self, start_time, end_time):
+    def analyze_node_cpu(self, start_time, end_time, stat_type=None, scaling_factor=None):
         print("-- [node_cpu] Query influxdb for raw metrics data --")
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND mode=~ /(user|system)/"
-        group_tags = "instance,time(1ms)"
+        group_tags = self.config.get("UTILIZATION", "NODE_GROUP_TAGS") + ",time(1ms)"
 
         metric_name = "node_cpu"
         try:
@@ -131,19 +136,36 @@ class SizingAnalyzer(object):
         self.logger.info("-- [node_cpu] Query influxdb for current node configs --")
 
         self.logger.info("-- [node_cpu] Compute sizing recommendation --")
-        # node_cpu_sizes = compute_sizing_recommendation(node_cpu_summary, stat_type)
+        node_cpu_sizes = self.compute_node_cpu_sizing_recommendation(node_cpu_summary, stat_type, scaling_factor)
+        print("Recommended node cpu sizes:", node_cpu_sizes)
 
         self.logger.info("-- [node_cpu] Store analysis results in mongodb --")
         # store_analysis_result(node_cpu_summary, node_cpu_sizes)
 
         return JobStatus(status=Status.SUCCESS)
 
+    def compute_node_cpu_sizing_recommendation(self, node_cpu_summary, stat_type, scaling_factor):
+        if stat_type is not None:
+            self.stat_type = stat_type
+
+        if scaling_factor is not None:
+            self.scaling_factor = scaling_factor
+
+        node_cpu_sizes = {}
+        stat_name = STAT_TYPES[self.stat_type]
+
+        for column in node_cpu_summary:
+            node_name = node_cpu_summary[column].name
+            node_cpu_sizes[node_name] = math.ceil(
+                node_cpu_summary.loc[stat_name, node_name] * self.scaling_factor)
+
+        return node_cpu_sizes
 
     def analyze_node_memory(self, start_time, end_time):
         self.logger.info("-- [node_memory] Query influxdb for raw metrics data --")
         output_filter = "value/1024/1024/1024"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
-        group_tags = "instance"
+        group_tags = self.config.get("UTILIZATION", "NODE_GROUP_TAGS")
 
         metric_name = "node_memory_Active"
         try:
@@ -217,7 +239,7 @@ class SizingAnalyzer(object):
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND image!=''"
-        group_tags = "image,pod_name,time(1ms)"
+        group_tags = self.config.get("UTILIZATION", "CONTAINER_CPU_GROUP_TAGS") + ",time(1ms)"
 
         metric_name = "container_cpu_user_seconds_total"
         try:
@@ -282,7 +304,7 @@ class SizingAnalyzer(object):
         output_filter = "max(value)/1024/1024 as value"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND image!=''"
-        group_tags = "image,time(5s)"
+        group_tags = self.config.get("UTILIZATION", "CONTAINER_MEM_GROUP_TAGS") + ",time(5s)"
 
         metric_name = "container_memory_working_set_bytes"
         try:
@@ -348,9 +370,9 @@ if __name__ == "__main__":
 
     job = sa.analyze_node_cpu(start_time, end_time)
     print(job.to_dict())
-    job = sa.analyze_node_memory(start_time, end_time)
-    print(job.to_dict())
-    job = sa.analyze_container_cpu(start_time, end_time)
-    print(job.to_dict())
-    job = sa.analyze_container_memory(start_time, end_time)
-    print(job.to_dict())
+#    job = sa.analyze_node_memory(start_time, end_time)
+#    print(job.to_dict())
+#    job = sa.analyze_container_cpu(start_time, end_time)
+#    print(job.to_dict())
+#    job = sa.analyze_container_memory(start_time, end_time)
+#    print(job.to_dict())
