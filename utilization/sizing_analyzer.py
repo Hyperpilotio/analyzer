@@ -75,6 +75,7 @@ class SizingAnalyzer(object):
         self.percentiles = ast.literal_eval(config.get("UTILIZATION", "PERCENTILES"))
         self.stat_type = config.get("UTILIZATION", "DEFAULT_STAT_TYPE")
         self.scaling_factor = float(self.config.get("UTILIZATION", "DEFAULT_SCALING_FACTOR"))
+        self.base_metric = config.get("UTILIZATION", "MEMORY_BASE_METRIC")
         
         #influx_host = config.get("INFLUXDB", "HOST")
         influx_host = "localhost"
@@ -131,12 +132,13 @@ class SizingAnalyzer(object):
                                  error="Unable to write query result back to influxDB: " + str(e))
             node_cpu_summary[node_name] = df.usage.describe(self.percentiles)
 
-        #print("node cpu usage summary: ", node_cpu_summary)
+        print("node cpu usage summary: ", node_cpu_summary)
 
         self.logger.info("-- [node_cpu] Query influxdb for current node configs --")
 
         self.logger.info("-- [node_cpu] Compute sizing recommendation --")
-        node_cpu_sizes = self.compute_node_cpu_sizing_recommendation(node_cpu_summary, stat_type, scaling_factor)
+        node_cpu_sizes = self.compute_node_cpu_sizing_recommendation(
+            node_cpu_summary, stat_type, scaling_factor)
         print("Recommended node cpu sizes:", node_cpu_sizes)
 
         self.logger.info("-- [node_cpu] Store analysis results in mongodb --")
@@ -157,11 +159,12 @@ class SizingAnalyzer(object):
         for column in node_cpu_summary:
             node_name = node_cpu_summary[column].name
             node_cpu_sizes[node_name] = math.ceil(
-                node_cpu_summary.loc[stat_name, node_name] * self.scaling_factor)
+                    node_cpu_summary[column][stat_name] * self.scaling_factor)
 
         return node_cpu_sizes
 
-    def analyze_node_memory(self, start_time, end_time):
+
+    def analyze_node_memory(self, start_time, end_time, stat_type=None, scaling_factor=None, base_metric=None):
         self.logger.info("-- [node_memory] Query influxdb for raw metrics data --")
         output_filter = "value/1024/1024/1024"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
@@ -221,17 +224,42 @@ class SizingAnalyzer(object):
                                  error="Unable to write query result back to influxDB: " + str(e))
             node_mem_summary[node_name, 'usage'] = df_usage.value.describe(self.percentiles)
 
-        #print("node memory usage summary: ", node_mem_summary)
+        print("node memory usage summary: ", node_mem_summary)
 
         self.logger.info("-- [node_memory] Query influxdb for current node configs --")
 
         self.logger.info("-- [node_memory] Compute sizing recommendation --")
-        # node_mem_sizes = compute_sizing_recommendation(node_mem_summary, stat_type)
+        node_mem_sizes = self.compute_node_mem_sizing_recommendation(
+            node_mem_summary, stat_type, scaling_factor, base_metric)
+        print("Recommended node memory sizes:", node_mem_sizes)
 
         self.logger.info("-- [node_memory] Store analysis results in mongodb --")
         # store_analysis_result(node_mem_summary, node_mem_sizes)
 
         return JobStatus(status=Status.SUCCESS)
+
+    def compute_node_mem_sizing_recommendation(self, node_mem_summary, stat_type, scaling_factor, base_metric):
+        if stat_type is not None:
+            self.stat_type = stat_type
+
+        if scaling_factor is not None:
+            self.scaling_factor = scaling_factor
+
+        if base_metric is not None:
+            self.base_metric = base_metric
+
+        node_mem_sizes = {}
+        stat_name = STAT_TYPES[self.stat_type]
+
+        for column in node_mem_summary:
+            col_keys = node_mem_summary[column].name
+            node_name = col_keys[0]
+            metric_type = col_keys[1]
+            if metric_type == self.base_metric:
+                node_mem_sizes[node_name] = math.ceil(
+                    node_mem_summary[column][stat_name] * self.scaling_factor)
+
+        return node_mem_sizes
 
 
     def analyze_container_cpu(self, start_time, end_time):
@@ -286,7 +314,7 @@ class SizingAnalyzer(object):
                                  error="Unable to write query result back to influxDB: " + str(e))
             container_cpu_summary[image_name] = df_usage.usage.describe(self.percentiles)
 
-        #print("container cpu usage summary: ", container_cpu_summary)
+        print("container cpu usage summary: ", container_cpu_summary)
 
         self.logger.info("-- [container_cpu] Query influxdb for current requests and limits --")
 
@@ -348,7 +376,7 @@ class SizingAnalyzer(object):
                                  error="Unable to write query result back to influxDB: " + str(e))
             container_mem_summary[image_name, 'usage'] = df_usage.value.describe(self.percentiles)
 
-        #print("container memory usage summary: ", container_mem_summary)
+        print("container memory usage summary: ", container_mem_summary)
 
         self.logger.info("-- [container_memory] Query influxdb for current requests and limits --")
 
@@ -370,9 +398,9 @@ if __name__ == "__main__":
 
     job = sa.analyze_node_cpu(start_time, end_time)
     print(job.to_dict())
-#    job = sa.analyze_node_memory(start_time, end_time)
-#    print(job.to_dict())
-#    job = sa.analyze_container_cpu(start_time, end_time)
-#    print(job.to_dict())
-#    job = sa.analyze_container_memory(start_time, end_time)
-#    print(job.to_dict())
+    job = sa.analyze_node_memory(start_time, end_time)
+    print(job.to_dict())
+    job = sa.analyze_container_cpu(start_time, end_time)
+    print(job.to_dict())
+    job = sa.analyze_container_memory(start_time, end_time)
+    print(job.to_dict())
