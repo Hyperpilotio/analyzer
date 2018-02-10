@@ -76,9 +76,8 @@ class SizingAnalyzer(object):
         self.stat_type = config.get("UTILIZATION", "DEFAULT_STAT_TYPE")
         self.scaling_factor = float(self.config.get("UTILIZATION", "DEFAULT_SCALING_FACTOR"))
         self.base_metric = config.get("UTILIZATION", "MEMORY_BASE_METRIC")
-        
-        #influx_host = config.get("INFLUXDB", "HOST")
-        influx_host = "localhost"
+
+        influx_host = config.get("INFLUXDB", "HOST")
         influx_port = config.get("INFLUXDB", "PORT")
         influx_user = config.get("INFLUXDB", "USERNAME")
         influx_password = config.get("INFLUXDB", "PASSWORD")
