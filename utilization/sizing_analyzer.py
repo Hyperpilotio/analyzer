@@ -7,11 +7,9 @@ import datetime
 
 from influxdb import DataFrameClient
 
-from config import get_config
 from logger import get_logger
 
-config = get_config()
-
+NANOSECONDS_PER_SECOND = 1000000000
 STAT_TYPES = {"mean": "mean", "median": "50%", "50p": "50%", "95p": "95%",
               "99p": "99%", "max": "max", "100p": "max"}
 
@@ -36,7 +34,7 @@ class JobStatus():
 def get_daily_timepair(current_date):
     today = datetime.datetime.combine(current_date, datetime.datetime.min.time())
     yesterday = today + datetime.timedelta(days=-1)
-    return yesterday.timestamp(), today.timestamp()
+    return yesterday.timestamp() * NANOSECONDS_PER_SECOND, today.timestamp() * NANOSECONDS_PER_SECOND
 
 def node_cpu_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
