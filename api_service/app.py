@@ -43,6 +43,9 @@ FEATURE_NAME = {"INTERFERENCE": "interference_management",
                 "BOTTLENECK": "bottleneck_management",
                 "EFFICIENCY": "efficiency_management"}
 
+# Create analyzer singleton to initialize it
+Analyzer()
+
 def init_rollbar():
     config = get_config()
     env_name = config.get("ANALYZER", "ROLLBAR_ENV_NAME")
@@ -60,8 +63,6 @@ def init_rollbar():
 
 @app.before_first_request
 def init_rollbar_on_flask():
-    # Create analyzer to initialize it
-    Analyzer()
     init_rollbar()
     # send exceptions from `app` to rollbar, using flask's signal system.
     got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
