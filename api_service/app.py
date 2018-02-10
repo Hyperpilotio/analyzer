@@ -60,6 +60,8 @@ def init_rollbar():
 
 @app.before_first_request
 def init_rollbar_on_flask():
+    # Create analyzer to initialize it
+    Analyzer()
     init_rollbar()
     # send exceptions from `app` to rollbar, using flask's signal system.
     got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
