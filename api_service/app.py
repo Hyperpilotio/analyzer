@@ -43,6 +43,9 @@ FEATURE_NAME = {"INTERFERENCE": "interference_management",
                 "BOTTLENECK": "bottleneck_management",
                 "EFFICIENCY": "efficiency_management"}
 
+# Create analyzer singleton to initialize it
+Analyzer()
+
 def init_rollbar():
     config = get_config()
     env_name = config.get("ANALYZER", "ROLLBAR_ENV_NAME")

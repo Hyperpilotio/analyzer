@@ -168,6 +168,7 @@ class JobsRunner(object):
         job_state.status = JobState.FAILED
         job_state.last_error = error
         logger.warning("Unable to run job after 3 attempts, aborting job")
+        self.save_job_state(job_state)
 
     def _submit_job(self, job_state, current_date=datetime.datetime.now().date()):
         self.logger.info("Submitting new job %s to be executed" % job_state.job_name)

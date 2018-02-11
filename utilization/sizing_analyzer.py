@@ -7,11 +7,9 @@ import datetime
 
 from influxdb import DataFrameClient
 
-from config import get_config
 from logger import get_logger
 
-config = get_config()
-
+NANOSECONDS_PER_SECOND = 1000000000
 STAT_TYPES = {"mean": "mean", "median": "50%", "50p": "50%", "95p": "95%",
               "99p": "99%", "max": "max", "100p": "max"}
 
@@ -36,7 +34,7 @@ class JobStatus():
 def get_daily_timepair(current_date):
     today = datetime.datetime.combine(current_date, datetime.datetime.min.time())
     yesterday = today + datetime.timedelta(days=-1)
-    return yesterday.timestamp(), today.timestamp()
+    return yesterday.timestamp() * NANOSECONDS_PER_SECOND, today.timestamp() * NANOSECONDS_PER_SECOND
 
 def node_cpu_job(config, job_config, current_date):
     analyzer = SizingAnalyzer(config)
@@ -75,9 +73,8 @@ class SizingAnalyzer(object):
         self.percentiles = ast.literal_eval(config.get("UTILIZATION", "PERCENTILES"))
         self.stat_type = config.get("UTILIZATION", "DEFAULT_STAT_TYPE")
         self.scaling_factor = float(self.config.get("UTILIZATION", "DEFAULT_SCALING_FACTOR"))
-        
-        #influx_host = config.get("INFLUXDB", "HOST")
-        influx_host = "localhost"
+
+        influx_host = config.get("INFLUXDB", "HOST")
         influx_port = config.get("INFLUXDB", "PORT")
         influx_user = config.get("INFLUXDB", "USERNAME")
         influx_password = config.get("INFLUXDB", "PASSWORD")
@@ -119,9 +116,10 @@ class SizingAnalyzer(object):
 
         metric_name = "node_cpu"
         try:
-            node_cpu_usage_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s %s GROUP BY %s" %
-                 (output_filter, metric_name, time_filter, tags_filter, group_tags))
+            cpu_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
+                        (output_filter, metric_name, time_filter, tags_filter, group_tags)
+            print("Running query for node cpu: " + cpu_query)
+            node_cpu_usage_dict = self.influx_client_input.query(cpu_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: " % (metric_name, str(e)))
@@ -172,27 +170,30 @@ class SizingAnalyzer(object):
 
         metric_name = "node_memory_Active"
         try:
-            node_mem_active_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s GROUP BY %s" %
-                 (output_filter, metric_name, time_filter, group_tags))
+            mem_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
+                 (output_filter, metric_name, time_filter, group_tags)
+            print("Running node memory query: " + mem_query)
+            node_mem_active_dict = self.influx_client_input.query(mem_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: " % (metric_name, str(e)))
 
         metric_name = "node_memory_MemTotal"
         try:
-            node_mem_total_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s GROUP BY %s" %
-                 (output_filter, metric_name, time_filter, group_tags))
+            mem_total_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
+                 (output_filter, metric_name, time_filter, group_tags)
+            print("Running node total memory query: " + mem_total_query)
+            node_mem_total_dict = self.influx_client_input.query(mem_total_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
 
         metric_name_free = "node_memory_MemFree"
         try:
-            node_mem_free_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s GROUP BY %s" %
-                 (output_filter, metric_name_free, time_filter, group_tags))
+            node_mem_free_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
+                 (output_filter, metric_name_free, time_filter, group_tags)
+            print("Running node memory free query: " + node_mem_free_query)
+            node_mem_free_dict = self.influx_client_input.query(node_mem_free_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name_free, str(e)))
@@ -262,18 +263,20 @@ class SizingAnalyzer(object):
 
         metric_name = "container_cpu_user_seconds_total"
         try:
-            container_cpu_user_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s %s GROUP BY %s" %
-                 (output_filter, metric_name, time_filter, tags_filter, group_tags))
+            container_cpu_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
+                 (output_filter, metric_name, time_filter, tags_filter, group_tags)
+            print("Running container cpu query: " + container_cpu_query)
+            container_cpu_user_dict = self.influx_client_input.query(container_cpu_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
 
         metric_name_sys = "container_cpu_system_seconds_total"
         try:
-            container_cpu_sys_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s %s GROUP BY %s" %
-                 (output_filter, metric_name_sys, time_filter, tags_filter, group_tags))
+            container_cpu_sys_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
+                 (output_filter, metric_name_sys, time_filter, tags_filter, group_tags)
+            print("Running container cpu sys query: " + container_cpu_sys_query)
+            container_cpu_sys_dict = self.influx_client_input.query(container_cpu_sys_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name_sys, str(e)))
@@ -329,18 +332,20 @@ class SizingAnalyzer(object):
 
         metric_name = "container_memory_working_set_bytes"
         try:
-            container_mem_active_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s %s GROUP BY %s" %
-                 (output_filter, metric_name, time_filter, tags_filter, group_tags))
+            container_mem_active_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
+                 (output_filter, metric_name, time_filter, tags_filter, group_tags)
+            print("Running container memory active query: " + container_mem_active_query)
+            container_mem_active_dict = self.influx_client_input.query(container_mem_active_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
 
         metric_name = "container_memory_usage_bytes"
         try:
-            container_mem_usage_dict = self.influx_client_input.query(
-                "SELECT %s FROM %s WHERE %s %s GROUP BY %s" %
-                 (output_filter, metric_name, time_filter, tags_filter, group_tags))
+            container_mem_usage_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
+                 (output_filter, metric_name, time_filter, tags_filter, group_tags)
+            print("Running container memory usage query: " + container_mem_usage_query)
+            container_mem_usage_dict = self.influx_client_input.query(container_mem_usage_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
