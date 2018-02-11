@@ -161,7 +161,7 @@ class SizingAnalyzer(object):
         if base_metric is not None:
             self.base_metric = base_metric
         else:
-            self.base_metric = config.get("UTILIZATION", "MEMORY_BASE_METRIC")
+            self.base_metric = self.config.get("UTILIZATION", "MEMORY_BASE_METRIC")
 
         self.logger.info("-- [node_memory] Query influxdb for raw metrics data --")
         output_filter = "value/1024/1024/1024"
