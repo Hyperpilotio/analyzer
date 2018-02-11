@@ -9,7 +9,7 @@ PYTHON_VERSION = $(shell $(PYTHON) --version)
 PY_VERSION_OK = $(shell $(PYTHON) -c 'import sys; print(int(sys.version_info >= (3, 6, 1)))')
 PIPENV = $(shell which pipenv)
 
-GUNICORN_ARGS = api_service.wsgi:app --access-logfile - --error-logfile - -k gevent --bind 0.0.0.0:5000 --log-level debug
+GUNICORN_ARGS = api_service.wsgi:app --access-logfile - --error-logfile - -k gevent --bind 0.0.0.0:5000 --log-level debug --workers=1
 
 init:
 	@if [ $(PY_VERSION_OK) = 0 ]; then\
@@ -42,7 +42,7 @@ dev:
 dev-py: dev
 
 docker-build:
-	docker build --no-cache -t $(ANALYZER_IMAGE):${TAG} .
+	docker build -t $(ANALYZER_IMAGE):${TAG} .
 
 docker-run: PORT ?= 5000
 docker-run:
