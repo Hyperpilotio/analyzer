@@ -8,6 +8,10 @@
     "labels": [
       "node_pool"
     ],
+    "config": {
+      "stat_type": "99p",
+      "scaling_factor": 1.25
+    },
     "results": [
       {
         "label_values": {
@@ -60,6 +64,11 @@
     "labels": [
       "node_pool"
     ],
+    "config": {
+      "stat_type": "99p",
+      "scaling_factor": 1.25,
+      "base_metric": "usage"
+    },
     "results": [
       {
         "label_values": {
@@ -127,6 +136,10 @@
       "app",
       "image"
     ],
+    "config": {
+      "stat_type": "99p",
+      "scaling_factor": 1.25
+    },
     "results": [
       {
         "label_values": {
@@ -186,6 +199,11 @@
       "app",
       "image"
     ],
+    "config": {
+      "stat_type": "99p",
+      "scaling_factor": 1.25,
+      "base_metric": "usage"
+    },
     "results": [
       {
         "label_values": {

@@ -8,6 +8,8 @@ import datetime
 from influxdb import DataFrameClient
 
 from logger import get_logger
+#from config import get_config
+#config = get_config()
 
 NANOSECONDS_PER_SECOND = 1000000000
 STAT_TYPES = {"mean": "mean", "median": "50%", "50p": "50%", "95p": "95%",
@@ -108,7 +110,7 @@ class SizingAnalyzer(object):
 
         self.base_metric = 'usage'
 
-        print("-- [node_cpu] Query influxdb for raw metrics data --")
+        self.logger.info("-- [node_cpu] Query influxdb for raw metrics data --")
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND mode=~ /(user|system)/"
@@ -118,7 +120,7 @@ class SizingAnalyzer(object):
         try:
             cpu_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
                         (output_filter, metric_name, time_filter, tags_filter, group_tags)
-            print("Running query for node cpu: " + cpu_query)
+            self.logger.debug("Running query for node cpu: %s" % cpu_query)
             node_cpu_usage_dict = self.influx_client_input.query(cpu_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
@@ -135,7 +137,8 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            node_cpu_summary[node_name, self.base_metric] = df.usage.describe(self.percentiles)
+            node_cpu_summary[node_name, self.base_metric] = df.usage.describe(
+                self.percentiles).drop(['count','std', 'min'])
 
         print("node cpu usage summary: ", node_cpu_summary)
 
@@ -170,10 +173,10 @@ class SizingAnalyzer(object):
 
         metric_name = "node_memory_Active"
         try:
-            mem_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
+            mem_active_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
                  (output_filter, metric_name, time_filter, group_tags)
-            print("Running node memory query: " + mem_query)
-            node_mem_active_dict = self.influx_client_input.query(mem_query)
+            self.logger.debug("Running node memory query: %s" % mem_active_query)
+            node_mem_active_dict = self.influx_client_input.query(mem_active_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: " % (metric_name, str(e)))
@@ -182,7 +185,7 @@ class SizingAnalyzer(object):
         try:
             mem_total_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
                  (output_filter, metric_name, time_filter, group_tags)
-            print("Running node total memory query: " + mem_total_query)
+            self.logger.debug("Running node total memory query: %s" % mem_total_query)
             node_mem_total_dict = self.influx_client_input.query(mem_total_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
@@ -190,10 +193,10 @@ class SizingAnalyzer(object):
 
         metric_name_free = "node_memory_MemFree"
         try:
-            node_mem_free_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
+            mem_free_query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % \
                  (output_filter, metric_name_free, time_filter, group_tags)
-            print("Running node memory free query: " + node_mem_free_query)
-            node_mem_free_dict = self.influx_client_input.query(node_mem_free_query)
+            self.logger.debug("Running node memory free query: %s" % mem_free_query)
+            node_mem_free_dict = self.influx_client_input.query(mem_free_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name_free, str(e)))
@@ -208,7 +211,8 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            node_mem_summary[node_name, 'active'] = df_active.value.describe(self.percentiles)
+            node_mem_summary[node_name, 'active'] = df_active.value.describe(
+                self.percentiles).drop(['count','std', 'min'])
 
         for k in node_mem_total_dict.keys():
             node_name = k[1][0][1]
@@ -223,7 +227,8 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Ststus.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            node_mem_summary[node_name, 'usage'] = df_usage.value.describe(self.percentiles)
+            node_mem_summary[node_name, 'usage'] = df_usage.value.describe(
+                self.percentiles).drop(['count','std', 'min'])
 
         print("node memory usage summary: ", node_mem_summary)
 
@@ -254,7 +259,15 @@ class SizingAnalyzer(object):
         return node_sizes
 
 
-    def analyze_container_cpu(self, start_time, end_time):
+    def analyze_container_cpu(self, start_time, end_time, stat_type=None, scaling_factor=None):
+        if stat_type is not None:
+            self.stat_type = stat_type
+
+        if scaling_factor is not None:
+            self.scaling_factor = scaling_factor
+
+        self.base_metric = 'usage'
+
         self.logger.info("-- [container_cpu] Query influxdb for raw metrics data --")
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
@@ -263,10 +276,10 @@ class SizingAnalyzer(object):
 
         metric_name = "container_cpu_user_seconds_total"
         try:
-            container_cpu_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
+            container_cpu_user_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
                  (output_filter, metric_name, time_filter, tags_filter, group_tags)
-            print("Running container cpu query: " + container_cpu_query)
-            container_cpu_user_dict = self.influx_client_input.query(container_cpu_query)
+            self.logger.debug("Running container cpu query: " + container_cpu_user_query)
+            container_cpu_user_dict = self.influx_client_input.query(container_cpu_user_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
                              error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
@@ -275,7 +288,7 @@ class SizingAnalyzer(object):
         try:
             container_cpu_sys_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
                  (output_filter, metric_name_sys, time_filter, tags_filter, group_tags)
-            print("Running container cpu sys query: " + container_cpu_sys_query)
+            self.logger.debug("Running container cpu sys query: " + container_cpu_sys_query)
             container_cpu_sys_dict = self.influx_client_input.query(container_cpu_sys_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
@@ -308,14 +321,16 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            container_cpu_summary[image_name] = df_usage.usage.describe(self.percentiles)
+            container_cpu_summary[image_name, self.base_metric] = df_usage.usage.describe(
+                self.percentiles).drop(['count','std', 'min'])
 
         print("container cpu usage summary: ", container_cpu_summary)
 
         self.logger.info("-- [container_cpu] Query influxdb for current requests and limits --")
 
         self.logger.info("-- [container_cpu] Compute requests and limits --")
-        # container_cpu_settings = compute_sizing_recommendation(container_cpu_summary, stat_type)
+        container_cpu_settings = self.compute_container_cpu_settings(container_cpu_summary)
+        print("Recommended container cpu settingss:", container_cpu_settings)
 
         self.logger.info("-- [container_cpu] Store analysis results in mongodb --")
         # store_analysis_result(container_cpu_summary, container_cpu_settings)
@@ -323,7 +338,33 @@ class SizingAnalyzer(object):
         return JobStatus(status=Status.SUCCESS)
 
 
-    def analyze_container_memory(self, start_time, end_time):
+    def compute_container_cpu_settings(self, container_cpu_summary):
+        container_cpu_settings = {}
+        stat_name = STAT_TYPES[self.stat_type]
+
+        for column in container_cpu_summary:
+            col_keys = container_cpu_summary[column].name
+            image_name = col_keys[0]
+            container_cpu_settings[image_name] = {
+                'requests': math.ceil(container_cpu_summary[column][stat_name]*100)/float(100),
+                'limits': math.ceil(container_cpu_summary[column][stat_name]*self.scaling_factor*100)/100.0
+            }
+
+        return container_cpu_settings
+
+
+    def analyze_container_memory(self, start_time, end_time, stat_type=None, scaling_factor=None, base_metric=None):
+        if stat_type is not None:
+            self.stat_type = stat_type
+
+        if scaling_factor is not None:
+            self.scaling_factor = scaling_factor
+
+        if base_metric is not None:
+            self.base_metric = base_metric
+        else:
+            self.base_metric = config.get("UTILIZATION", "MEMORY_BASE_METRIC")
+
         self.logger.info("-- [container_memory] Query influxdb for raw metrics data --")
         output_filter = "max(value)/1024/1024 as value"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
@@ -334,7 +375,7 @@ class SizingAnalyzer(object):
         try:
             container_mem_active_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
                  (output_filter, metric_name, time_filter, tags_filter, group_tags)
-            print("Running container memory active query: " + container_mem_active_query)
+            self.logger.debug("Running container memory active query: " + container_mem_active_query)
             container_mem_active_dict = self.influx_client_input.query(container_mem_active_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
@@ -344,7 +385,7 @@ class SizingAnalyzer(object):
         try:
             container_mem_usage_query = "SELECT %s FROM %s WHERE %s %s GROUP BY %s" % \
                  (output_filter, metric_name, time_filter, tags_filter, group_tags)
-            print("Running container memory usage query: " + container_mem_usage_query)
+            self.logger.debug("Running container memory usage query: " + container_mem_usage_query)
             container_mem_usage_dict = self.influx_client_input.query(container_mem_usage_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
@@ -361,7 +402,8 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            container_mem_summary[image_name, 'active'] = df_active.value.describe(self.percentiles)
+            container_mem_summary[image_name, 'active'] = df_active.value.describe(
+                self.percentiles).drop(['count','std', 'min'])
 
         for k, df_usage in container_mem_usage_dict.items():
             image_name = k[1][0][1]
@@ -372,19 +414,47 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            container_mem_summary[image_name, 'usage'] = df_usage.value.describe(self.percentiles)
+            container_mem_summary[image_name, 'usage'] = df_usage.value.describe(
+                self.percentiles).drop(['count','std', 'min'])
 
         print("container memory usage summary: ", container_mem_summary)
 
         self.logger.info("-- [container_memory] Query influxdb for current requests and limits --")
 
         self.logger.info("-- [container_memory] Compute requests and limits --")
-        # container_mem_settings = compute_sizing_recommendation(container_mem_summary, stat_type)
+        container_mem_settings = self.compute_container_mem_settings(container_mem_summary)
+        print("Recommended container memory settingss:", container_mem_settings)
 
         self.logger.info("-- [container_memory] Store analysis results in mongodb --")
         # store_analysis_result(container_mem_summary, container_mem_settings)
 
         return JobStatus(status=Status.SUCCESS)
+
+
+    def compute_container_mem_settings(self, container_mem_summary):
+        container_mem_settings = {}
+        stat_name = STAT_TYPES[self.stat_type]
+
+        for column in container_mem_summary:
+            col_keys = container_mem_summary[column].name
+            image_name = col_keys[0]
+            metric_type = col_keys[1]
+            if metric_type == 'active':
+                if image_name not in container_mem_settings:
+                    container_mem_settings[image_name] = {'requests': math.ceil(
+                        container_mem_summary[column][stat_name])}
+                else:
+                    container_mem_settings[image_name]['requests'] = math.ceil(
+                        container_mem_summary[column][stat_name])
+            else: # metric_type = 'usage'
+                if image_name not in container_mem_settings:
+                    container_mem_settings[image_name] = {'limits': math.ceil(
+                        container_mem_summary[column][stat_name] * self.scaling_factor)}
+                else:
+                    container_mem_settings[image_name]['limits'] = math.ceil(
+                        container_mem_summary[column][stat_name] * self.scaling_factor)
+
+        return container_mem_settings
 
 
 if __name__ == "__main__":
