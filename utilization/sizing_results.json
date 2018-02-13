@@ -3,8 +3,8 @@
     "object_type": "node",
     "resource": "cpu",
     "unit": "cores",
+    "start_time": 1517016159493000000,
     "end_time": 1517016459493000000,
-    "duration_days": 7,
     "labels": [
       "node_pool"
     ],
@@ -59,8 +59,8 @@
     "object_type": "node",
     "resource": "memory",
     "unit": "GB",
+    "start_time": 1517016159493000000,
     "end_time": 1517016459493000000,
-    "duration_days": 7,
     "labels": [
       "node_pool"
     ],
@@ -130,8 +130,8 @@
     "object_type": "container",
     "resource": "cpu",
     "unit": "cores",
+    "start_time": 1517016159493000000,
     "end_time": 1517016459493000000,
-    "duration_days": 7,
     "labels": [
       "app",
       "image"
@@ -193,8 +193,8 @@
     "object_type": "container",
     "resource": "memory",
     "unit": "MB",
+    "start_time": 1517016159493000000,
     "end_time": 1517016459493000000,
-    "duration_days": 7,
     "labels": [
       "app",
       "image"

@@ -7,13 +7,14 @@ import datetime
 
 from influxdb import DataFrameClient
 
+from api_service.db import resultdb
 from logger import get_logger
-#from config import get_config
-#config = get_config()
+from config import get_config
 
 NANOSECONDS_PER_SECOND = 1000000000
-STAT_TYPES = {"mean": "mean", "median": "50%", "50p": "50%", "95p": "95%",
-              "99p": "99%", "max": "max", "100p": "max"}
+STAT_TYPES = {'mean': "mean", 'median': "50%", '50p': "50%", '95p': "95%",
+              '99p': "99%", 'max': "max", '100p': "max"}
+
 
 class Status():
     SUCCESS = "success"
@@ -82,7 +83,7 @@ class SizingAnalyzer(object):
         influx_password = config.get("INFLUXDB", "PASSWORD")
         input_db = config.get("INFLUXDB", "SIZING_INPUT_DB_NAME")
         output_db = config.get("INFLUXDB", "SIZING_OUTPUT_DB_NAME")
-        mongo_result_db = config.get("MONGODB", "RESULT_DB_NAME")
+        self.results_collection = config.get("UTILIZATION", "SIZING_RESULTS_COLLECTION")
 
         self.influx_client_input = DataFrameClient(
             influx_host,
@@ -124,7 +125,7 @@ class SizingAnalyzer(object):
             node_cpu_usage_dict = self.influx_client_input.query(cpu_query)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to fetch %s from influxDB: " % (metric_name, str(e)))
+                             error="Unable to fetch %s from influxDB: %s" % (metric_name, str(e)))
 
         self.logger.info("-- [node_cpu] Compute summary stats --")
         node_cpu_summary = pd.DataFrame()
@@ -137,21 +138,47 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            node_cpu_summary[node_name, self.base_metric] = df.usage.describe(
+            node_key = "instance="+node_name
+            node_cpu_summary[node_key, self.base_metric] = df.usage.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
-        print("node cpu usage summary: ", node_cpu_summary)
+        self.logger.info("Computed node cpu usage summary:\n %s" % node_cpu_summary.to_json())
 
         self.logger.info("-- [node_cpu] Query influxdb for current node configs --")
 
         self.logger.info("-- [node_cpu] Compute sizing recommendation --")
-        node_cpu_sizes = self.compute_node_sizing_recommendation(node_cpu_summary)
-        print("Recommended node cpu sizes:", node_cpu_sizes)
+        recommended_cpu_sizes = self.compute_node_sizing_recommendation(node_cpu_summary)
+        self.logger.debug("Recommended node cpu sizes:\n %s" % recommended_cpu_sizes)
 
         self.logger.info("-- [node_cpu] Store analysis results in mongodb --")
-        # store_analysis_result(node_cpu_summary, node_cpu_sizes)
+        this_config = {
+            "stat_type": self.stat_type,
+            "scaling_factor": self.scaling_factor,
+            "base_metric": self.base_metric
+        }
+        #TODO: Need to replace this with a query
+        current_sizes = recommended_cpu_sizes
+        results = self.construct_analysis_results(
+            "cpu", node_cpu_summary, recommended_cpu_sizes, current_sizes)
+        sizing_result_doc = {
+                "object_type": "node",
+                "resource": "cpu",
+                "unit": "cores",
+                "start_time": start_time,
+                "end_time": end_time,
+                "labels": self.config.get("UTILIZATION", "NODE_GROUP_TAGS").split(","),
+                "config": this_config,
+                "results": results
+        }
 
-        return JobStatus(status=Status.SUCCESS)
+        try:
+            resultdb[self.results_collection].insert_one(sizing_result_doc)
+        except Exception as e:
+            return JobStatus(status=Status.DB_ERROR,
+                             error="Unable to write analysis results to MongoDB: " + str(e))
+
+        return JobStatus(status=Status.SUCCESS,
+                         data=sizing_result_doc)
 
 
     def analyze_node_memory(self, start_time, end_time, stat_type=None, scaling_factor=None, base_metric=None):
@@ -211,7 +238,8 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            node_mem_summary[node_name, 'active'] = df_active.value.describe(
+            node_key = "instance="+node_name
+            node_mem_summary[node_key, 'active'] = df_active.value.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
         for k in node_mem_total_dict.keys():
@@ -227,36 +255,47 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Ststus.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            node_mem_summary[node_name, 'usage'] = df_usage.value.describe(
+            node_key = "instance="+node_name
+            node_mem_summary[node_key, 'usage'] = df_usage.value.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
-        print("node memory usage summary: ", node_mem_summary)
+        self.logger.info("Computed node memory usage summary:\n %s" % node_mem_summary.to_json())
 
         self.logger.info("-- [node_memory] Query influxdb for current node configs --")
 
         self.logger.info("-- [node_memory] Compute sizing recommendation --")
-        node_mem_sizes = self.compute_node_sizing_recommendation(node_mem_summary)
-        print("Recommended node memory sizes:", node_mem_sizes)
+        recommended_mem_sizes = self.compute_node_sizing_recommendation(node_mem_summary)
+        self.logger.debug("Recommended node memory sizes:\n %s" %str(recommended_mem_sizes))
 
         self.logger.info("-- [node_memory] Store analysis results in mongodb --")
-        # store_analysis_result(node_mem_summary, node_mem_sizes)
+        this_config = {
+            "stat_type": self.stat_type,
+            "scaling_factor": self.scaling_factor,
+            "base_metric": self.base_metric
+        }
+        #TODO: Need to replace this with a query
+        current_sizes = recommended_mem_sizes
+        results = self.construct_analysis_results(
+            "memory", node_mem_summary, recommended_mem_sizes, current_sizes)
+        sizing_result_doc = {
+                "object_type": "node",
+                "resource": "memory",
+                "unit": "GB",
+                "start_time": start_time,
+                "end_time": end_time,
+                "labels": self.config.get("UTILIZATION", "NODE_GROUP_TAGS").split(","),
+                "config": this_config,
+                "results": results
+        }
 
-        return JobStatus(status=Status.SUCCESS)
+        try:
+            resultdb[self.results_collection].insert_one(sizing_result_doc)
+        except Exception as e:
+            return JobStatus(status=Status.DB_ERROR,
+                             error="Unable to write analysis results to MongoDB: " + str(e))
 
-
-    def compute_node_sizing_recommendation(self, node_summary):
-        node_sizes = {}
-        stat_name = STAT_TYPES[self.stat_type]
-
-        for column in node_summary:
-            col_keys = node_summary[column].name
-            node_name = col_keys[0]
-            metric_type = col_keys[1]
-            if metric_type == self.base_metric:
-                node_sizes[node_name] = math.ceil(
-                    node_summary[column][stat_name] * self.scaling_factor)
-
-        return node_sizes
+        return JobStatus(status=Status.SUCCESS,
+                         data=sizing_result_doc)
 
 
     def analyze_container_cpu(self, start_time, end_time, stat_type=None, scaling_factor=None):
@@ -272,7 +311,7 @@ class SizingAnalyzer(object):
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND image!=''"
-        group_tags = self.config.get("UTILIZATION", "CONTAINER_CPU_GROUP_TAGS") + ",time(1ms)"
+        group_tags = self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS") + ",pod_name,time(1ms)"
 
         metric_name = "container_cpu_user_seconds_total"
         try:
@@ -321,36 +360,47 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            container_cpu_summary[image_name, self.base_metric] = df_usage.usage.describe(
+            image_key = "image=" + image_name
+            container_cpu_summary[image_key, self.base_metric] = df_usage.usage.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
-        print("container cpu usage summary: ", container_cpu_summary)
+        self.logger.info("Computed container cpu usage summary:\n %s" % container_cpu_summary.to_json())
 
         self.logger.info("-- [container_cpu] Query influxdb for current requests and limits --")
 
         self.logger.info("-- [container_cpu] Compute requests and limits --")
-        container_cpu_settings = self.compute_container_cpu_settings(container_cpu_summary)
-        print("Recommended container cpu settingss:", container_cpu_settings)
+        recommended_cpu_settings = self.compute_container_cpu_settings(container_cpu_summary)
+        self.logger.debug("Recommended container cpu settingss:\n %s" % str(recommended_cpu_settings))
 
         self.logger.info("-- [container_cpu] Store analysis results in mongodb --")
-        # store_analysis_result(container_cpu_summary, container_cpu_settings)
+        this_config = {
+            "stat_type": self.stat_type,
+            "scaling_factor": self.scaling_factor,
+            "base_metric": self.base_metric
+        }
+        #TODO: Need to replace this with a query
+        current_settings = recommended_cpu_settings
+        results = self.construct_analysis_results(
+            "cpu", container_cpu_summary, recommended_cpu_settings, current_settings)
+        sizing_result_doc = {
+                "object_type": "container",
+                "resource": "cpu",
+                "unit": "cores",
+                "start_time": start_time,
+                "end_time": end_time,
+                "labels": self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS").split(","),
+                "config": this_config,
+                "results": results
+        }
 
-        return JobStatus(status=Status.SUCCESS)
+        try:
+            resultdb[self.results_collection].insert_one(sizing_result_doc)
+        except Exception as e:
+            return JobStatus(status=Status.DB_ERROR,
+                             error="Unable to write analysis results to MongoDB: " + str(e))
 
-
-    def compute_container_cpu_settings(self, container_cpu_summary):
-        container_cpu_settings = {}
-        stat_name = STAT_TYPES[self.stat_type]
-
-        for column in container_cpu_summary:
-            col_keys = container_cpu_summary[column].name
-            image_name = col_keys[0]
-            container_cpu_settings[image_name] = {
-                'requests': math.ceil(container_cpu_summary[column][stat_name]*100)/float(100),
-                'limits': math.ceil(container_cpu_summary[column][stat_name]*self.scaling_factor*100)/100.0
-            }
-
-        return container_cpu_settings
+        return JobStatus(status=Status.SUCCESS,
+                         data=sizing_result_doc)
 
 
     def analyze_container_memory(self, start_time, end_time, stat_type=None, scaling_factor=None, base_metric=None):
@@ -363,13 +413,13 @@ class SizingAnalyzer(object):
         if base_metric is not None:
             self.base_metric = base_metric
         else:
-            self.base_metric = config.get("UTILIZATION", "MEMORY_BASE_METRIC")
+            self.base_metric = self.config.get("UTILIZATION", "MEMORY_BASE_METRIC")
 
         self.logger.info("-- [container_memory] Query influxdb for raw metrics data --")
         output_filter = "max(value)/1024/1024 as value"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND image!=''"
-        group_tags = self.config.get("UTILIZATION", "CONTAINER_MEM_GROUP_TAGS") + ",time(5s)"
+        group_tags = self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS") + ",time(5s)"
 
         metric_name = "container_memory_working_set_bytes"
         try:
@@ -402,7 +452,8 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            container_mem_summary[image_name, 'active'] = df_active.value.describe(
+            image_key = "image=" + image_name
+            container_mem_summary[image_key, 'active'] = df_active.value.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
         for k, df_usage in container_mem_usage_dict.items():
@@ -414,22 +465,77 @@ class SizingAnalyzer(object):
             except Exception as e:
                 return JobStatus(status=Status.DB_ERROR,
                                  error="Unable to write query result back to influxDB: " + str(e))
-            container_mem_summary[image_name, 'usage'] = df_usage.value.describe(
+            image_key = "image=" + image_name
+            container_mem_summary[image_key, 'usage'] = df_usage.value.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
-        print("container memory usage summary: ", container_mem_summary)
+        self.logger.info("Computed container memory usage summary:\n %s" % container_mem_summary.to_json())
 
         self.logger.info("-- [container_memory] Query influxdb for current requests and limits --")
 
         self.logger.info("-- [container_memory] Compute requests and limits --")
-        container_mem_settings = self.compute_container_mem_settings(container_mem_summary)
-        print("Recommended container memory settingss:", container_mem_settings)
+        recommended_mem_settings = self.compute_container_mem_settings(container_mem_summary)
+        self.logger.debug("Recommended container memory settings:\n %s" % str(recommended_mem_settings))
 
         self.logger.info("-- [container_memory] Store analysis results in mongodb --")
-        # store_analysis_result(container_mem_summary, container_mem_settings)
+        this_config = {
+            "stat_type": self.stat_type,
+            "scaling_factor": self.scaling_factor,
+            "base_metric": self.base_metric
+        }
+        #TODO: Need to replace this with a query
+        current_settings = recommended_mem_settings
+        results = self.construct_analysis_results(
+            "memory", container_mem_summary, recommended_mem_settings, current_settings)
+        sizing_result_doc = {
+                "object_type": "container",
+                "resource": "memory",
+                "unit": "MB",
+                "start_time": start_time,
+                "end_time": end_time,
+                "labels": self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS").split(","),
+                "config": this_config,
+                "results": results
+        }
 
-        return JobStatus(status=Status.SUCCESS)
+        try:
+            resultdb[self.results_collection].insert_one(sizing_result_doc)
+        except Exception as e:
+            return JobStatus(status=Status.DB_ERROR,
+                             error="Unable to write analysis results to MongoDB: " + str(e))
 
+        return JobStatus(status=Status.SUCCESS,
+                         data=sizing_result_doc)
+
+
+    def compute_node_sizing_recommendation(self, node_summary):
+        node_sizes = {}
+        stat_name = STAT_TYPES[self.stat_type]
+
+        for column in node_summary:
+            col_keys = node_summary[column].name
+            node_key = col_keys[0]
+            metric_type = col_keys[1]
+            if metric_type == self.base_metric:
+                node_sizes[node_key] = {
+                    "size": math.ceil(node_summary[column][stat_name] * self.scaling_factor)
+                }
+
+        return node_sizes
+
+    def compute_container_cpu_settings(self, container_cpu_summary):
+        container_cpu_settings = {}
+        stat_name = STAT_TYPES[self.stat_type]
+
+        for column in container_cpu_summary:
+            col_keys = container_cpu_summary[column].name
+            container_key = col_keys[0]
+            container_cpu_settings[container_key] = {
+                "requests": math.ceil(container_cpu_summary[column][stat_name]*100)/float(100),
+                "limits": math.ceil(container_cpu_summary[column][stat_name]*self.scaling_factor*100)/100.0
+            }
+
+        return container_cpu_settings
 
     def compute_container_mem_settings(self, container_mem_summary):
         container_mem_settings = {}
@@ -437,38 +543,65 @@ class SizingAnalyzer(object):
 
         for column in container_mem_summary:
             col_keys = container_mem_summary[column].name
-            image_name = col_keys[0]
+            container_key = col_keys[0]
             metric_type = col_keys[1]
             if metric_type == 'active':
-                if image_name not in container_mem_settings:
-                    container_mem_settings[image_name] = {'requests': math.ceil(
-                        container_mem_summary[column][stat_name])}
+                requests = math.ceil(container_mem_summary[column][stat_name])
+                if container_key not in container_mem_settings:
+                    container_mem_settings[container_key] = {'requests': requests}
                 else:
-                    container_mem_settings[image_name]['requests'] = math.ceil(
-                        container_mem_summary[column][stat_name])
+                    container_mem_settings[container_key]['requests'] = requests
             else: # metric_type = 'usage'
-                if image_name not in container_mem_settings:
-                    container_mem_settings[image_name] = {'limits': math.ceil(
-                        container_mem_summary[column][stat_name] * self.scaling_factor)}
+                limits = math.ceil(container_mem_summary[column][stat_name] * self.scaling_factor)
+                if container_key not in container_mem_settings:
+                    container_mem_settings[container_key] = {'limits': limits}
                 else:
-                    container_mem_settings[image_name]['limits'] = math.ceil(
-                        container_mem_summary[column][stat_name] * self.scaling_factor)
+                    container_mem_settings[container_key]['limits'] = limits
 
         return container_mem_settings
 
+    def construct_analysis_results(self, resource_type, usage_summary, recommended_settings, current_settings):
+        summary_stats = {}
+        results = []
+
+        for column in usage_summary:
+            col_keys = usage_summary[column].name
+            label_key = col_keys[0]
+            metric_type = col_keys[1]
+            summary_type = resource_type + "_" + metric_type
+            if label_key not in summary_stats:
+                summary_stats[label_key] = {summary_type: usage_summary[column].to_dict()}
+            else:
+                summary_stats[label_key][summary_type] = usage_summary[column].to_dict()
+
+        for label_key in summary_stats:
+            label_values = {}
+            for label in label_key.split(","):
+                label_pair = label.split("=")
+                label_values[label_pair[0]] = label_pair[1]
+
+            results.append({
+                "label_values": label_values,
+                "summary_stats": summary_stats[label_key],
+                "current_settings": current_settings[label_key],
+                "recommended_settings": recommended_settings[label_key]
+            })
+
+        return results
+
 
 if __name__ == "__main__":
+    config = get_config()
     sa = SizingAnalyzer(config)
     end_time = 1517016459493000000
     ANALYSIS_WINDOW_SECOND = 300
-    NANOSECONDS_PER_SECOND = 1000000000
     start_time = end_time - ANALYSIS_WINDOW_SECOND * NANOSECONDS_PER_SECOND
 
-    job = sa.analyze_node_cpu(start_time, end_time)
-    print(job.to_dict())
-    job = sa.analyze_node_memory(start_time, end_time)
-    print(job.to_dict())
-    job = sa.analyze_container_cpu(start_time, end_time)
-    print(job.to_dict())
-    job = sa.analyze_container_memory(start_time, end_time)
-    print(job.to_dict())
+    status = sa.analyze_node_cpu(start_time, end_time)
+    print("Node cpu finished with status: " + str(status.to_dict()))
+    status = sa.analyze_node_memory(start_time, end_time)
+    print("Node memory finished with status: " + str(status.to_dict()))
+    status = sa.analyze_container_cpu(start_time, end_time)
+    print("Container cpu finished with status: " + str(status.to_dict()))
+    status = sa.analyze_container_memory(start_time, end_time)
+    print("Container memory finished with status: " + str(status.to_dict()))
