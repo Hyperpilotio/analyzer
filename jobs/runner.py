@@ -124,11 +124,11 @@ class JobsRunner(object):
         return cease_continuous_run
 
     def job_finish(self, fn, job_state):
+        job_state.running_at = None
+        job_state.finished_at = job_state.running_at
         if fn.cancelled():
             self.logger.warning("Job %s cancelled" % job_state.job_name)
         elif fn.done():
-            job_state.finished_at = job_state.running_at
-            job_state.running_at = None
             error = fn.exception()
             if error:
                 self.logger.warning("Job %s failed: %s" % (job_state.job_name, error))
