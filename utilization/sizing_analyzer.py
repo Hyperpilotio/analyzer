@@ -12,9 +12,6 @@ from logger import get_logger
 from config import get_config
 
 NANOSECONDS_PER_SECOND = 1000000000
-STAT_TYPES = {'mean': "mean", 'median': "50%", '50p': "50%", '95p': "95%",
-              '99p': "99%", 'max': "max", '100p': "max"}
-
 
 class Status():
     SUCCESS = "success"
@@ -142,6 +139,9 @@ class SizingAnalyzer(object):
             node_cpu_summary[node_key, self.base_metric] = df.usage.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
+        node_cpu_summary.rename(
+            index={'50%': "median", '95%': "p95", '99%': "p99"}, inplace=True)
+        node_cpu_summary = node_cpu_summary
         self.logger.info("Computed node cpu usage summary:\n %s" % node_cpu_summary.to_json())
 
         self.logger.info("-- [node_cpu] Query influxdb for current node configs --")
@@ -259,6 +259,8 @@ class SizingAnalyzer(object):
             node_mem_summary[node_key, 'usage'] = df_usage.value.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
+        node_mem_summary.rename(
+            index={'50%': "median", '95%': "p95", '99%': "p99"}, inplace=True)
         self.logger.info("Computed node memory usage summary:\n %s" % node_mem_summary.to_json())
 
         self.logger.info("-- [node_memory] Query influxdb for current node configs --")
@@ -364,6 +366,8 @@ class SizingAnalyzer(object):
             container_cpu_summary[image_key, self.base_metric] = df_usage.usage.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
+        container_cpu_summary.rename(
+            index={'50%': "median", '95%': "p95", '99%': "p99"}, inplace=True)
         self.logger.info("Computed container cpu usage summary:\n %s" % container_cpu_summary.to_json())
 
         self.logger.info("-- [container_cpu] Query influxdb for current requests and limits --")
@@ -469,6 +473,8 @@ class SizingAnalyzer(object):
             container_mem_summary[image_key, 'usage'] = df_usage.value.describe(
                 self.percentiles).drop(['count','std', 'min'])
 
+        container_mem_summary.rename(
+            index={'50%': "median", '95%': "p95", '99%': "p99"}, inplace=True)
         self.logger.info("Computed container memory usage summary:\n %s" % container_mem_summary.to_json())
 
         self.logger.info("-- [container_memory] Query influxdb for current requests and limits --")
@@ -510,7 +516,6 @@ class SizingAnalyzer(object):
 
     def compute_node_sizing_recommendation(self, node_summary):
         node_sizes = {}
-        stat_name = STAT_TYPES[self.stat_type]
 
         for column in node_summary:
             col_keys = node_summary[column].name
@@ -518,41 +523,39 @@ class SizingAnalyzer(object):
             metric_type = col_keys[1]
             if metric_type == self.base_metric:
                 node_sizes[node_key] = {
-                    "size": math.ceil(node_summary[column][stat_name] * self.scaling_factor)
+                    "size": math.ceil(node_summary[column][self.stat_type] * self.scaling_factor)
                 }
 
         return node_sizes
 
     def compute_container_cpu_settings(self, container_cpu_summary):
         container_cpu_settings = {}
-        stat_name = STAT_TYPES[self.stat_type]
 
         for column in container_cpu_summary:
             col_keys = container_cpu_summary[column].name
             container_key = col_keys[0]
             container_cpu_settings[container_key] = {
-                "requests": math.ceil(container_cpu_summary[column][stat_name]*100)/float(100),
-                "limits": math.ceil(container_cpu_summary[column][stat_name]*self.scaling_factor*100)/100.0
+                "requests": math.ceil(container_cpu_summary[column][self.stat_type]*100)/float(100),
+                "limits": math.ceil(container_cpu_summary[column][self.stat_type]*self.scaling_factor*100)/100.0
             }
 
         return container_cpu_settings
 
     def compute_container_mem_settings(self, container_mem_summary):
         container_mem_settings = {}
-        stat_name = STAT_TYPES[self.stat_type]
 
         for column in container_mem_summary:
             col_keys = container_mem_summary[column].name
             container_key = col_keys[0]
             metric_type = col_keys[1]
             if metric_type == 'active':
-                requests = math.ceil(container_mem_summary[column][stat_name])
+                requests = math.ceil(container_mem_summary[column][self.stat_type])
                 if container_key not in container_mem_settings:
                     container_mem_settings[container_key] = {'requests': requests}
                 else:
                     container_mem_settings[container_key]['requests'] = requests
             else: # metric_type = 'usage'
-                limits = math.ceil(container_mem_summary[column][stat_name] * self.scaling_factor)
+                limits = math.ceil(container_mem_summary[column][self.stat_type] * self.scaling_factor)
                 if container_key not in container_mem_settings:
                     container_mem_settings[container_key] = {'limits': limits}
                 else:
