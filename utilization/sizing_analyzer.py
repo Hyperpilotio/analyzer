@@ -80,6 +80,7 @@ class SizingAnalyzer(object):
         influx_password = config.get("INFLUXDB", "PASSWORD")
         input_db = config.get("INFLUXDB", "SIZING_INPUT_DB_NAME")
         output_db = config.get("INFLUXDB", "SIZING_OUTPUT_DB_NAME")
+        self.resultdb = resultdb
         self.results_collection = config.get("UTILIZATION", "SIZING_RESULTS_COLLECTION")
 
         self.influx_client_input = DataFrameClient(
@@ -157,11 +158,6 @@ class SizingAnalyzer(object):
         self.logger.info("Recommended node cpu sizes (in #cores):\n %s" % recommended_cpu_sizes)
 
         self.logger.info("-- [node_cpu] Store analysis results in mongodb --")
-        this_config = {
-            "stat_type": self.stat_type,
-            "scaling_factor": self.scaling_factor,
-            "base_metric": self.base_metric
-        }
         results = self.construct_analysis_results(
             "cpu", node_cpu_summary, recommended_cpu_sizes, current_cpu_sizes)
         sizing_result_doc = {
@@ -170,17 +166,14 @@ class SizingAnalyzer(object):
                 "unit": "cores",
                 "start_time": start_time,
                 "end_time": end_time,
-                "labels": self.config.get("UTILIZATION", "NODE_GROUP_TAGS").split(","),
-                "config": this_config,
+                "labels": group_tags.split(","),
+                "config": {},
                 "results": results
         }
-
         try:
-            resultdb[self.results_collection].insert_one(sizing_result_doc)
+            self.store_analysis_results(sizing_result_doc)
         except Exception as e:
-            self.logger.error("Unable to store sizing result doc in MongoDB: %s" % str(sizing_result_doc))
-            return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to store sizing result doc in MongoDB: " + str(e))
+            return JobStatus(status=Status.DB_ERROR, error=str(e))
 
         return JobStatus(status=Status.SUCCESS,
                          data=sizing_result_doc)
@@ -277,11 +270,6 @@ class SizingAnalyzer(object):
         self.logger.info("Recommended node memory sizes (in GB):\n %s" % recommended_mem_sizes)
 
         self.logger.info("-- [node_memory] Store analysis results in mongodb --")
-        this_config = {
-            "stat_type": self.stat_type,
-            "scaling_factor": self.scaling_factor,
-            "base_metric": self.base_metric
-        }
         results = self.construct_analysis_results(
             "memory", node_mem_summary, recommended_mem_sizes, current_mem_sizes)
         sizing_result_doc = {
@@ -290,17 +278,15 @@ class SizingAnalyzer(object):
                 "unit": "GB",
                 "start_time": start_time,
                 "end_time": end_time,
-                "labels": self.config.get("UTILIZATION", "NODE_GROUP_TAGS").split(","),
-                "config": this_config,
+                "labels": group_tags.split(","),
+                "config": {},
                 "results": results
         }
 
         try:
-            resultdb[self.results_collection].insert_one(sizing_result_doc)
+            self.store_analysis_results(sizing_result_doc)
         except Exception as e:
-            self.logger.error("Unable to store sizing result doc in MongoDB: %s" % str(sizing_result_doc))
-            return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to store sizing result doc in MongoDB: " + str(e))
+            return JobStatus(status=Status.DB_ERROR, error=str(e))
 
         return JobStatus(status=Status.SUCCESS,
                          data=sizing_result_doc)
@@ -319,19 +305,20 @@ class SizingAnalyzer(object):
         output_filter = "derivative(sum(value), 1s) as usage"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND image!=''"
-        group_tags = self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS") + ",pod_name,time(1ms)"
+        group_tags = self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS")
+        group_by_tags = group_tags + ",pod_name,time(1ms)"
 
         metric_name_usr = "container_cpu_user_seconds_total"
         try:
             container_cpu_user_dict = self.query_influx_metric(
-                metric_name_usr, output_filter, time_filter, tags_filter, group_tags)
+                metric_name_usr, output_filter, time_filter, tags_filter, group_by_tags)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR, error=str(e))
 
         metric_name_sys = "container_cpu_system_seconds_total"
         try:
             container_cpu_sys_dict = self.query_influx_metric(
-                metric_name_sys, output_filter, time_filter, tags_filter, group_tags)
+                metric_name_sys, output_filter, time_filter, tags_filter, group_by_tags)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR, error=str(e))
 
@@ -372,16 +359,16 @@ class SizingAnalyzer(object):
 
         self.logger.info("-- [container_cpu] Query influxdb for current requests and limits --")
         output_filter = "sum(value) as value"
-        group_tags = self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS") + ",pod_name,time(5s)"
+        group_by_tags = group_tags + ",pod_name,time(5s)"
         try:
             cpu_quota_dict = self.query_influx_metric(
-                "container_spec_cpu_quota", output_filter, time_filter, tags_filter, group_tags)
+                "container_spec_cpu_quota", output_filter, time_filter, tags_filter, group_by_tags)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR, error=str(e))
 
         try:
             cpu_period_dict = self.query_influx_metric(
-                "container_spec_cpu_period", output_filter, time_filter, tags_filter, group_tags)
+                "container_spec_cpu_period", output_filter, time_filter, tags_filter, group_by_tags)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR, error=str(e))
 
@@ -400,11 +387,6 @@ class SizingAnalyzer(object):
                          recommended_cpu_settings)
 
         self.logger.info("-- [container_cpu] Store analysis results in mongodb --")
-        this_config = {
-            "stat_type": self.stat_type,
-            "scaling_factor": self.scaling_factor,
-            "base_metric": self.base_metric
-        }
         results = self.construct_analysis_results(
             "cpu", container_cpu_summary, recommended_cpu_settings, current_cpu_settings)
         sizing_result_doc = {
@@ -413,17 +395,15 @@ class SizingAnalyzer(object):
                 "unit": "cores",
                 "start_time": start_time,
                 "end_time": end_time,
-                "labels": self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS").split(","),
-                "config": this_config,
+                "labels": group_tags.split(","),
+                "config": {},
                 "results": results
         }
 
         try:
-            resultdb[self.results_collection].insert_one(sizing_result_doc)
+            self.store_analysis_results(sizing_result_doc)
         except Exception as e:
-            self.logger.error("Unable to store sizing result doc in MongoDB: %s" % str(sizing_result_doc))
-            return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to store sizing result doc in MongoDB: " + str(e))
+            return JobStatus(status=Status.DB_ERROR, error=str(e))
 
         return JobStatus(status=Status.SUCCESS,
                          data=sizing_result_doc)
@@ -445,19 +425,20 @@ class SizingAnalyzer(object):
         output_filter = "max(value)/1024/1024 as value"
         time_filter = "time > %d AND time <= %d" % (start_time, end_time)
         tags_filter = "AND image!=''"
-        group_tags = self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS") + ",time(5s)"
+        group_tags = self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS")
+        group_by_tags = group_tags + ",time(5s)"
 
         metric_name = "container_memory_working_set_bytes"
         try:
             container_mem_active_dict = self.query_influx_metric(
-                metric_name, output_filter, time_filter, tags_filter, group_tags)
+                metric_name, output_filter, time_filter, tags_filter, group_by_tags)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR, error=str(e))
 
         metric_name = "container_memory_usage_bytes"
         try:
             container_mem_usage_dict = self.query_influx_metric(
-                metric_name, output_filter, time_filter, tags_filter, group_tags)
+                metric_name, output_filter, time_filter, tags_filter, group_by_tags)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR, error=str(e))
 
@@ -499,7 +480,7 @@ class SizingAnalyzer(object):
         self.logger.info("-- [container_memory] Query influxdb for current requests and limits --")
         try:
             mem_settings_dict = self.query_influx_metric(
-                "container_spec_memory_limit_bytes", output_filter, time_filter, tags_filter, group_tags)
+                "container_spec_memory_limit_bytes", output_filter, time_filter, tags_filter, group_by_tags)
         except Exception as e:
             return JobStatus(status=Status.DB_ERROR, error=str(e))
 
@@ -530,20 +511,18 @@ class SizingAnalyzer(object):
                 "unit": "MB",
                 "start_time": start_time,
                 "end_time": end_time,
-                "labels": self.config.get("UTILIZATION", "CONTAINER_GROUP_TAGS").split(","),
-                "config": this_config,
+                "labels": group_tags.split(","),
+                "config": {},
                 "results": results
         }
-
         try:
-            resultdb[self.results_collection].insert_one(sizing_result_doc)
+            self.store_analysis_results(sizing_result_doc)
         except Exception as e:
-            self.logger.error("Unable to store sizing result doc in MongoDB: %s" % str(sizing_result_doc))
-            return JobStatus(status=Status.DB_ERROR,
-                             error="Unable to store sizing result doc in MongoDB: " + str(e))
+            return JobStatus(status=Status.DB_ERROR, error=str(e))
 
         return JobStatus(status=Status.SUCCESS,
                          data=sizing_result_doc)
+
 
     def query_influx_metric(self, metric_name, output_filter, time_filter, tags_filter, group_by_tags):
         try:
@@ -557,7 +536,6 @@ class SizingAnalyzer(object):
             raise Exception(err_msg)
 
         return metric_dict
-
 
     def get_node_sizes(self, node_size_dict, output_name):
         current_sizes = {}
@@ -715,12 +693,25 @@ class SizingAnalyzer(object):
 
         return results
 
+    def store_analysis_results(self, sizing_result_doc):
+        sizing_result_doc["config"] = {
+            "stat_type": self.stat_type,
+            "scaling_factor": self.scaling_factor,
+            "base_metric": self.base_metric
+        }
+
+        try:
+            self.resultdb[self.results_collection].insert_one(sizing_result_doc)
+        except Exception as e:
+            self.logger.error("Unable to store sizing result doc in MongoDB: %s" % str(sizing_result_doc))
+            raise Exception("Unable to store sizing result doc in MongoDB: " + str(e))
+
 
 if __name__ == "__main__":
     config = get_config()
     sa = SizingAnalyzer(config)
     end_time = 1517016459493000000
-    ANALYSIS_WINDOW_SECOND = 60
+    ANALYSIS_WINDOW_SECOND = 300
     start_time = end_time - ANALYSIS_WINDOW_SECOND * NANOSECONDS_PER_SECOND
 
     status = sa.analyze_node_cpu(start_time, end_time)
